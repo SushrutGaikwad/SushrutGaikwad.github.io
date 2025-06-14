@@ -26,8 +26,8 @@ Consider $$d$$ binary input features represented as $$x_1$$, $$x_2$$, $$\dots$$,
 What this model does is something very simple. It first aggregates all the inputs, which is indicated by $$g$$, and then applies a basic threshold function $$f$$ on this aggregation. More precisely, the following is what happens. The inputs $$x_1$$, $$x_2$$, $$\dots$$, $$x_d$$ can be excitatory or inhibitory.
 
 - If any of the inputs $$x_j$$ (where $$j\in \{1, 2, \dots, d\}$$) is inhibitory:
-  - $$y=0$$
-- If none of the inputs $$x_j$$ are inhibitory:
+  - Then the output is $$y=0$$
+- Else if none of the inputs $$x_j$$ are inhibitory:
   - The function $$g$$ aggregates the inputs, i.e.,
 
     $$
@@ -61,6 +61,18 @@ What this model does is something very simple. It first aggregates all the input
     $$
 
     Here, $$\theta$$ is called the **thresholding parameter**. So, the output $$y$$ is $$1$$ if the aggregation (or the sum) of all the inputs is greater than or equal to the thresholding parameter $$\theta$$, and $$0$$ otherwise.
+
+Note that in Equation \eqref{eq:mp_neuron_thresholding_logic}, we are representing all the inputs $$x_1$$, $$x_2$$, $$\dots$$, $$x_d$$ collectively in the vector $$\mathbf{x}$$, which is given by
+
+$$
+\mathbf{x} =
+\begin{bmatrix}
+    x_1\\
+    x_2\\
+    \vdots\\
+    x_d
+\end{bmatrix}
+$$
 
 
 
