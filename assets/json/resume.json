@@ -90,74 +90,108 @@
   ],
   "publications": [
     {
-      "name": "Zur Elektrody/namik bewegter Körper",
-      "publisher": "Annalen der Physik",
-      "releaseDate": "1905-06-30",
-      "url": "https://en.wikisource.org/wiki/Translation:On_the_Electrodynamics_of_Moving_Bodies",
-      "summary": "It concerned an interpretation of the Michelson–Morley experiment and the properties of light and time. Special relativity incorporates the principle that the speed of light is the same for all inertial observers regardless of the state of motion of the source."
+      "name": "Harnessing deep learning for forecasting fire-burning locations and unveiling PM2.5 emissions",
+      "publisher": "Modeling Earth Systems and Environment",
+      "releaseDate": "2023-07-12",
+      "url": "https://link.springer.com/article/10.1007/s40808-023-01831-1",
+      "summary": "The paper applies spatiotemporal deep-learning architectures—specifically ConvLSTM and ConvGRU—to predict where crop-residue and forest fires will occur across India up to three days in advance. By coupling these forecasts with meteorological and vegetation indices, the authors produce dynamic PM2.5 emission estimates, achieving a correlation of ≈ 0.8 for next-day predictions and moderate skill for days two and three, suggesting a practical route to more accurate short-term air-quality forecasts."
     }
+
   ],
   "skills": [
     {
-      "name": "Physics",
+      "name": "Programming",
       "level": "Master",
       "icon": "fa-solid fa-hashtag",
       "keywords": [
-        "Quantum Mechanics",
-        "Quantum Computing",
-        "Quantum Information",
-        "Quantum Cryptography",
-        "Quantum Communication",
-        "Quantum Teleportation"
+        "Python",
+        "R",
+        "SQL",
+        "MATLAB",
+        "Object Oriented Programming",
+        "LaTeX"
+      ]
+    },
+    {
+      "name": "Data Science",
+      "level": "Master",
+      "icon": "fa-solid fa-hashtag",
+      "keywords": [
+        "Data Cleaning",
+        "Exploratory Data Analysis",
+        "Statistical Analysis",
+        "Feature Engineering",
+        "Feature Selection"
+      ]
+    },
+    {
+      "name": "Machine Learning",
+      "level": "Master",
+      "icon": "fa-solid fa-hashtag",
+      "keywords": [
+        "Time Series Forecasting",
+        "Predictive Modeling",
+        "Classification and Regression Analysis",
+        "Deep Learning"
+      ]
+    },
+    {
+      "name": "Frameworks",
+      "level": "Master",
+      "icon": "fa-solid fa-hashtag",
+      "keywords": [
+        "Scikit-learn",
+        "TensorFlow",
+        "PyTorch",
+        "MLFlow",
+        "Optuna"
+      ]
+    },
+    {
+      "name": "Libraries and Tools",
+      "level": "Master",
+      "icon": "fa-solid fa-hashtag",
+      "keywords": [
+        "Pandas",
+        "NumPy",
+        "Dask",
+        "FastAPI",
+        "Docker",
+        "Git and GitHub",
+        "DVC",
+        "Streamlit",
+        "PySpark",
+        "AWS",
+        "Excel"
+      ]
+    },
+    {
+      "name": "Visualization",
+      "level": "Master",
+      "icon": "fa-solid fa-hashtag",
+      "keywords": [
+        "Matplotlib",
+        "Seaborn",
+        "TensorBoard",
+        "Tableau"
       ]
     }
   ],
   "languages": [
     {
-      "language": "German",
+      "language": "English",
+      "fluency": "Fluent",
+      "icon": ""
+    },
+    {
+      "language": "Marathi",
       "fluency": "Native speaker",
       "icon": ""
     },
     {
-      "language": "English",
-      "fluency": "Fluent",
+      "language": "Hindi",
+      "fluency": "Native speaker",
       "icon": ""
-    }
-  ],
-  "interests": [
-    {
-      "name": "Physics",
-      "icon": "fa-solid fa-tag",
-      "keywords": [
-        "Quantum Mechanics",
-        "Quantum Computing",
-        "Quantum Information",
-        "Quantum Cryptography",
-        "Quantum Communication",
-        "Quantum Teleportation"
-      ]
-    }
-  ],
-  "references": [
-    {
-      "name": "Professor John Doe",
-      "icon": "fa-solid fa-laptop",
-      "reference": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam condimentum, diam quis convallis euismod, arcu mi ullamcorper lorem, a vestibulum nunc magna at sem. Sed in risus ac felis varius blandit. D"
-    },
-    {
-      "name": "Professor John Doe",
-      "icon": "fa-solid fa-thumbtack",
-      "reference": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam condimentum, diam quis convallis euismod, arcu mi ullamcorper lorem, a vestibulum nunc magna at sem. Sed in risus ac felis varius blandit. D"
-    }
-  ],
-  "projects": [
-    {
-      "name": "Quantum Computing",
-      "summary": "Quantum computing is the use of quantum-mechanical phenomena such as superposition and entanglement to perform computation. Computers that perform quantum computations are known as quantum computers.",
-      "highlights": ["Quantum Teleportation", "Quantum Cryptography"],
-      "startDate": "2018-01-01",
-      "endDate": "2018-01-01",
-      "url": "https://example.com"
     }
   ]
 }
