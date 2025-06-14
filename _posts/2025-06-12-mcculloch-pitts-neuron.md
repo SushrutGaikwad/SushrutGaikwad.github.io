@@ -25,22 +25,20 @@ Consider $$d$$ binary input features represented as $$x_1$$, $$x_2$$, $$\dots$$,
 
 What this model does is something very simple. It first aggregates all the inputs, which is indicated by $$g$$, and then applies a basic threshold function $$f$$ on this aggregation. More precisely, the following is what happens. The inputs $$x_1$$, $$x_2$$, $$\dots$$, $$x_d$$ can be excitatory or inhibitory.
 
-\begin{equation}
-\label{eq:cauchy-schwarz}
-\left( \sum_{k=1}^n a_k b_k \right)^2 \leq \left( \sum_{k=1}^n a_k^2 \right) \left( \sum_{k=1}^n b_k^2 \right)
-\end{equation}
-
 - If any of the inputs $$x_j$$ (where $$j\in \{1, 2, \dots, d\}$$) is inhibitory:
   - $$y=0$$
 - If none of the inputs $$x_j$$ are inhibitory:
   - The function $$g$$ aggregates the inputs, i.e.,
 
+    $$
     \begin{equation}\label{eq:mp_neuron_aggregation}
     g\left(x_1, x_2, \dots, x_d\right) = g\left(\mathbf{x}\right) = \sum_{j=1}^{d} x_j,
     \end{equation}
+    $$
 
     and the output $$y$$ is given by:
 
+    $$
     \begin{equation}\label{eq:mp_neuron_thresholding_logic}
     y = f (g (\mathbf{x})) =
     \begin{cases}
@@ -48,16 +46,19 @@ What this model does is something very simple. It first aggregates all the input
         0, & \text{if $g(\mathbf{x}) < \theta$}.
     \end{cases}
     \end{equation}
+    $$
 
     This can be more simply written as:
 
+    $$
     \begin{equation}\label{eq:mp_neuron_thresholding_logic_simpler}
-    y = f \left(x_1 + \cdots + x_d\right) =
+    y = f \left(x_1, \dots, x_d\right) =
     \begin{cases}
         1, & \text{if $x_1 + \cdots + x_d \geq \theta$},\\
         0, & \text{if $x_1 + \cdots + x_d < \theta$}.
     \end{cases}
     \end{equation}
+    $$
 
     Here, $$\theta$$ is called the **thresholding parameter**. So, the output $$y$$ is $$1$$ if the aggregation (or the sum) of all the inputs is greater than or equal to the thresholding parameter $$\theta$$, and $$0$$ otherwise.
 
