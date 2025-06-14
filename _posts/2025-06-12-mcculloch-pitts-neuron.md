@@ -7,10 +7,11 @@ math: true
 categories: [deep learning, neural network]
 tags: [mp-neuron, thresholding, boolean-functions, blog]
 image: /assets/img/blog_posts/mp_neuron/thumbnail.png
+bibliography: _bibliography/references.bib
 ---
 # Introduction
 
-McCulloch (a neuroscientist) and Pitts (a logician) proposed a highly simplified computational model of the biological neuron in 1943, known as the **McCulloch-Pitts (MP) neuron**, in their seminal paper<a id="cite1" href="#ref1"><sup>[1]</sup></a>. The goal was to try and mimic the biological neuron and check if some simple functions can be implemented.
+McCulloch (a neuroscientist) and Pitts (a logician) proposed a highly simplified computational model of the biological neuron in 1943, known as the **McCulloch-Pitts (MP) neuron**, in their seminal paper<cite>@mcculloch1943logical</cite>. The goal was to try and mimic the biological neuron and check if some simple functions can be implemented.
 
 # Thresholding Logic
 
@@ -87,7 +88,9 @@ $$
 
 # References
 
-<ol>
+{% bibliography --cited %}
+
+<!-- <ol>
   <li id="ref1">
     W. S. McCulloch and W. Pitts, “A logical calculus of the ideas immanent in nervous activity,” <i>The Bulletin of Mathematical Biophysics</i>, vol. 5, pp. 115–133, 1943. <a href="#cite1">[↩]</a>
   </li>
@@ -99,4 +102,4 @@ $$
   <li id="ref3">
     NPTEL-NOC IITM, “Deep Learning,” YouTube Playlist, 2019. [Online]. Available: <a href="https://youtube.com/playlist?list=PLyqSpQzTE6M9gCgajvQbc68Hk_JKGBAYT">https://youtube.com/playlist?list=PLyqSpQzTE6M9gCgajvQbc68Hk_JKGBAYT</a>. <a href="#cite3">[↩]</a>
   </li>
-</ol>
+</ol> -->
