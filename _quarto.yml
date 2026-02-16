@@ -73,9 +73,9 @@ format:
     link-external-newwindow: true
     math: mathjax
     theme:
-      light: flatly
       dark: darkly
-    default-mode: dark
+      light: flatly
+    # default-mode: dark
     # prefer-dark: true
     css: styles.css
     toc: true
