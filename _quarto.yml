@@ -45,6 +45,14 @@ website:
           - text: "Piano"
             icon: music-note-beamed
             href: piano/index.qmd
+  comments:
+    giscus:
+      repo: SushrutGaikwad/SushrutGaikwad.github.io
+      mapping: pathname
+      category: Announcements
+      reactions-enabled: true
+      input-position: top
+      theme: preferred_color_scheme
 
   page-footer:
     center: "© 2026 Sushrut Gaikwad"
