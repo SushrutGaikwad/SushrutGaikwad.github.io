@@ -5,7 +5,7 @@ project:
 
 website:
   title: "Sushrut's Mindscape"
-  # google-analytics: "G-Q6QS0KSEY6"
+  google-analytics: "G-Q6QS0KSEY6"
   open-graph: true
   description: >
     Sushrut's Mindscape is a personal knowledge archive documenting explorations
