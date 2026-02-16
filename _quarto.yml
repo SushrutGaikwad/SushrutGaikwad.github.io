@@ -76,7 +76,7 @@ format:
       light: flatly
       dark: darkly
     default-mode: dark
-    prefer-dark: true
+    # prefer-dark: true
     css: styles.css
     toc: true
     code-fold: true
