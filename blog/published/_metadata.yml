@@ -1,1 +1,8 @@
-comments: true
+comments:
+  giscus:
+    repo: SushrutGaikwad/SushrutGaikwad.github.io
+    mapping: pathname
+    category: Announcements
+    reactions-enabled: true
+    input-position: top
+    theme: preferred_color_scheme
