@@ -1,0 +1,35 @@
+# Quarto output
+_site/
+.quarto/
+
+# Python (if you use Python in notebooks)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+env/
+venv/
+
+# R (if applicable)
+.Rhistory
+.RData
+.Rproj.user/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# VSCode
+.vscode/
+
+# Logs
+*.log
+
+# Environment variables
+.env

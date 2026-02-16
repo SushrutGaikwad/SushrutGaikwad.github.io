@@ -1,0 +1,16 @@
+---
+title: "Projects"
+toc: false
+page-layout: full
+
+listing:
+  contents: "published/*/index.qmd"
+  type: grid
+  sort: "date desc"
+  fields: [image, title, description]
+  grid-columns: 3
+  image-height: "200px"
+  categories: true
+---
+
+A curated portfolio of my projects in data science, big data, machine learning, deep learning, and MLOps.

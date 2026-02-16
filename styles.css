@@ -1,0 +1,58 @@
+/* White backing behind linked SVGs */
+/* img[src$=".svg"] {
+  background: #fff;
+} */
+
+/* Explicitly declare light color scheme */
+/* :root {
+  color-scheme: light;
+} */
+
+/* Computer Modern webfonts */
+/* @import url("https://cdn.jsdelivr.net/gh/dreampulse/computer-modern-web-font@master/fonts.css"); */
+
+/* Make Bootstrap/Quarto use Computer Modern Sans everywhere */
+/* :root {
+  --bs-font-sans-serif: "Computer Modern Sans", system-ui, -apple-system, "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+} */
+
+/* body {
+  font-family: var(--bs-font-sans-serif);
+} */
+
+/* :root {
+  font-size: 19px;
+} */
+
+/* body {
+  line-height: 1.6;
+} */
+
+/* Only invert images you mark with .invert-dark */
+.quarto-dark img.invert-dark {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+/* Always invert images explicitly marked */
+.quarto-dark img.invert {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+/* Dark mode only: tame inline-code in headings & captions */
+.quarto-dark h1 code,
+.quarto-dark h2 code,
+.quarto-dark h3 code,
+.quarto-dark h4 code,
+.quarto-dark h5 code,
+.quarto-dark h6 code,
+.quarto-dark .figure-caption code,
+.quarto-dark figcaption code,
+.quarto-dark table td code,
+.quarto-dark table th code {
+  background-color: rgba(255, 255, 255, 0.08);
+  padding: 0.1em 0.3em;
+  border-radius: 0.25rem;
+  border: none;
+  font-family: var(--bs-font-monospace);
+}

@@ -1,0 +1,46 @@
+---
+title: "Time, Inception (Hans Zimmer)"
+date: 2020-08-10
+image: "images/thumbnail.jpg"
+categories: [Cinematic, New Age]
+tags: [Cover]
+# description: "."
+---
+
+# My Performance
+
+<iframe width="100%" height="400"
+src="https://www.youtube.com/embed/758oiXKFobk"
+title="Time (Inception) – Piano Cover"
+frameborder="0"
+allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+allowfullscreen>
+</iframe>
+
+# About the Piece
+
+*Time* was composed by Hans Zimmer for the movie Inception, and has since become one of the most recognizable pieces of modern film music. The version I play here is a [piano arrangement by Kyle Landry](https://youtu.be/JOtDS0vRwxg?si=-f9NamiIJhnt1fxn), whose arrangements often bring cinematic music naturally onto the piano.
+
+What makes this piece particularly interesting is its simplicity at the core. Much of the music is built around just four repeating chords, yet it never feels repetitive. Instead, the music slowly grows in intensity, creating a strong sense of emotional buildup before finally settling into a calm and peaceful conclusion.
+
+# Why This Piece
+
+I was drawn to *Time* because of how emotionally direct it feels. Even without knowing music theory, it's easy to sense the gradual increase in tension and depth as the piece progresses. The music feels reflective and introspective, almost like it's unfolding slowly rather than moving forward quickly.
+
+This was one of the first pieces that made me realize how powerful repetition can be in music when it's used thoughtfully.
+
+# Learning Experience
+
+This arrangement was challenging for me, especially because of the continuous left-hand arpeggios. At first, I struggled to play them evenly while keeping them soft enough so they wouldn't overpower the melody in the right hand. Coordinating both hands required a lot of slow practice and careful listening.
+
+One of the biggest lessons this piece taught me was balance. The left hand plays almost constantly, but it has to stay in the background, supporting the music rather than drawing attention to itself. Over time, I learned to focus more on shaping the melody while letting the accompaniment flow naturally underneath.
+
+# Musical Takeaway
+
+What I appreciate most about this piece is how it builds emotion gradually. There's no sudden climax. Instead, the intensity grows little by little, creating a sense of inevitability. By the end, the music feels resolved and peaceful, almost like everything has settled into place.
+
+For someone learning piano without formal training, this piece showed me that musical expression doesn't always come from complexity. Sometimes, it comes from patience, control, and letting simple ideas unfold over time.
+
+# Closing Thoughts
+
+*Time* remains one of my favorite cinematic piano pieces because it combines emotional depth with a clear, minimal structure. Learning it helped me develop control, listening skills, and a deeper appreciation for how music can tell a story without words.

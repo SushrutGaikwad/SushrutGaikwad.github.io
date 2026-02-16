@@ -1,0 +1,18 @@
+---
+title: "Stay Inquisitive!"
+listing:
+  contents: "published/*/index.qmd"
+  type: default
+  sort: date desc
+  categories: true
+  fields: [
+    title,
+    date,
+    categories,
+    # tags,
+    description,
+    reading-time
+  ]
+---
+
+I'm a firm believer in the Feynman technique, the idea that teaching is the best way to learn. This blog is my space to apply that method by breaking down complex ideas and explaining them in simple, intuitive terms. It helps me reinforce my own understanding, and I hope it helps you too. Thanks for stopping by, and happy reading!

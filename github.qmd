@@ -1,0 +1,63 @@
+---
+title: "GitHub"
+toc: false
+---
+
+A curated showcase of my GitHub projects and contributions. Explore my work in data science, machine learning, and open-source software.
+
+## GitHub Users
+
+<div class="gh-section">
+
+<div class="gh-card">
+<img src="https://github-readme-stats.vercel.app/api?username=SushrutGaikwad&show_icons=true&hide_title=false" alt="Sushrut Gaikwad's GitHub Stats">
+</div>
+
+<!-- <div class="gh-card">
+<img src="https://github-readme-stats.vercel.app/api/top-langs/?username=SushrutGaikwad&layout=compact&langs_count=8&card_width=445" alt="Top Languages">
+</div> -->
+
+<div class="gh-trophies">
+<img src="https://github-profile-trophy.vercel.app/?username=SushrutGaikwad&theme=flat&row=1&column=7&margin-w=10&margin-h=10" alt="GitHub Trophies">
+</div>
+
+</div>
+
+---
+
+## GitHub Repositories
+
+<div class="gh-repos">
+<a class="gh-repo" href="https://github.com/SushrutGaikwad/youtube-comments-analyzer" target="_blank" rel="noopener">
+<img src="https://github-readme-stats.vercel.app/api/pin/?username=SushrutGaikwad&repo=youtube-comments-analyzer" alt="youtube-comments-analyzer">
+</a>
+
+<a class="gh-repo" href="https://github.com/SushrutGaikwad/taxi-demand-prediction" target="_blank" rel="noopener">
+<img src="https://github-readme-stats.vercel.app/api/pin/?username=SushrutGaikwad&repo=taxi-demand-prediction" alt="taxi-demand-prediction">
+</a>
+
+<a class="gh-repo" href="https://github.com/SushrutGaikwad/spotify-recommender" target="_blank" rel="noopener">
+<img src="https://github-readme-stats.vercel.app/api/pin/?username=SushrutGaikwad&repo=spotify-recommender" alt="spotify-recommender">
+</a>
+
+<a class="gh-repo" href="https://github.com/SushrutGaikwad/swiggy-delivery-time-prediction" target="_blank" rel="noopener">
+<img src="https://github-readme-stats.vercel.app/api/pin/?username=SushrutGaikwad&repo=swiggy-delivery-time-prediction" alt="swiggy-delivery-time-prediction">
+</a>
+</div>
+
+<style>
+.gh-section { margin-top: .75rem; }
+.gh-card img {
+  max-width: 520px; width: 100%; height: auto;
+  border-radius: .5rem; box-shadow: 0 6px 18px rgba(0,0,0,.06);
+}
+.gh-trophies img { width: 100%; height: auto; margin-top: 1rem; border-radius: .5rem; }
+.gh-repos {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1rem; margin-top: 1rem;
+}
+.gh-repo img {
+  width: 100%; height: auto; border-radius: .6rem;
+  box-shadow: 0 6px 18px rgba(0,0,0,.06);
+}
+</style>

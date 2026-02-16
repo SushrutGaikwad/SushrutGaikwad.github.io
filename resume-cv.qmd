@@ -1,0 +1,328 @@
+---
+title: "Resume/CV"
+# author: "Sushrut Gaikwad"
+# date: last-modified
+format:
+  html:
+    toc: true
+    toc-depth: 2
+    number-sections: false
+    code-fold: true
+    link-external-newwindow: true
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+## Contact
+
+- **Name:** Sushrut Ishwar Gaikwad
+- **Location:** Buffalo, NY, USA
+- **Email:** `sushrut.ishwar.gaikwad [at] gmail [dot] com`
+- **LinkedIn:** [https://www.linkedin.com/in/sushrutgaikwad/](https://www.linkedin.com/in/sushrutgaikwad/)
+- **Website:** [https://sushrutgaikwad.github.io](https://sushrutgaikwad.github.io)
+
+---
+
+## Summary
+
+Data Scientist with strong experience designing and deploying ***end-to-end machine learning systems***, spanning ***data ingestion, statistical analysis, modeling, MLOps, and production deployment***. Proven ability to work across ***time-series, signal processing, NLP, recommender systems, spatiotemporal forecasting, and database-backed analytics***, with projects and internships translating theory into ***production-grade pipelines and applications***.
+
+Hands-on experience building ***reproducible ML workflows*** using ***DVC, MLflow/DagsHub, Optuna, Docker, and CI/CD***, and deploying models via ***FastAPI, Streamlit, and AWS***. Comfortable working from raw data and sensors through feature engineering, model evaluation, and scalable inference, with a strong foundation in ***statistical modeling, experimental rigor, and system design***. Known for clear technical communication, disciplined engineering practices, and research-informed problem solving.
+
+---
+
+## Work Experience
+
+### Machinery Monitoring Systems LLC — Remote, USA
+**Data Science / Machine Learning Intern**  
+**August 2025 – December 2025**
+
+Built a ***real-time end-to-end system*** for automated fault detection in rotating machinery using ***multivariate accelerometer time-series***. Designed the full workflow covering ***data collection, preprocessing, feature engineering, modeling, real-time inference, and UI integration***, with iterative experimentation using Agile practices.
+
+**Key contributions:**
+
+- Built a full ***data collection pipeline*** for a ***3-axis accelerometer*** connected to a rotor kit, capturing ***1024-sample waveform frames*** at high sampling rates.
+- Developed a ***threaded serial-communication system (Python)*** to parse raw hex sensor streams, reconstruct waveforms, remove DC components, compute ***rFFT features***, and store synchronized X–Y–Z triplets.
+- Collected and curated labeled datasets for ***normal, bearing fault, unbalance, misalignment, and looseness*** conditions; maintained clean, reproducible dataset organization.
+- Engineered ***time-domain and frequency-domain*** representations enabling ***dual-branch modeling*** (waveform + FFT).
+- Trained and evaluated advanced models including ***MiniROCKET + Ridge***, ***1D CNNs***, ***InceptionTime***, and ***fused waveform–FFT architectures***.
+- Achieved ≈***99%*** performance across accuracy / F1 / precision / recall / sensitivity / specificity on multi-class fault prediction (reported internally).
+- Built a ***Streamlit*** UI for real-time inference, waveform + FFT visualizations, confusion matrices, and model comparisons.
+- Conducted representation analysis using ***PCA*** and ***t-SNE*** to visualize fault separability in low-dimensional embeddings.
+- Followed software engineering best practices: modular codebase, OOP design, version control, reproducible pipelines, logging, and iterative experimentation.
+
+**Keywords:** time-series classification, vibration analysis, signal processing, rFFT, streaming inference, MiniROCKET, CNN, InceptionTime, Streamlit, Python, MLOps, reproducibility, PCA, t-SNE, Agile
+
+---
+
+### Indian Institute of Tropical Meteorology (IITM) — Pune, India
+
+**MS Student Data Science Intern / Research Intern**  
+**January 2022 – January 2023**
+
+Developed spatiotemporal deep learning models for forecasting environmental risk events (e.g., forest fires and stubble burning) using satellite imagery and atmospheric variables; supported operational decision-making and contributed to a peer-reviewed publication.
+
+**Highlights:**
+
+- Designed and evaluated ***ConvLSTM***-based spatiotemporal forecasting models over geospatial grids; achieved ***≈0.8 temporal correlation*** for 1-day-ahead forecasts (reported in project work).
+- Built automated pipelines for scalable preprocessing, storage, and visualization; collaborated with domain scientists to translate real-world forecasting goals into implementable modeling tasks.
+- Contributed to publication linking predicted fire-burning patterns to PM2.5 emission insights.
+
+**Keywords:** ConvLSTM, spatiotemporal forecasting, satellite imagery, environmental ML, geospatial grids, data pipelines, research collaboration
+
+---
+
+## Projects
+
+### YouTube Comments Analyzer (Chrome Extension + ML Pipeline + FastAPI)
+
+**Tech:** Python, scikit-learn, LightGBM, MLflow, Optuna, DVC, FastAPI, AWS (S3, ECR, EC2, CodeDeploy), Docker, Git, GitHub, GitHub Actions, JavaScript
+
+- Built an end-to-end sentiment analysis system for YouTube comments, including an ML pipeline, deployment automation, and a Chrome extension frontend.
+- Performed iterative ***EDA + preprocessing*** (missing values, duplicates, lemmatization, stopword handling with negation retention, n-grams, word clouds).
+- Built a baseline ***Random Forest + Bag-of-Words*** model and tracked experiments using ***MLflow on DagsHub***.
+- Improved performance through staged experiments: ***BoW vs TF-IDF***, unigram/bigram/trigram comparisons, feature-size tuning, imbalance handling (under-sampling, SMOTE variants).
+- Trained and tuned multiple models using ***Optuna***, selecting ***LightGBM*** as the final model based on consistent cross-metric performance.
+- Developed a reproducible training pipeline using ***DVC stages*** (ingestion → preprocessing → feature engineering → training → evaluation → model registry).
+- Built a ***FastAPI backend*** to serve predictions and visualizations (sentiment pie chart, word cloud, monthly trend graph) to a ***Chrome extension UI***.
+- Implemented ***CI/CD using GitHub Actions***, including model tests (load/signature/performance thresholds), automated promotion to production, and Docker deployment to AWS.
+
+---
+
+### Food Delivery Time Prediction (End-to-End Regression + MLOps)
+
+**Tech:** Python, Pandas, NumPy, scikit-learn, Optuna, MLflow, DVC, FastAPI, Docker, AWS (S3, ECR, EC2, CodeDeploy)
+
+- Built an ***end-to-end delivery time prediction system*** (45,593 rows, 20 features) ***including EDA → modeling → MLOps → deployment-ready API*** using ***Python*** and ***scikit-learn***.
+- Performed ***iterative data cleaning + profiling***, fixing hidden missing values (string-encoded `"NaN"`), trimming whitespace noise, resolving datatype issues, and validating missingness patterns using `missingno` visualizations.
+- Engineered high-impact features such as ***city extraction from rider IDs***, ***haversine distance + binned distance categories***, and ***datetime features*** (weekday/weekend, time-of-day buckets, pickup time minutes) to improve predictive signal.
+- Conducted statistically driven ***EDA*** using ***Chi-square tests***, ***ANOVA***, and ***Jarque–Bera normality testing***, identifying key drivers like ***traffic density***, ***distance***, ***festival effects***, and ***time-of-day trends***.
+- Developed reproducible preprocessing pipelines using `ColumnTransformer` + `Pipeline`, combining ***MinMax scaling***, ***one-hot encoding***, and ***ordinal encoding*** (traffic, distance bins), with ***Yeo–Johnson target transformation*** for improved regression behavior.
+- Established baseline regression models and evaluated trade-offs between ***dropping vs imputing missing values***, demonstrating stronger results when dropping missing rows (***MAE ≈ 4.73 min***, ***R² ≈ 0.60*** for linear regression).
+- Implemented advanced model experimentation with ***MLflow (DagsHub tracking)*** and ***Optuna Bayesian optimization***, comparing ***Random Forest***, ***Gradient Boosting***, ***XGBoost***, ***LightGBM***, ***KNN***, and ***SVM***, selecting ***LightGBM*** as best-performing (***MAE ≈ 3.05 min***, ***R² ≈ 0.84***).
+- Designed a full MLOps workflow with ***DVC pipelines (S3 remote)*** and production deployment plan using ***FastAPI + Swagger***, ***Docker containerization***, and scalable AWS architecture (***EC2 auto-scaling + load balancer***, API validation via ***Postman + stress testing***).
+
+---
+
+### Spotify Recommendation System (Hybrid Recommender + Scalable Processing)
+
+**Tech:** Python, Streamlit, Pandas, NumPy, Dask, scikit-learn, SciPy, Matplotlib, Seaborn, DVC Pipelines, Git, GitHub, GitHub Actions, AWS (S3, ECR, EC2, CodeDeploy)
+
+- Built an end-to-end ***Spotify Hybrid Song Recommender System*** combining ***Content-Based Filtering (CBF)*** and ***Item-Based Collaborative Filtering (CF)*** to improve personalization, diversity, CTR, and reduce churn.
+- Performed extensive ***EDA*** on ***50,683 Spotify tracks*** and ***9.7M+ user–song interaction records***, including missing value analysis, duplicate handling, and feature distribution insights.
+- Developed a ***content-based similarity engine*** using a rich feature pipeline with ***TF-IDF on tags***, ***one-hot encoding for categorical metadata***, ***frequency encoding***, and ***scaling for audio features***, followed by ***cosine similarity ranking***.
+- Implemented ***item-based collaborative filtering*** using a massive user–item space (≈30K songs × ≈1M users) and solved the memory bottleneck by using ***Dask + sparse interaction matrices*** for scalable similarity computation.
+- Designed a ***weighted hybrid recommender*** that combines CBF and CF similarity scores with tunable weights, including fixes for ***index misalignment*** and ***score-scale mismatch*** using sorting + min-max normalization.
+- Built an ***interactive Streamlit web app*** allowing users to select recommendation mode (CBF / CF / Hybrid), choose number of recommendations, and dynamically adjust hybrid weighting through a slider.
+- Created a reproducible ML/data workflow using a ***DVC pipeline*** with modular stages (cleaning → preparation → transformation → recommendation), enabling consistent data + artifact versioning and fast iteration.
+- Deployed the application using production-style infrastructure: ***Dockerized the app***, configured ***CI with GitHub Actions***, stored artifacts via ***S3 + DVC***, published images to ***ECR***, and automated rollout using ***EC2 + CodeDeploy (blue/green) + Auto Scaling + Load Balancer***.
+
+---
+
+### NYC Taxi Demand Prediction (Time Series Forecasting + App)
+
+**Tech:** Python, scikit-learn, LightGBM, MLflow, Optuna, DVC, FastAPI, AWS (S3, ECR, EC2, CodeDeploy), Docker, Git, GitHub, GitHub Actions, Streamlit
+
+- Built an ***end-to-end spatiotemporal taxi-demand forecasting system*** that predicts the ***next 15-minute pickup demand*** given a driver’s ***location (lat/long)*** and ***time***, using NYC Yellow Taxi trips from ***January to March 2016***.
+- Performed large-scale ***EDA with Dask*** to handle data that is too large for memory, identifying key demand drivers (especially ***time-of-day*** / ***day-of-week***) and diagnosing ***extreme outliers*** in location/distance/fare fields.
+- Cleaned the dataset by removing ***erroneous outliers***, then ***partitioned NYC into 30 data-driven regions*** using ***scaled lat/long*** + `MiniBatchKMeans`, selecting $k$ by targeting ***≈1–1.5 mile*** average distance to each region’s ***8 nearest neighbors***.
+- Converted raw trip logs into ***region-wise time series*** by ***resampling to 15-minute intervals*** and counting pickups per region, then applied ***EWMA smoothing*** ($\alpha = 0.4$) to stabilize short-term fluctuations.
+- Engineered forecasting features including ***4 lag demands*** ($t−1$ to $t−4$), ***day-of-week***, region identifiers, and smoothed demand; used a ***time-aware split*** (train: Jan–Feb, test: Mar).
+- Trained and evaluated a ***linear regression baseline*** that achieved about ***7.93% test MAPE*** (and ≈8.78% train MAPE), then ran ***Optuna-based model selection & hyperparameter tuning*** while tracking all runs in ***MLflow (hosted via DagsHub)*** and registering the best model.
+- Productionized the workflow as a reproducible ***DVC pipeline*** (data ingestion → cleaning → clustering → resampling/feature engineering → training → evaluation → registration), with artifacts versioned in ***S3 as the DVC remote***.
+- Delivered a ***Streamlit app*** that visualizes predicted demand on a region map (optionally ***current + 8 neighbors only***), and implemented ***CI tests (pytest) + CI/CD*** to containerize with ***Docker***, push to ***ECR***, and deploy via ***CodeDeploy*** to an ***EC2 Auto Scaling Group*** behind a ***load balancer***.
+
+---
+
+### Olist E-Commerce Database (PostgreSQL → SQLite + Streamlit App)
+
+**Tech:** SQL, PostgreSQL, SQLite, ER modeling, BCNF, Functional Dependencies, Joins, Aggregations, Subqueries, Window Functions, Indexing, Query Optimization, `EXPLAIN`, Streamlit
+
+- Built an end-to-end ***relational database application*** for the ***Olist Brazilian e-commerce dataset (≈100K orders, 2016–2018)***, supporting customers, sellers, products, orders, payments, reviews, and geolocation analytics.
+- Designed and implemented a ***normalized PostgreSQL schema (RAW)*** with primary keys, foreign keys, and relationship constraints reflecting marketplace entities and one-to-many relationships (customers → orders, orders → items/payments/reviews, sellers → items).
+- Performed ***global BCNF verification*** by identifying candidate keys + functional dependencies across all relations; introduced ***surrogate keys*** (`geolocation_id`, `review_record_id`) to resolve duplicate-record key issues and enforce BCNF at the schema level.
+- Developed and validated ***core CRUD + analytics SQL***: insert/update/delete workflows plus multi-table SELECTs for top revenue products, seller rating summaries, high-spending customers, and low-rated delivered orders.
+- Authored and executed ***advanced analytical queries*** using ***subqueries*** and ***window functions*** (e.g., `PERCENT_RANK`) to rank sellers within states and compute revenue/behavior metrics.
+- Conducted ***query performance analysis*** using `EXPLAIN` outputs, identifying expensive joins/group-bys and proposing improvements via indexing and better query structure for large-table scans.
+- Implemented ***indexing strategies*** (B-Tree; and discussed Hash indexes in PostgreSQL) and compared before/after runtime on heavy join queries (measured execution time improvements).
+- Migrated the system from ***PostgreSQL → SQLite*** using Python scripts (`create_db.py`, `index_db.py`) and deployed an interactive ***Streamlit*** web app enabling users to run custom SQL queries against the dataset.
+
+---
+
+## Technical Skills
+
+### Programming & Software Engineering
+
+- **Python (advanced)**: modular codebases, OOP design, threading & multiprocessing, structured logging  
+- **R**: statistical modeling, regression, time series analysis, forecasting  
+- **SQL**: complex joins, subqueries, window functions, query optimization (`EXPLAIN`)  
+- **MATLAB**: numerical computing and signal processing (academic use)  
+- Scripting & automation; reproducible research writing (**LaTeX**, **Quarto**, Markdown)
+
+### Data Science & Statistical Modeling
+
+- Exploratory Data Analysis (EDA) at scale (Pandas, Dask)  
+- Feature engineering for tabular, time-series, text, and geospatial data  
+- Regression, classification, and predictive modeling  
+- Model evaluation: cross-validation, bias–variance analysis, calibration, diagnostics  
+- Statistical testing: **ANOVA**, **chi-squared tests**, correlation analysis  
+- Dimensionality reduction & representation analysis (**PCA**, **t-SNE**)
+
+### Time Series, Signal Processing & Spatiotemporal ML
+
+- Time-series forecasting and classification  
+- Signal preprocessing: DC removal, normalization, smoothing (EWMA)  
+- Frequency-domain analysis: **rFFT**, spectral feature extraction  
+- Waveform-based modeling (raw signals + engineered spectra)  
+- Spatiotemporal modeling on geospatial grids  
+- Temporal resampling, lag feature construction, rolling statistics
+
+### Machine Learning & Deep Learning
+
+- **Classical ML**: Linear & Ridge Regression, Logistic Regression, Random Forests, LightGBM  
+- **Time-series ML**: **MiniROCKET**, feature-based classifiers  
+- **Deep Learning**:
+  - 1D CNNs for sequence modeling  
+  - **InceptionTime** architectures  
+  - **ConvLSTM** for spatiotemporal forecasting  
+- Model comparison across architectures and feature representations  
+- Hyperparameter optimization using **Optuna**
+
+### Natural Language Processing (NLP)
+
+- End-to-end **sentiment analysis pipelines**  
+- Text preprocessing: normalization, lemmatization, stopword handling (with negation retention)  
+- Feature extraction: **Bag-of-Words**, **TF-IDF**, n-grams (uni/bi/tri-grams)  
+- Class imbalance handling (under-sampling, SMOTE variants)  
+- Model selection and robustness evaluation
+
+### Recommender Systems
+
+- **Content-Based Filtering** using TF-IDF, one-hot & frequency encoding, scaled audio features  
+- **Item-Based Collaborative Filtering**  
+- Hybrid recommender design with weighted similarity fusion  
+- Large-scale similarity computation using **Dask** and sparse matrices  
+- Recommendation ranking, normalization, and evaluation strategies
+
+### Data Engineering & Pipelines
+
+- End-to-end ML and data pipelines  
+- Dataset versioning and lineage tracking with **DVC**  
+- Pipeline orchestration using DVC stages  
+- Scalable data ingestion, cleaning, transformation, and artifact management  
+- Schema-aware preprocessing and data validation
+
+### MLOps & Experimentation
+
+- **Experiment tracking** with **MLflow** (hosted via **DagsHub**)  
+- Metric logging, artifact tracking, and model registry workflows  
+- Reproducible experimentation and ablation studies  
+- Model testing: loadability, signature checks, performance thresholds  
+- CI-based validation prior to production promotion
+
+### Deployment, APIs & Applications
+
+- **FastAPI** for model serving and analytics APIs  
+- **Streamlit** for interactive ML applications and dashboards  
+- Dockerized ML services and applications  
+- REST-based inference services with visualization endpoints  
+- Backend integration for browser-based clients (Chrome Extension)
+
+### Cloud & DevOps
+
+- **AWS**: S3 (artifact storage), ECR, EC2, CodeDeploy  
+- Containerized deployment workflows  
+- CI/CD using **GitHub Actions**  
+- Blue/green deployment strategies  
+- Auto-scaling and load-balanced architectures (applied)
+
+### Databases & Analytics Engineering
+
+- Relational schema design and **ER modeling**  
+- Database normalization up to **BCNF**  
+- Functional dependency analysis  
+- PostgreSQL, SQLite  
+- Indexing strategies (B-Tree; PostgreSQL Hash index discussion)  
+- Analytical SQL for business and performance insights
+
+### Visualization & Reporting
+
+- Matplotlib, Seaborn  
+- Time-series visualizations  
+- Confusion matrices, ROC / PR analysis  
+- Streamlit dashboards for real-time inference and analytics  
+- Technical reporting for academic and production contexts
+
+### Reproducibility, Tooling & Collaboration
+
+- Git-based version control  
+- Reproducible ML workflows and pipelines  
+- Modular, testable codebases  
+- Agile experimentation and iterative development  
+- Cross-functional collaboration with domain experts
+
+---
+
+## Education
+
+### University at Buffalo, SUNY
+
+**MS in Engineering Science (Data Science)** — *GPA: 4.0/4.0*  
+**August 2024 – December 2025**  
+
+#### Courses
+
+- Introduction to Numerical Mathematics for Computing and Data Scientists
+- Introduction to Probability Theory for Data Scientists
+- Programming and Database Fundamentals for Data Scientists
+- Statistical Learning and Data Mining - I
+- Statistical Learning and Data Mining - II
+- Predictive Analytics
+- Data Intensive Computing
+- Introduction to Machine Learning
+- Data Models Query Language
+- Experiential Projects in Artificial Intelligence and Data Science
+
+---
+
+### Indian Statistical Institute (ISI) Kolkata
+
+**Post-Graduate Diploma in Applied Statistics (Data Analytics)** — *GPA: 9/10*  
+**September 2023 – August 2024**  
+
+#### Courses
+
+- Basic Statistics
+- Basic Probability
+- Statistical Methods
+- Survey Sampling
+- Introduction to Official Statistical System
+- Statistics and Economy
+- Introduction to R and Python
+- Multiple Regression
+- Advanced Regression
+- Time Series Analysis and Forecasting
+- Multivariate Statistics
+- Statistical Machine Learning
+
+---
+
+### Indian Institute of Science Education and Research (IISER) Pune
+
+**Integrated BS–MS Dual Degree (Science)**  
+**August 2017 – January 2023**
+
+---
+
+## Publications
+
+- **S. Gaikwad**, B. Kumar, *et al.*
+  *Harnessing deep learning for forecasting fire-burning locations and unveiling PM2.5 emissions.*
+  **Modeling Earth Systems and Environment**, 2024.  
+  DOI: [https://doi.org/10.1007/s40808-023-01831-1](https://doi.org/10.1007/s40808-023-01831-1)
+
+- **S. Gaikwad**
+  *Forecasting Air Pollutants using Deep Learning (MS Thesis).* 2022.  
+  Link: [http://dr.iiserpune.ac.in:8080/xmlui/handle/123456789/7524](http://dr.iiserpune.ac.in:8080/xmlui/handle/123456789/7524)

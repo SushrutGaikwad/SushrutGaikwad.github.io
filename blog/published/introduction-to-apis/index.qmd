@@ -1,0 +1,422 @@
+---
+title: "Introduction to APIs"
+draft: false
+author: "Sushrut"
+date: 2025-07-15
+description: "A practical introduction to APIs covering their types, protocols (REST, SOAP, GraphQL, gRPC, WebSocket), lifecycle, and authentication best practices."
+categories: [FastAPI]
+tags: [API, FastAPI, Blog]
+format:
+  html:
+    link-citations: true
+    smooth-scroll: true
+    math: mathjax
+    toc: true
+    # toc-location: left
+    # comments:
+    #   giscus: true
+bibliography: ../../../references/references.bib
+csl: ../../../references/apa.csl
+---
+
+# Understanding APIs
+
+## Definition
+
+An **Application Programming Interface** (**API**) is essentially a set of *rules and protocols* that allows different software applications to *communicate* with each other. It can be thought of as a *bridge* that connects different systems or services, enabling them to share data and functionalities *without directly interacting* with each other's underlying code.
+
+For example, say you want to build an app that displays the weather. One option is to collect and store real-time weather data at all locations yourself and display that in your app. Obviously, this is a cumbersome task. Another option is the following. There are some companies that collect and store this data. You can ask these companies and get access to this data so that you can display it in your app. Of course, the company will not allow you to directly access their database for security reasons. So, the company will build a specialized gate that can be accessed by individuals like you to collect data from this database. This gate is nothing but an API. This is how an API allows two applications (which in this case are your weather app and the company's database) to communicate with each other without either of them needing to directly interact with the other's code.
+
+## Key Features
+
+The key features of APIs are the following: APIs
+
+- Enable different systems, platforms, and applications to communicate and share data effortlessly.
+- Significantly reduce the time and effort required to develop applications by leveraging pre-built functionalities.
+- Enable systems to scale and adapt to growing or changing requirements.
+- Contribute to creating dynamic and responsive applications that offer better user experiences.
+- Allow organizations to expand their ecosystem and collaborate with external developers and partners.
+- Provide controlled and secure access to data, allowing organizations to share information with clients, partners, or the public.
+- Provide mechanisms to enforce security policies and ensure compliance with industry standards.
+- Can help organizations reduce operational and development costs.
+
+# Types of APIs
+
+## Web API
+
+**Web APIs** are APIs that are *accessible over the web* using HTTP/HTTPS protocols. In other words, these APIs allow applications to communicate over the internet. The data is usually shared in JSON/XML formats.
+
+Some examples are:
+
+- Fetching weather data from OpenWeather API.
+- Embedding Google Maps on a website.
+
+## Library API
+
+**Library APIs** are APIs provided by *libraries or frameworks* to expose specific functionality for developers. They allow developers to utilize predefined functions or methods without implementing them from scratch.
+
+Some examples are:
+
+- NumPy API: Provides functions for numerical computations.
+- TensorFlow API: Offers tools for building and training machine learning or deep learning models.
+- Matplotlib API: Allows creating visualizations programmatically.
+
+## Remote API
+
+**Remote APIs** are APIs designed to *interact with systems located on a different network or server*, often through the internet or intranet. Web API is a subset of remote API, i.e., *all web APIs are remote APIs, but not all remote APIs are web APIs*. Some remote APIs are intranet APIs, which can only be accessed within a private network.
+
+Some examples are:
+
+- Deploying virtual machines using AWS EC2 API.
+- Retrieving remote files stored in Google Drive through its API.
+
+## Database API
+
+**Database APIs** are APIs that allow applications to *interact with databases*. They provide a structured way to perform CRUD (Create, Read, Update, Delete) operations on a database.
+
+Some examples are:
+
+- MySQL Connector API: Enables interaction with MySQL databases.
+- MongoDB API: Allows CRUD operations on NoSQL data.
+- Firebase Realtime Database API: Facilitates real-time database interactions.
+
+## Hardware API
+
+**Hardware APIs** are APIs that enable software to *interact with physical hardware devices*. They provide an abstraction layer to control and retrieve data from devices without needing low-level programming.
+
+Some examples are:
+
+- GPU APIs like CUDA or OpenCL for performing parallel computations.
+- APIs for IoT devices such as sensors or smart appliances.
+- Using APIs to control drones or robots programmatically.
+
+## GUI API
+
+**GUI APIs** are APIs designed for *building and interacting with graphical user interfaces* (GUIs). They allow developers to create and manage GUI components programmatically.
+
+Some examples are:
+
+- Java Swing API: Provides tools to create desktop GUIs in Java.
+- Tkinter: A Python library for creating GUI applications.
+- Android SDK: Enables developers to build mobile app interfaces.
+
+# API Protocols
+
+API protocols are nothing but rules that an API should follow. There are different types of these protocols. Let us discuss them one by one.
+
+## REST
+
+The **REST protocol**, which is an abbreviation for *Representational State Transfer protocol*, is a lightweight architectural style that uses HTTP for communication. So, this protocol is mainly followed by web APIs. This protocol follows a set of principles, such as statelessness and resource representation using URLs. "Statelessness" essentially means that each API call is independent of the other. The most common HTTP methods in this protocol are GET, POST, PUT, and DELETE. Some use cases are web applications, mobile applications, and public APIs (like Twitter API, GitHub API).
+
+An example of a REST API call is the following:
+
+```http
+GET /users/123 HTTP/1.1
+Host: example.com
+```
+
+```json
+{
+    "id": 123,
+    "name": "John Doe",
+    "email": "john.doe@example.com"
+}
+```
+
+## SOAP
+
+The **SOAP protocol**, which is an abbreviation for *Simple Object Access protocol*, is a protocol that relies on XML messaging for communication. It is designed for more structured and secure interactions between the applications, and has built-in error handling and security (e.g., WS-Security).
+
+An example of a SOAP API call is the following:
+
+```xml
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+    <soap:Body>
+        <GetUserDetails>
+            <UserId>123</UserId>
+        </GetUserDetails>
+    </soap:Body>
+</soap:Envelope>
+```
+
+## GraphQL
+
+The **GraphQL protocol** allows clients to request only the data they need, reducing over-fetching and under-fetching. Clients specify the structure of the response. All queries are handled at one endpoint.
+
+An example of a GraphQL API is the following:
+
+```text
+{
+    user(id: "123") {
+        name
+        email
+        posts {
+            title
+            comments {
+                text
+            }
+        }
+    }
+}
+```
+
+## gRPC
+
+The **gRPC**, which is an abbreviation for *Google Remote Procedure Call*, is a high-performance RPC framework by Google using Protocol Buffers (Protobuf) for message serialization. It operates over HTTP/2, providing bi-directional streaming. It works across various programming languages and minimizes payload size.
+
+An example of gRPC is the following:
+
+```proto
+service UserService {
+    rpc GetUserDetails (UserRequest) returns (UserResponse);
+}
+message UserRequest {
+    int32 user_id = 1;
+}
+message UserResponse {
+    int32 user_id = 1;
+    string name = 2;
+    string email = 3;
+}
+```
+
+## WebSocket
+
+The **WebSocket** protocol is a protocol that provides a full-duplex communication over a single TCP connection. It enables continuous exchange of data without re-establishing the connection. It is ideal for real-time use cases due to its low latency. Some examples of use cases are chat applications, online gaming, and live data feeds.
+
+An example of the WebSocket API is the following:
+
+```js
+const socket = new WebSocket("ws://example.com/stocks");
+socket.onmessage = (event) => {
+    console.log("Stock update:", event.data);
+};
+```
+
+## Comparison between REST, SOAP, and GraphQL
+
+@tbl-api-protocol-comparison shows a comparison between the REST, SOAP, and GraphQL protocols.
+
+| **Feature**   | **REST**               | **SOAP**                   | **GraphQL**             |
+|:--------------|:----------------------:|:--------------------------:|:-----------------------:|
+| Data Format   | JSON, XML, etc.        | XML only                   | JSON only               |
+| Flexibility   | High                   | Low                        | Very High               |
+| Performance   | Fast                   | Slower                     | Efficient               |
+| Use Case      | Modern web APIs        | Enterprise applications    | Dynamic client needs    |
+
+: Comparison of REST, SOAP, and GraphQL API protocols. {#tbl-api-protocol-comparison style="width:100%; margin:auto;"}
+
+# Working of API
+
+Consider the same example of building an app that shows the weather that uses weather data provided by some company using an API. Now, let us understand the working of an API using this example.
+
+## Request Initiation
+
+The process begins when a client (like a web browser, mobile app, etc.) *initiates a request* to the API. This request is usually made using HTTP methods such as GET, POST, PUT, or DELETE.
+
+In the context of our weather app example, the weather app is the client. As both the systems are hosted on the web, HTTP is used for communication. The client (weather app) sends a request message to the API. It can perform multiple actions with the data it receives from the API. It may want to just retrieve the data, update the data, delete the data, or add some more data to it. Depending on which action the client wants to perform, an appropriate HTTP method like GET, POST, PUT, or DELETE will be used to make the request.
+
+## API Endpoint
+
+The request is sent to a specific URL, known as an **API endpoint**. This endpoint is like a *door* or a *gate* that the API has opened for requests.
+
+In the context of our weather app example, the API endpoint is the exact address or URL where the request is sent over the web.
+
+## Request Processing
+
+The server that has the API endpoint receives the request and processes it. This involves verifying the request parameters, checking authentication, accessing databases, etc.
+
+In the context of our weather app example, the server of the company that has the weather data will process the request sent by our weather app.
+
+## Response Generation
+
+After processing the request, the server generates a response. This response typically includes the requested data or a confirmation of the action performed.
+
+In the context of our weather app example, the server of the company, after processing the request sent by our weather app, generates a response depending upon the type of the request. The app may have requested the weather data at a given time. The server of the company generates the corresponding response containing this data.
+
+## Response Delivery
+
+The response generated by the server is sent back to the client. The client receives the response and uses the data to perform the desired action or display information to the user.
+
+In the context of our weather app example, once the server of the company generates the response of the weather data at a given time, it sends this data back to the weather app. The weather app can now use this data to show it to its users, or perform some more calculations on it.
+
+# API Components
+
+API components are the key building blocks of an API. Let us discuss about them.
+
+## Endpoint
+
+The **endpoint** of an API is a *specific URL* where the API can be accessed by a client to perform a certain action. It acts as a communication touchpoint between the client and the server. It usually includes path parameters and query parameters.
+
+For instance,
+
+- `https://www.amazon.com/` is an endpoint.
+- In `https://www.amazon.com/bestsellers`, the `bestsellers` is a path parameter.
+- Similarly, in `https://www.amazon.com/bestsellers/s?k=samsung`, the `?k=samsung` is a query parameter.
+
+## Request
+
+The **request** of an API is a *message* sent by a client to the API to ask for information or perform an operation. The key components of an API request are the following:
+
+- Method: Specifies the type of operation (e.g., GET, POST, PUT, DELETE).
+- Endpoint: The endpoint of the API where the request is being sent.
+- Headers: Provide metadata about the request, such as content type.
+- Body: Contains the data being sent to the server.
+
+The following is an example of an API request:
+
+```http
+POST /users HTTP/1.1
+Host: api.example.com
+Content-Type: application/json
+Authorization: Bearer token123
+Body:
+{
+    "name": "John Doe",
+    "email": "john.doe@example.com"
+}
+```
+
+## Response
+
+The **response** of an API is a *message* sent back by the API after processing the client's request. The key components of an API response are the following:
+
+- Status Code: Indicates the outcome of the request (e.g., success, error, etc.).
+- Headers: Metadata about the response, such as content type or caching instructions.
+- Body: The actual data being returned, typically in JSON, XML.
+
+The following is an example of an API response:
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+Body:
+{
+    "id": 123,
+    "name": "John Doe",
+    "email": "john.doe@example.com"
+}
+```
+
+## Rate Limiting and Quotas
+
+**Rate limiting** and **quotas** are mechanisms to *control the number of requests* a client can make within a specified time, mainly to prevent abuse and engage fair usage. The headers to enforce rate limiting are the following:
+
+- `X-RateLimit-Limit`: Maximum requests allowed.
+- `X-RateLimit-Remaining`: Requests remaining in the current window.
+- `Retry-After`: Time to wait before retrying.
+
+# API Lifecycle
+
+An API lifecycle refers to the end-to-end process that goes into developing an API. It refers to the comprehensive process of designing, developing, deploying, managing, and eventually retiring an API. It is a structured framework that ensures APIs are effective, scalable, secure, and meet business objectives. Understanding the API lifecycle is critical for maintaining high-quality API products and enhancing the user experience. Let us now discuss the stages in an API lifecycle.
+
+## Planning and Design
+
+The tasks carried out in this stage are the following:
+
+- Identify business goals, user needs, and the problems the API will solve.
+- Determine the target audience: developers, partners, or internal teams.
+- Define endpoints, request/response formats, and data models.
+- Follow design methodologies like REST, GraphQL, or gRPC.
+- Ensure adherence to API design best practices, such as intuitive endpoints, consistent naming, and proper versioning.
+- Tools: Postman, SwaggerHub, and Stoplight for API design and documentation.
+
+## Development
+
+The tasks carried out in this stage are the following:
+
+- The development phase involves implementing the API's backend logic and infrastructure.
+- Write the server-side code using programming frameworks like Flask, FastAPI, or Express.js.
+- Integrate authentication and security mechanisms.
+- Perform unit testing to validate individual functions and methods.
+- Tools: Git, Jenkins, Docker, or Kubernetes for CI/CD pipelines.
+
+## Deployment
+
+The tasks carried out in this stage are the following:
+
+- Involves releasing the API into a production environment where users can access it.
+- Deploy the API to staging, testing, and production environments.
+- Use cloud services like AWS, Azure, or GCP for scalability and reliability.
+- Set up an API gateway to manage routing, caching, and load balancing.
+- Popular gateways include AWS API Gateway, Kong, and Apigee.
+
+## Monitoring and Management
+
+The tasks carried out in this stage are the following:
+
+- Track performance metrics like response times, uptime, and error rates.
+- Gather usage data to understand traffic patterns, popular endpoints, and user behavior.
+- Identify areas for improvement or optimization.
+- Enforce rate limiting to prevent abuse.
+- Tools: Datadog, New Relic, and Grafana.
+
+## Updates and Versioning
+
+The tasks carried out in this stage are the following:
+
+- Ensure new updates do not break existing clients.
+- Provide clear migration paths if breaking changes are unavoidable.
+- Notify users in advance of deprecated features or versions.
+- Provide timelines and guidelines for transition.
+
+## Retirement
+
+The tasks carried out in this stage are the following:
+
+- When an API no longer serves its purpose, it is retired or deprecated.
+- Inform stakeholders and users about the API’s retirement well in advance.
+- Provide tools or resources to help users transition to newer APIs.
+- Archive or securely dispose of any stored data associated with the API.
+
+# API Authentication and Authorization
+
+When building an API, especially one that will be exposed to the public or clients, managing who can access it and ensuring the security of data is
+paramount. **Authentication and authorization** are two critical concepts that help in securing APIs and ensuring that only legitimate users can access resources.
+
+## Authentication
+
+**Authentication** is the process of verifying the identity of a user or system. It answers the question: *Who are you?*
+
+### Types of Authentication Mechanisms
+
+#### API Keys
+
+Authentication using **API keys** work by sending a key (usually a long string of characters) with each request to identify the client. It is typically used for public APIs or services where the user is not required to log in manually. It is easy to implement and widely supported. It can be intercepted if not transmitted over HTTPS and does not provide strong user verification.
+
+#### OAuth (Open Authorization)
+
+Authentication using **OAuth** is an open standard for access delegation commonly used for third-party authentication. It allows a user to grant a third-party application access to their resources without sharing their credentials. It is secure and allows fine-grained permissions. It is comparatively more complex to implement.
+
+#### JWT (JSON Web Tokens)
+
+Authentication using **JWT** is a compact and self-contained method for securely transmitting information between parties as a JSON object. It is commonly used for handling user authentication in stateless applications. There is no need to store session information server-side. However, tokens can become stale or vulnerable if not properly managed.
+
+#### Bearer Tokens
+
+**Bearer tokens** are a form of access token commonly used in API requests to authorize access to protected resources. These tokens are typically provided by an OAuth server or after a successful login. This is a secure and stateless authentication method.
+
+## Authorization
+
+**Authorization** is the process of determining what an authenticated user is allowed to do. It answers the question: *What can you do?*
+
+### Types of Authorization Mechanisms
+
+#### Role-Based Access Control (RBAC)
+
+RBAC is a common authorization method used to assign permissions based on user roles. The system defines roles (e.g., Admin, User, Manager) and each role has certain permissions associated with it. After a user is authenticated, the API checks the user’s role and grants or denies access based on predefined role permissions. It is simple to manage when there are clear roles.
+
+#### OAuth 2.0 and OpenID Connect (OIDC)
+
+**OAuth 2.0** is a widely used framework for authorization. **OIDC** is an identity layer on top of OAuth 2.0, which provides authentication features, in addition to OAuth's authorization features. OAuth 2.0 is typically used for delegating access to APIs on behalf of a user.
+
+## Best Practices for API Authentication and Authorization
+
+The following are the best practices for API authentication and authorization:
+
+- Ensure all authentication and authorization requests are transmitted over HTTPS to prevent man-in-the-middle (MITM) attacks.
+- Use hashing algorithms (e.g., bcrypt, Argon2) to store user passwords.
+- Set appropriate expiration times for tokens and use refresh tokens to allow users to renew their sessions without needing to re-authenticate.
+- Implement multi-factor authentication (MFA) where possible to increase the security of APIs.
+- Return generic error messages for failed authentication or authorization attempts to avoid exposing sensitive information.
+- Regularly review API logs to detect suspicious activity and to identify potential security breaches.

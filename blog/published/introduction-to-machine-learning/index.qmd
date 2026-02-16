@@ -1,0 +1,171 @@
+---
+title: "Introduction to Machine Learning"
+draft: false
+author: "Sushrut"
+date: 2025-12-24
+description: "A rigorous introduction to machine learning, covering its definition, core paradigms, and the role of data, with mathematical notation and intuitive examples."
+categories: [Machine Learning]
+tags: [Machine Learning, Blog]
+format:
+  html:
+    link-citations: true
+    smooth-scroll: true
+    math: mathjax
+    toc: true
+    fig-format: svg
+    # toc-location: left
+    # comments:
+    #   giscus: true
+bibliography: ../../../references/references.bib
+csl: ../../../references/apa.csl
+execute: 
+  enabled: true
+  fig-format: svg
+---
+
+# Introduction
+
+Arthur Samuel -@samuel1959some coined the term **Machine Learning** (ML). He wrote a program that learnt to play checkers by playing it against itself. There was no explicit programming of any strategy. With more experience, it eventually started playing checkers better than Arthur Samuel himself. What I mean by "experience" here is training data. As the amount of training data increased, i.e., as the machine played more games against itself, the better player it became.
+
+Tom Mitchell -@learning1997tom defines ML as:
+
+> "A computer program is said to learn from experience $E$ with respect to some class of tasks $T$ and performance measure $P$, if its performance at tasks in $T$, as measured by $P$, improves with experience $E$."
+
+ML is a *subfield* of Artificial Intelligence (AI), which is a much broader field. Loosely, AI deals with building programs that operate at the very highest level. ML is one approach to implement these programs. AI can have programs that do not use any data. However, data is a key requirement for ML. In recent years, advancements in ML, particularly in deep learning (which includes generative AI), have stirred up a lot of interest in AI.
+
+## Training Data and Test Data
+
+These two types of data are very fundamental yet extremely crucial for any ML algorithm.
+
+- The **training data** is the data using which the ML algorithm learns to solve the problem by recognizing patterns.
+- The **test data** is the data which is used to test the learned ML algorithm's performance.
+
+The ML algorithm does not see the test data during training. Hence, its performance on the test data is a decent indicator of its performance.
+
+To understand this difference better, consider this analogy. A student is like an ML algorithm. The exercises in their book are like training data. They try to grasp the concepts by solving these exercises. The questions on an exam are like test data. The questions on the exam are similar to the ones in the book, but not the same. The student has not seen the exam questions before. Hence, the student's performance on the exam is a good indicator of how well they have grasped the concepts.
+
+# Machine Learning Paradigms
+
+## Supervised Learning
+
+The **supervised learning** paradigm of ML involves having input-output pairs in the training data. Each data point corresponds to a particular input-output pair. We show the ML algorithm the input and its corresponding correct output and let it learn the correct relationship between them such that when a new input that the algorithm has not seen before is shown to it, it produces the correct output. So, we are *supervising* the algorithm's learning. More technically, supervised learning amounts to learning the correct input to output mapping present in the training data.
+
+Say we have a total of $n$ training data points. As mentioned before, each of these data points corresponds to a particular input-output pair. Generally each input is made up of $d$ **predictors** (sometimes also known as **features** or **attributes**), and a single output. So, each input can be thought of as a (column) vector given by
+
+$$
+\vb{x}_i =
+\begin{bmatrix}
+  x_1\\
+  x_2\\
+  \vdots\\
+  x_d
+\end{bmatrix},
+$$
+
+i.e., $\vb{x}_i \in \mathbb{R}^{d}$, and the output corresponding to this input is denoted as $y_i$ (where $i \in \{1, 2, \dots, n\}$). We can collectively view the entire training data inside a matrix in the following way:
+
+$$
+\text{Training data} =
+  \left[
+    \begin{matrix}
+      \leftarrow & \vb{x}_1^{\intercal} & \rightarrow\\
+      \leftarrow & \vb{x}_2^{\intercal} & \rightarrow\\
+      \vdots & \vdots & \vdots\\
+      \leftarrow & \vb{x}_n^{\intercal} & \rightarrow
+    \end{matrix}
+    \;
+    \left|
+      \;
+      \begin{matrix}
+        y_1\\
+        y_2\\
+        \vdots\\
+        y_n\\
+      \end{matrix}
+    \right.
+  \right] =
+  \begin{bmatrix}
+    x_{11} & x_{12} & \cdots & x_{1d} & y_1\\
+    x_{21} & x_{22} & \cdots & x_{2d} & y_2\\
+    \vdots & \vdots & \vdots & \ddots & \vdots\\
+    x_{n1} & x_{n2} & \cdots & x_{nd} & y_n\\
+  \end{bmatrix}.
+$$
+
+This means we can separate out all the inputs and put them in the following matrix:
+
+$$
+\vb{X} \in \mathbb{R}^{n\times d} =
+\begin{bmatrix}
+  \leftarrow & \vb{x}_1^{\intercal} & \rightarrow\\
+  \leftarrow & \vb{x}_2^{\intercal} & \rightarrow\\
+  \vdots & \vdots & \vdots\\
+  \leftarrow & \vb{x}_n^{\intercal} & \rightarrow
+\end{bmatrix}
+=
+\begin{bmatrix}
+  x_{11} & x_{12} & \cdots & x_{1d}\\
+  x_{21} & x_{22} & \cdots & x_{2d}\\
+  \vdots & \vdots & \ddots & \vdots\\
+  x_{n1} & x_{n2} & \cdots & x_{nd}\\
+\end{bmatrix},
+$$
+
+and their corresponding outputs in the following vector:
+
+$$
+\vb{y} \in \mathbb{R}^{n} =
+\begin{bmatrix}
+  y_1\\
+  y_2\\
+  \vdots\\
+  y_n
+\end{bmatrix}.
+$$
+
+Hence, in literature, all the inputs are collectively denoted with $\vb{X}$ and all the outputs are collectively denoted as $\vb{y}$.
+
+### Regression
+
+**Regression** is a type of supervised learning paradigm in which the output of each data point is a real number, i.e., $y_i \in \mathbb{R}$ for all $i \in \{1, 2, \dots, n\}$. An example is the following:
+
+- House price prediction:
+  - Input ($\vb{x}_i \in \mathbb{R}^{d}$): Attributes of the house, e.g., area ($x_{i1}$), number of rooms ($x_{i2}$), date of construction ($x_{i3}$), etc.
+  - Output ($y_i \in \mathbb{R}$): Price of the house.
+
+### Classification
+
+**Classification** is a type of supervised learning paradigm in which the output of each data point is categorical, i.e., $y_i \in \{1, 2, \dots, k\}$ for all $i \in \{1, 2, \dots, n\}$. You can also think of it as each input having a label stuck on it, and there are $k$ different types of these labels. In other words, each input belongs to a particular *class* from a total of $k$ classes. The label on the input can be thought of as the *class label*. An example is the following:
+
+- Tumor classification:
+  - Input ($\vb{x}_i \in \mathbb{R}^{d}$): Attributes of the tumor, e.g., color ($x_{i1}$), thickness ($x_{i2}$), size ($x_{i3}$), etc.
+  - Ouput ($y_i \in \{1, 2\}$): Whether the tumor is malignant or benign.
+
+The classification paradigm in which $k=2$ is called *binary classification*. Also, in practice, class labels are often encoded numerically, but the output remains categorical in nature.
+
+## Unsupervised Learning
+
+The **unsupervised learning** paradigm of ML does not explicitly distinguish between input-output. It involves simply providing the ML algorithm with the data and let it detect some interesting patterns in it.
+
+An example is customer segmentation. This involves clustering customers into various groups using their purchase data. The ML algorithm is expected to learn their purchase habits from the data and divide them into meaningful groups. The groups, for instance, can be "high-value frequent buyers", "occasional / casual buyers", "bargain hunters", "bulk / stock-up buyers", etc. Note that we cannot determine these groups using our own imagination. They are supposed to be discovered in the data by the algorithm in the learning process.
+
+## Reinforcement Learning
+
+The **reinforcement learning** paradigm of ML involves an *agent* that learns by interacting with an environment. Unlike supervised learning, there is no explicit input-output pairing, and unlike unsupervised learning, the goal is not merely to discover structure in data. Instead, the agent learns by trial and error, guided by a scalar feedback signal called a *reward*.
+
+At each step, the agent observes the current *state* of the environment and takes an *action*. As a result of this action, the environment transitions to a new state and provides a reward. The objective of the agent is to learn a strategy (called a *policy*) that maximizes the total reward accumulated over time.
+
+An example is game playing:
+
+- Game playing (e.g., chess, Go, video games):
+  - State: Current configuration of the game board.
+  - Action: A legal move available to the player.
+  - Reward: A numerical signal indicating success or failure (e.g., $+1$ for a win, $−1$ for a loss).
+
+The key challenge in reinforcement learning is that rewards are often *delayed*. An action that seems unhelpful in the short term may lead to better outcomes in the future. Hence, reinforcement learning focuses on learning *long-term consequences* of actions rather than immediate correctness.
+
+In subsequent posts, I will formalize all these ML ideas mathematically, study concrete algorithms, and analyze their assumptions, limitations, and guarantees.
+
+# Acknowledgment
+
+I have referred to the @stanford_cs229_ml_youtube YouTube playlist while writing this blog post.

@@ -1,0 +1,16 @@
+---
+title: "Piano"
+toc: false
+page-layout: full
+
+listing:
+  contents: "published/*/index.qmd"
+  type: grid
+  sort: "date desc"
+  fields: [image, title, description]
+  grid-columns: 2
+  image-height: "250px"
+  categories: true
+---
+
+A personal collection of piano covers and interpretations, primarily new age and cinematic music, with occasional classical pieces. I am not formally trained. I play by ear and intuition, focusing on expression, mood, and musical storytelling.

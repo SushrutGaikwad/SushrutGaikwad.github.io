@@ -1,0 +1,40 @@
+---
+title: "Nocturne in E-Flat Major, Op. 9 No. 2 (Chopin)"
+date: 2021-04-16
+image: "images/thumbnail.jpg"
+categories: [Classical]
+# tags: []
+# description: "."
+---
+
+# My Performance
+
+<iframe width="100%" height="400"
+src="https://www.youtube.com/embed/vXhfwI1Wlq4"
+title="Nocturne in E-Flat Major, Op. 9 No. 2 – Piano Cover"
+frameborder="0"
+allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+allowfullscreen>
+</iframe>
+
+# Why This Piece
+
+Frédéric Chopin's Nocturne in E-flat Major, Op. 9 No. 2 was my introduction to classical piano music, and also my first encounter with Chopin as a composer. Before learning this piece, my exposure to classical music was limited, but this nocturne immediately stood out to me because of its calm, lyrical character and expressive melody.
+
+What drew me in was how "singing" the right-hand melody feels, even for someone at an early stage of learning piano. It made classical music feel less distant and more personal, and it motivated me to explore the repertoire further.
+
+# About the Nocturne
+
+This nocturne was composed by Chopin in his early twenties, during the early part of his career. It is part of his Op. 9 set of nocturnes and remains one of his most well-known and frequently performed works.
+
+The piece is written in E-flat major and is characterized by a flowing, ornamented melody supported by a steady left-hand accompaniment. Even though it sounds highly expressive, the structure is relatively clear, which makes it approachable for beginners while still offering depth for more advanced pianists.
+
+# Learning Experience
+
+As a beginner, this piece challenged me in subtle ways. While the notes themselves are not extremely fast, maintaining a smooth legato touch and shaping the melody musically required a lot of patience. I especially struggled with keeping the left-hand accompaniment soft and even, while allowing the right hand to sing naturally.
+
+Working on this nocturne taught me the importance of dynamics, phrasing, and listening carefully to my own playing. It was one of the first pieces that made me think beyond just playing the correct notes and instead focus on expression and tone.
+
+# Closing Thoughts
+
+This nocturne holds a special place in my piano journey because it marked the point where classical music began to feel meaningful and accessible to me. Revisiting it now reminds me of why I started learning piano in the first place, and how expressive even simple music can be when approached thoughtfully.

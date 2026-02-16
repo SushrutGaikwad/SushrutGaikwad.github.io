@@ -1,0 +1,39 @@
+---
+title: "Harnessing Deep Learning for Forecasting Fire-Burning Locations and Unveiling PM2.5 Emissions"
+date: 2023-07-12
+venue: "Modeling Earth Systems and Environment"
+description: "A deep learning-based approach for modeling spatiotemporal fire burning events."
+url: https://doi.org/10.1007/s40808-023-01831-1
+---
+
+# Abstract
+
+Climate change and human activity have increased fires in India. Fine particulate matter (PM2.5) is released into the atmosphere by stubble burning in Punjab and Haryana and forest fires in the north-eastern and central areas of the country. Accurate short-term PM2.5 estimates are essential to protect human health and reduce acute air pollution. However, global air quality forecasting methods grapple with a persistent assumption of fire emissions. They use near-real-time fire emissions throughout the prediction cycle. Air quality forecasts are prone to inaccuracies and biases due to fire emissions’ dynamic nature. We employ spatiotemporal deep learning techniques, specifically ConvLSTM and ConvGRU, to forecast fire emission locations up to three days in advance. Through our evaluation, we find that ConvLSTM outperforms ConvGRU in terms of prediction accuracy and performance. The chosen model provides a very good correlation coefficient ($\approx 0.8$) for the 1st day forecast and a moderate value ($0.5$ to $0.55$) for subsequent 2nd and 3rd days forecasts. The predictors NDVI, temperature, wind, surface pressure, and total cloud cover are included to our model training to improve these correlations. In Punjab-Haryana, wind input improves results. This fire burning location prediction method could improve air quality forecasting. Our deep learning model can improve forecasts by revealing the complex interactions of components and reflecting fire emissions’ dynamic nature. This research may help improve air quality forecasts in the face of rising fire events, protecting communities across the Indian subcontinent.
+
+# Publication Details
+
+## Author(s)
+
+- **Sushrut Gaikwad**
+- Bipin Kumar
+- Prafull P. Yadav
+- Rupal Ambulkar
+- Gaurav Govardhan
+- Santosh H. Kulkarni
+- Rajesh Kumar
+- Dilip M. Chate
+- Narendra Nigam
+- Suryachandra A. Rao
+- Sachin D. Ghude
+
+## Journal
+
+Modeling Earth Systems and Environment
+
+## Year
+
+2023
+
+## Links
+
+- [Journal article](https://doi.org/10.1007/s40808-023-01831-1)

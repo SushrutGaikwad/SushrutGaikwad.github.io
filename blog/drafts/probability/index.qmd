@@ -1,0 +1,87 @@
+---
+title: "Probability"
+draft: true
+author: "Sushrut"
+date: 2025-07-01
+description: "."
+categories: [Statistics, Math]
+tags: [Probability, Blog]
+format:
+  html:
+    link-citations: true
+    smooth-scroll: true
+    math: mathjax
+    toc: true
+    # toc-location: left
+    # comments:
+    #   giscus: true
+bibliography: ../../../references/references.bib
+csl: ../../../references/apa.csl
+---
+
+# Introduction
+
+Life is inherently random and uncertain. No one can be 100% sure about what is going to happen next. The same is true with many fields like science, engineering, economics, healthcare, etc. Probability is a mathematical framework of understanding, quantifying, and reasoning about this uncertainty and make predictions in a more meaningful and systematic manner.
+
+# Probabilistic Models
+
+A **probabilistic model** is a mathematical description of an uncertain situation. Its main ingredients are the following.
+
+## Sample Spaces, Experiments, and Events
+
+The **sample space**, denoted using $\Omega$, is a *set* of all possible outcomes (or results) of an experiment. An **experiment** is an underlying process that produces exactly one out of several possible outcomes. A subset of the sample space is called an **event**.
+
+Consider the experiment of flipping a coin. The sample space in this case is $\Omega = \{H, T\}$, and one possible event could be getting a head. Let us denote this event using $\mathcal{H}$. So, we have $\mathcal{H} = \{H\}$.
+
+The sample space is **mutually exclusive**, i.e., if one of the outcome occurs then the remaining outcomes cannot, and **collectively exhaustive**, i.e., all possible outcomes are listed in the sample space, and no outcome outside of this list (set to be more precise) can occur.
+
+### Choosing an Appropriate Sample Space
+
+The sample space should be of the correct granularity. For instance, consider the same experiment of flipping a coin. The following is also a legitimate sample space that is mutually exclusive and collectively exhaustive:
+
+$$
+\Omega_1 = \{H, T + \text{it is raining}, T + \text{it is not raining}\}.
+$$
+
+Also, the usual sample space for this experiment, i.e.,
+
+$$
+\Omega_0 = \{H, T\},
+$$
+
+is also legitimate. So how to we pick the sample space correctly? If we have a (superstitious, of course) belief that rain has an effect on the outcome $T$ of the experiment, then we will select $\Omega_1$. However, if we do not have such belief (which is usually the case), we will stick to the usual $\Omega_0$.
+
+However, things in the real world are not so straightforward as they seem in this rather frivolous example. In any real experiment, there can be (and usually are) many parameters affecting the system. The person studying the experiment has to decide which parameters they will keep and which ones they can neglect. So choosing an appropriate sample space is also a bit of an art.
+
+### Discrete Sample Space Example
+
+> 🚧 **Work in Progress:** This blog post is currently being written. Some sections are complete, while others are still under construction. Feel free to explore and check back later for updates!
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Acknowledgment
+
+I have referred to the books [@bertsekas2008introduction; @blitzstein2019introduction], and the YouTube playlists [@probabilistic-systems-analysis-applied-probability-playlist; @intro-to-probability-spring-2018-playlist] while writing this blog post.

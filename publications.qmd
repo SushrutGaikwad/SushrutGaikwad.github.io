@@ -1,0 +1,15 @@
+---
+title: "Publications"
+bibliography: references/publications.bib
+# Show *all* entries from the .bib, even if not cited in the text
+nocite: |
+  @*
+# Optional: pick a style (put the .csl file in references/)
+csl: references/ieee-with-url.csl
+link-citations: true
+link-bibliography: true
+---
+
+<!-- Quarto/Pandoc will render the bibliography here -->
+::: {#refs}
+:::

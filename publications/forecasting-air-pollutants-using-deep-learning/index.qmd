@@ -1,0 +1,33 @@
+---
+title: "Forecasting Air Pollutants using Deep Learning"
+date: 2022-12-05
+venue: "MS Thesis, Indian Institute of Science Education and Research Pune"
+description: "Master’s thesis focused on spatiotemporal forecasting of air pollutants."
+url: "http://dr.iiserpune.ac.in:8080/xmlui/handle/123456789/7524"
+---
+
+# Abstract
+
+Fire incidences have recently increased due to climate change and other human-induced factors. Due to incidents such as stubble burning in Punjab-Haryana, forest fires in various parts of India, like the north-east and central India, lead to dangerously high levels of particulate matter of aerodynamic diameter smaller than 2.5 microns (PM2.5). Timely forecasts of PM2.5 can help prevent air quality-related public health issues, plan ahead of time, and implement temporary control measures. However, most operational air quality forecasting systems worldwide have to employ a persistent assumption for representing fire emissions due to a lack of information about the future evolution of fires. Under the persistence assumption, we assume near-real-time fire emissions are constant for the entire forecast cycle, which can lead to significant errors in air quality forecasts if the fire emissions change significantly daily. We aim to fill this gap by forecasting fire emissions, like PM2.5, for the next 2-3 days using spatiotemporal deep learning models such as the convolutional long short-term memory (ConvLSTM). Using this approach, we can get a reliable correlation coefficient. We attempt to improve further by adding variables like normalized difference vegetation index (NDVI), relative humidity, temperature, surface pressure, and total cloud cover during model training.
+
+# Publication Details
+
+## Author(s)
+
+Sushrut Gaikwad
+
+## Degree
+
+Integrated Bachelor and Master of Science
+
+## Institute
+
+Indian Institute of Science Education and Research Pune
+
+## Year
+
+2022
+
+## Links
+
+- [MS Thesis](http://dr.iiserpune.ac.in:8080/xmlui/handle/123456789/7524)

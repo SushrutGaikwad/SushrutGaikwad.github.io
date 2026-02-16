@@ -1,0 +1,19 @@
+---
+title: "Publications"
+toc: false
+page-layout: full
+
+listing:
+  contents: "*/index.qmd"
+  type: default
+  sort: "date desc"
+  fields:
+    - title
+    - venue
+    - description
+    - date
+    - url
+  categories: false
+---
+
+Selected academic work, including a peer reviewed research paper and my master’s thesis.

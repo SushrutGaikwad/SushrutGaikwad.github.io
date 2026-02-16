@@ -1,0 +1,103 @@
+project:
+  type: website
+  resources:
+    - assets/**
+
+website:
+  title: "Sushrut's Mindscape"
+  # google-analytics: "G-Q6QS0KSEY6"
+  open-graph: true
+  description: >
+    Sushrut's Mindscape is a personal knowledge archive documenting explorations
+    in mathematics, statistics, machine learning, deep learning, and the sciences,
+    through essays, projects, and research-driven reflections.
+  favicon: assets/images/favicon.svg
+  navbar:
+    title: Sushrut's Mindscape
+    right:
+      - text: "Home"
+        icon: house-door
+        href: index.qmd
+
+      - text: "Blog"
+        icon: journal-richtext
+        href: blog/index.qmd
+
+      - text: "Projects"
+        icon: kanban
+        href: projects/index.qmd
+
+      # - text: "GitHub"
+      #   icon: github
+      #   href: github.qmd
+
+      - text: "Resume/CV"
+        icon: file-earmark-person
+        href: resume-cv.qmd
+
+      - text: "Publications"
+        icon: file-earmark-text
+        href: publications/index.qmd
+
+      - text: "More"
+        # icon: three-dots
+        menu:
+          - text: "Piano"
+            icon: music-note-beamed
+            href: piano/index.qmd
+
+  page-footer:
+    center: "© 2026 Sushrut Gaikwad"
+    # right:
+    #   - text: "Built with Quarto"
+    #     href: https://quarto.org/docs/websites/
+    # center:
+    #   - icon: linkedin
+    #     href: https://www.linkedin.com/in/sushrutgaikwad/
+    #   # - icon: envelope
+    #   #   href: mailto:sushrut.ishwar.gaikwad@gmail.com
+    #   - icon: github
+    #     href: https://github.com/SushrutGaikwad
+
+format:
+  html:
+    # mainfont: "Source Sans 3"
+    link-external-newwindow: true
+    math: mathjax
+    theme:
+      light: flatly
+      dark: darkly
+    default-mode: dark
+    css: styles.css
+    toc: true
+    code-fold: true
+    include-in-header:
+      - text: |
+          <!-- MathJax configuration -->
+          <script>
+            window.MathJax = {
+              loader: {
+                load: [
+                  '[tex]/physics',
+                  '[tex]/upgreek'
+                ]
+              },
+              tex: {
+                inlineMath: [['$','$'], ['\\(','\\)']],
+                displayMath: [['$$','$$'], ['\\[','\\]']],
+                processEscapes: true,
+                processEnvironments: true,
+                packages: {'[+]': ['physics', 'upgreek']}
+              }
+            };
+          </script>
+
+          <!-- MathJax loader -->
+          <script id="MathJax-script" async
+                  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js"></script>
+
+          <!-- pseudocode.js -->
+          <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pseudocode@2.4.1/build/pseudocode.min.css">
+          <script src="https://cdn.jsdelivr.net/npm/pseudocode@2.4.1/build/pseudocode.min.js"></script>
+
+jupyter: python3

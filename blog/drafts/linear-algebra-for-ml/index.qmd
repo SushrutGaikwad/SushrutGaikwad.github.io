@@ -1,0 +1,332 @@
+---
+title: "Mathematical Preliminaries: Linear Algebra for Machine Learning"
+draft: true
+author: "Sushrut"
+date: 2025-12-26
+description: "."
+categories: [Machine Learning, Math]
+tags: [Machine Learning, Linear Algebra, Blog]
+format:
+  html:
+    link-citations: true
+    smooth-scroll: true
+    math: mathjax
+    toc: true
+    fig-format: svg
+    # toc-location: left
+    # comments:
+    #   giscus: true
+bibliography: ../../../references/references.bib
+csl: ../../../references/apa.csl
+execute: 
+  enabled: true
+  fig-format: svg
+---
+
+# Basic Concepts and Notation
+
+Linear algebra provides a way of compactly representing and operating on sets of linear equations. For example, consider the following system of equations:
+
+$$
+\left\{
+\begin{array}{rcrcr}
+  4 x_1 & - & 5 x_2 & = & -13 \\
+ -2 x_1 & + & 3 x_2 & = & 9
+\end{array}
+\right.
+$$
+
+This is a simultaneous system of two equations and two variables. So, as you know from high school algebra, you can find a unique solution for $x_1$ and $x_2$ (unless the equations are somehow degenerate, for example if the second equation is simply a multiple of the first, but in the case above there is in fact a unique solution). In matrix notation, we can write the system more compactly as
+
+$$
+\vb{A} \vb{x} = \vb{b},
+$$
+
+with
+
+$$
+\vb{A} =
+\begin{bmatrix}
+    4 & -5\\
+    -2 & 3
+\end{bmatrix}, \quad
+\mathbf{b} =
+\begin{bmatrix}
+    -13\\
+    9
+\end{bmatrix}.
+$$
+
+As we will see shortly, there are many advantages (including the obvious space savings) to analyzing linear equations in this form.
+
+## Basic Notation
+
+We use the following notation:
+
+- By $\vb{A} \in \mathbb{R}^{m\times n}$, we denote a matrix with $m$ rows and $n$ columns, where the entries of $\vb{A}$ are real numbers.
+- By $\vb{x} \in \mathbb{R}^{n}$, we denote a vector with $n$ entries. By convention, an $n$-dimensional vector is often thought of as a matrix with $n$ rows and 1 column, known as a **column vector**. If we want to explicitly represent a **row vector**, i.e., a matrix with $1$ row and $n$ columns, we typically write $\vb{x}^{\intercal}$ (here $\vb{x}^{\intercal}$ denotes the *transpose* of $\vb{x}$, which we will define shortly).
+- The $i$th element of a vector $\vb{x}$ is denoted $x_i$:
+    $$
+    \vb{x} =
+    \begin{bmatrix}
+        x_1\\
+        x_2\\
+        \vdots\\
+        x_i\\
+        \vdots\\
+        x_n
+    \end{bmatrix}.
+    $$
+- We use the notation $a_{ij}$ (or $A_{ij}$, $A_{i,j}$, etc.) to denote the entry of $\vb{A} \in \mathbb{R}^{m\times n}$ in the $i$th row and $j$th column:
+    $$
+    \vb{A} =
+    \begin{bmatrix}
+        a_{11} & a_{12} & \cdots & a_{1n}\\
+        a_{21} & a_{22} & \cdots & a_{2n}\\
+        \vdots & \vdots & \ddots & \vdots\\
+        a_{m1} & a_{m2} & \cdots & a_{mn}
+    \end{bmatrix}.
+    $$
+- We denote the $j$th column of $\vb{A}$ by $\vb{a}^j$ or $\vb{A}_{:,j}$:
+    $$
+    \vb{A} =
+    \begin{bmatrix}
+        \uparrow & \uparrow & & \uparrow \\
+        \vb{a}^{1} & \vb{a}^{2} & \cdots & \vb{a}^{n}\\
+        \downarrow & \downarrow & & \downarrow
+    \end{bmatrix}.
+    $$
+- We denote the $i$th row of $\vb{A}$ by $\vb{a}_{i}^{\intercal}$ or $\vb{A}_{i,:}$:
+    $$
+    \vb{A} =
+    \begin{bmatrix}
+        \leftarrow & \vb{a}_{1}^{\intercal} & \rightarrow\\
+        \leftarrow & \vb{a}_{2}^{\intercal} & \rightarrow\\
+        & \vdots & \\
+        \leftarrow & \vb{a}_{m}^{\intercal} & \rightarrow
+    \end{bmatrix}.
+    $$
+- Viewing a matrix as a collection of column or row vectors is very important and convenient in many cases. In general, it would be mathematically (and conceptually) cleaner to operate on the level of vectors instead of scalars. There is no universal convention for denoting the columns or rows of a matrix, and thus you can feel free to change the notations as long as it's explicitly defined.
+
+# Matrix Multiplication
+
+The product of two matrices $\vb{A} \in \mathbb{R}^{m\times n}$ and $\vb{B} \in \mathbb{R}^{n\times p}$ is the matrix
+
+$$
+\vb{C} = \vb{A} \vb{B} \in \mathbb{R}^{m\times p},
+$$
+
+where
+
+$$
+c_{ij} = \sum_{k=1}^{n} a_{ij} b_{kj}.
+$$
+
+Note that in order for the matrix product to exist, the number of columns in $\vb{A}$ must equal the number of rows in $\vb{B}$. There are many other ways of looking at matrix multiplication that may be more convenient and insightful than the standard definition above, and we'll start by examining a few special cases.
+
+## Vector-Vector Products
+
+Given two vectors $\vb{x}, \vb{y} \in \mathbb{R}^n$, the quantity $\vb{x}^{\intercal} \vb{y}$, sometimes called the **inner product** or **dot product** of the vectors, is a real number given by
+
+$$
+\vb{x}^{\intercal} \vb{y} =
+\begin{bmatrix}
+    x_1 & x_2 & \cdots x_n
+\end{bmatrix}
+\begin{bmatrix}
+    y_1\\
+    y_2\\
+    \vdots\\
+    y_n
+\end{bmatrix}
+= \sum_{i=1}^{n} x_i y_i.
+$$
+
+Observe that inner products are really just special case of matrix multiplication. Note that it is always the case that $\vb{x}^{\intercal} \vb{y} = \vb{y}^{\intercal} \vb{x}$.
+
+Given vectors $\vb{x} \in \mathbb{R}^m$, $\vb{y} \in \mathbb{R}^n$ (not necessarily of the same size), $\vb{x} \vb{y}^{\intercal} \in \mathbb{R}^{m\times n}$ is called the **outer product** of the vectors. It is a matrix whose entries are given by $(\vb{x}\vb{y}^{\intercal})_{ij} = \vb{x}_i \vb{y}_j$, i.e.,
+
+$$
+\vb{x} \vb{y}^{\intercal} = \in \mathbb{R}^{m\times n} =
+\begin{bmatrix}
+    x_1\\
+    x_2\\
+    \vdots\\
+    x_m
+\end{bmatrix}
+\begin{bmatrix}
+    y_1 & y_2 & \cdots & y_n
+\end{bmatrix} =
+\begin{bmatrix}
+    x_1 y_1 & x_1 y_2 & \cdots & x_1 y_n\\
+    x_2 y_1 & x_2 y_2 & \cdots & x_2 y_n\\
+    \vdots & \vdots & \ddots & \vdots\\
+    x_m y_1 & x_m y_2 & \cdots & x_m y_n\\
+\end{bmatrix}.
+$$
+
+As an example of how the outer product can be useful, let $\vb{1} \in \mathbb{R}^n$ denote an $n$-dimensional vector whose entries are all equal to $1$. Furthermore, consider the matrix $\vb{A} \in \mathbb{R}^{m\times n}$ whose columns are all equal to some vector $\vb{x} \in \mathbb{R}^m$. Using outer products, we can represent $\vb{A}$ compactly as,
+
+$$
+\vb{A} =
+\begin{bmatrix}
+    \uparrow & \uparrow & & \uparrow\\
+    \vb{x} & \vb{x} & \cdots & \vb{x}\\
+    \downarrow & \downarrow & & \downarrow
+\end{bmatrix} =
+\begin{bmatrix}
+    x_1 & x_1 & \cdots & x_1\\
+    x_2 & x_2 & \cdots & x_2\\
+    \vdots & \vdots & \ddots & \vdots\\
+    x_m & x_m & \cdots & x_m
+\end{bmatrix} =
+\begin{bmatrix}
+    x_1\\
+    x_2\\
+    \vdots\\
+    x_m
+\end{bmatrix}
+\begin{bmatrix}
+    1 & 1 & \cdots & 1
+\end{bmatrix} =
+\vb{x} \vb{1}^{\intercal}.
+$$
+
+## Matrix-Vector Products
+
+Given a matrix $\vb{A} \in \mathbb{R}^{m\times n}$ and a vector $\vb{x} \in \mathbb{R}^n$, their product is a vector $\vb{y} = \vb{A} \vb{x} \in \mathbb{R}^m$. There are a couple ways of looking at matrix-vector multiplication, and we will look at each of them in turn.
+
+If we write $\vb{A}$ by rows, then we can express $\vb{A} \vb{x}$ as,
+
+$$
+\vb{y} = \vb{A} \vb{x} =
+\begin{bmatrix}
+    \leftarrow & \vb{a}_1^{\intercal} & \rightarrow\\
+    \leftarrow & \vb{a}_2^{\intercal} & \rightarrow\\
+     & \vdots & \\
+    \leftarrow & \vb{a}_m^{\intercal} & \rightarrow
+\end{bmatrix} \vb{x} =
+\begin{bmatrix}
+    \vb{a}_1^{\intercal} \vb{x}\\
+    \vb{a}_2^{\intercal} \vb{x}\\
+    \vdots\\
+    \vb{a}_m^{\intercal} \vb{x}
+\end{bmatrix} =
+\begin{bmatrix}
+    y_1\\
+    y_2\\
+    \vdots\\
+    y_m
+\end{bmatrix}.
+$$
+
+In other words, the $i$th entry of $\vb{y}$ is equal to the inner product of the $i$th row of $\vb{A}$ and $\vb{x}$, which is $y_i = \vb{a}_i^{\intercal} \vb{x}$.
+
+Alternatively, let's write $\vb{A}$ in column form. In this case we see that,
+
+$$
+\vb{y} = \vb{A} \vb{x} =
+\begin{bmatrix}
+    \uparrow & \uparrow &  & \uparrow\\
+    \vb{a}^{1} & \vb{a}^{2} & \cdots & \vb{a}^{n}\\
+    \downarrow & \downarrow &  & \downarrow
+\end{bmatrix}
+\begin{bmatrix}
+    x_1\\
+    x_2\\
+    \vdots\\
+    x_n
+\end{bmatrix} =
+\begin{bmatrix}
+    \uparrow\\
+    \vb{a}^{1}\\
+    \downarrow
+\end{bmatrix} x_1 +
+\begin{bmatrix}
+    \uparrow\\
+    \vb{a}^{2}\\
+    \downarrow
+\end{bmatrix} x_2 + \cdots +
+\begin{bmatrix}
+    \uparrow\\
+    \vb{a}^{n}\\
+    \downarrow
+\end{bmatrix} x_n.
+$$ {#eq-matrix_vector_product_linear_comb_of_columns}
+
+In other words, $\vb{y}$ is a **linear combination** of the *columns* of $\vb{A}$, where the coefficients of the linear combination are given by the entries of $\vb{x}$.
+
+So far we have been multiplying on the right by a column vector, but it is also possible to multiply on the left by a row vector. This is written, $\vb{y}^{\intercal} = \vb{x}^{\intercal} \vb{A}$ for $\vb{A} \in \mathbb{R}^{m\times n}$, $\vb{x} \in \mathbb{R}^m$, and $\vb{y} \in \mathbb{R}^n$. As before, we can express $\vb{y}^{\intercal}$ in two obvious ways, depending on whether we express $\vb{A}$ in terms on its rows or columns. In the first case we express $\vb{A}$ in terms of its columns, which gives
+
+$$
+\vb{y}^{\intercal} = \vb{x}^{\intercal} \vb{A} = \vb{x}^{\intercal}
+\begin{bmatrix}
+    \uparrow & \uparrow &  & \uparrow\\
+    \vb{a}^{1} & \vb{a}^{2} & \cdots & \vb{a}^{n}\\
+    \downarrow & \downarrow &  & \downarrow
+\end{bmatrix} =
+\begin{bmatrix}
+    \vb{x}^{\intercal} \vb{a}^{1} & \vb{x}^{\intercal} \vb{a}^{2} & \cdots & \vb{x}^{\intercal} \vb{a}^{n}
+\end{bmatrix} =
+\begin{bmatrix}
+    y_1 & y_2 & \cdots & y_n
+\end{bmatrix}
+$$
+
+which demonstrates that the $i$th entry of $\vb{y}^{\intercal}$ is equal to the inner product of $\vb{x}$ and the $i$th *column* of $\vb{A}$.
+
+Finally, expressing $\vb{A}$ in terms of rows we get the final representation of the vector-matrix product,
+
+$$
+\begin{align*}
+    \vb{y}^{\intercal} &= \vb{x}^{\intercal} \vb{A}\\
+    &=
+    \begin{bmatrix}
+        x_1 & x_2 & \cdots & x_n
+    \end{bmatrix}
+    \begin{bmatrix}
+        \leftarrow & \vb{a}_1^{\intercal} & \rightarrow\\
+        \leftarrow & \vb{a}_2^{\intercal} & \rightarrow\\
+        & \vdots & \\
+        \leftarrow & \vb{a}_m^{\intercal} & \rightarrow
+    \end{bmatrix}\\
+    &= x_1
+    \begin{bmatrix}
+        \leftarrow & \vb{a}_1^{\intercal} & \rightarrow
+    \end{bmatrix} +
+    x_2
+    \begin{bmatrix}
+        \leftarrow & \vb{a}_2^{\intercal} & \rightarrow
+    \end{bmatrix} + \cdots +
+    x_n
+    \begin{bmatrix}
+        \leftarrow & \vb{a}_n^{\intercal} & \rightarrow
+    \end{bmatrix}.
+\end{align*}
+$$
+
+So we see that $\vb{y}^{\intercal}$ is a linear combination of the *rows* of $\vb{A}$, where the coefficients for the linear combination are given by the entries of $\vb{x}$.
+
+## Matrix-Matrix Products
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Acknowledgment
+
+I have referred to the @stanford_cs229_ml_youtube YouTube playlist while writing this blog post.

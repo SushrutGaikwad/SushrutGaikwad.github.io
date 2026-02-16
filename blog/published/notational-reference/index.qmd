@@ -1,0 +1,102 @@
+---
+title: "Notational Reference for my Posts"
+draft: false
+author: "Sushrut"
+date: 2025-07-01
+description: "This post serves as a notational reference in which you can find all the notational conventions I use in my blog posts."
+categories: [Reference]
+tags: [Notation, Guide, Blog]
+format:
+  html:
+    link-citations: true
+    smooth-scroll: true
+    math: mathjax
+    toc: true
+    # toc-location: left
+    # comments:
+    #   giscus: true
+bibliography: ../../../references/references.bib
+csl: ../../../references/apa.csl
+---
+
+# Introduction
+
+This post serves as a reference for the mathematical notations used across my blog posts. If you ever find a symbol unfamiliar, this page is here to help.
+
+# Math Notations
+
+## Scalars
+
+- A **scalar** is represented in italic, non-bold, and lowercase, like $s$.
+
+  - Example:
+
+    $$s = 42$$
+
+## Vectors
+
+- A **vector** is represented in non-italic, bold, and lowercase, like $\mathbf{v}$.
+
+  - Example:
+
+    $$
+      \mathbf{v} =
+      \begin{bmatrix}
+        1 \\
+        2 \\
+        3
+      \end{bmatrix}
+    $$
+
+- A **general $i$-th element of a vector** $\mathbf{v}$ is represented in italic, non-bold, and lowercase with a subscript, like $v_i$.
+
+  - Example:
+
+    $$
+      \mathbf{v} =
+      \begin{bmatrix}
+        v_1 \\
+        \vdots \\
+        v_i\\
+        \vdots
+      \end{bmatrix}
+    $$
+
+- The **norm** of a vector $\mathbf{v}$ is represented as $\left\lvert\left\lvert \mathbf{v} \right\rvert\right\rvert$.
+
+- A **general $i$-th vector** is represented in non-italic, bold, and lowercase with a subscript, like $\mathbf{v}_i$.
+
+- A mathematical way to say "a real vector $\mathbf{v}$ is $d$-dimensional" is $\mathbf{v} \in \mathbb{R}^{d}$.
+
+## Matrices
+
+- A **matrix** is represented in non-italic, bold, and uppercase, like $\mathbf{M}$.
+
+  - Example:
+  
+    $$
+      \mathbf{M} =
+      \begin{bmatrix}
+        1 & 2 \\
+        3 & 4
+      \end{bmatrix}
+    $$
+
+- Element in the **$i$-th row and $j$-th column of a matrix** $\mathbf{M}$ ($p\times q$) is denoted as $m_{ij}$.
+
+  - Example:
+
+    $$
+    \mathbf{M} =
+    \begin{bmatrix}
+      m_{11} & m_{12} & \cdots & m_{1q}\\
+      m_{21} & m_{22} & \cdots & m_{2q}\\
+      \vdots & \vdots & m_{ij} & \vdots\\
+      m_{p1} & m_{p2} & \cdots & m_{pq}
+    \end{bmatrix}
+    $$
+
+## Sets
+
+- Any general set is represented in a calligraphic font, like $\mathcal{S}$.
+- Set of real numbers is represented as $\mathbb{R}$.

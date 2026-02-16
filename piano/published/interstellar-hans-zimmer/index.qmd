@@ -1,0 +1,48 @@
+---
+title: "Interstellar Piano Suite (Hans Zimmer)"
+date: 2018-11-09
+image: "images/thumbnail.jpg"
+categories: [Cinematic, New Age]
+tags: [Cover]
+# description: "."
+---
+
+# My Performance
+
+<iframe width="100%" height="400"
+src="https://www.youtube.com/embed/-aTgZLUhLyI"
+title="Interstellar Piano Suite Live Performance"
+frameborder="0"
+allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+allowfullscreen>
+</iframe>
+
+# A Live Performance
+
+This performance is very different from most of my piano videos. It was not recorded in the comfort of my home, but performed live as a solo piano piece in front of a full auditorium. At the time, I was a shy, reserved, and nervous kid, and the idea of performing alone on stage felt overwhelming.
+
+I performed this piece during my university showcase in front of my batchmates, juniors, seniors, and a few professors. Stepping onto that stage was intimidating, but once I began playing, something shifted. This performance played a significant role in helping me reduce stage fright and build confidence, not just as a musician, but as a person.
+
+In many ways, this was the performance that made people at my university recognize me for my music.
+
+# About the Music
+
+This piano suite is based on music composed by Hans Zimmer for the film *Interstellar*, which remains one of the most impactful science fiction films I have ever watched. The arrangement I performed was created by [Mark Fowler](https://youtu.be/klVu9IxLnWE?si=L1AuVbfbXmyCHARe), whose piano adaptations bring cinematic music to life in a powerful and expressive way.
+
+I cannot read sheet music, so I learned this piece entirely by listening and watching. I replayed the arrangement repeatedly, internalized the structure, and slowly recreated it at the piano. The process was time consuming, but deeply immersive.
+
+# Learning Without Sheet Music
+
+Learning this piece without sheet music forced me to rely entirely on my ears and memory. I had to pay close attention to dynamics, transitions, and how different sections flowed into each other. This method of learning made the music feel internalized rather than something I was executing note by note.
+
+It also made performing live feel more natural, since the piece felt ingrained rather than read.
+
+# Music and Physics
+
+What makes this performance especially meaningful to me is how it brings together two disciplines that I deeply love, music and physics. *Interstellar* explores ideas such as time dilation, spacetime distortion, black holes, and wormholes, and the music reflects these ideas beautifully.
+
+The slow, repeating motifs mirror the stretching of time, while the expanding harmonies feel cosmic in scale. To me, the film and its music feel perfectly synchronized, where visuals and sound elevate each other and create something unforgettable.
+
+# Closing Thoughts
+
+This performance will always remain close to my heart. It represents a moment where I stepped outside my comfort zone, trusted myself, and allowed music to speak on my behalf. Looking back, it was not just a piano performance. It was a turning point that helped shape my confidence and identity, both on and off the stage.

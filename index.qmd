@@ -1,0 +1,31 @@
+---
+title: "Sushrut Gaikwad"
+subtitle: "Data Enthusiast | Data Scientist"
+# subtitle: "My honest, humble, and lifelong attempt to understand the world around me."
+image: assets/images/me/me.png
+about:
+  template: trestles
+  image-shape: round
+  links:
+    - icon: linkedin
+      text: LinkedIn
+      href: https://www.linkedin.com/in/sushrutgaikwad/
+    # - icon: envelope
+    #   text: Email
+    #   href: mailto:sushrut.ishwar.gaikwad@gmail.com
+    - icon: github
+      text: GitHub
+      href: https://github.com/SushrutGaikwad
+---
+
+Hey!
+
+I genuinely hope this website finds you well!
+
+I am Sushrut, a recent master’s degree Data Science graduate from the University at Buffalo, New York. I also have a Post-Graduate Diploma in Applied Statistics specializing in Data Analytics from the Indian Statistical Institute, Kolkata, India, and an Integrated BS-MS in Science from the Indian Institute of Science Education and Research, Pune, India. You can check out my resume/CV [here](resume-cv.qmd).
+
+I created this space to document and share the things I’m learning and exploring. You’ll find blog posts on topics ranging from mathematics, statistics, machine learning, and deep learning to physics, philosophy, biology, and more. I also share my personal projects, research work, and occasionally my piano covers and arrangements.
+
+This website reflects my curiosity, my interests, and the questions I care about. It is a growing collection of thoughts, experiments, and ideas that shape how I see the world.
+
+Thank you for stopping by. I hope you come across something here that resonates with you. Feel free to reach out for collaborations, ideas, or just to say hi!
