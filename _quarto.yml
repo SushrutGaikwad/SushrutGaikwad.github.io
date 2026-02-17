@@ -6,7 +6,8 @@ project:
 website:
   title: "Sushrut's Mindscape"
   google-analytics: "G-Q6QS0KSEY6"
-  open-graph: true
+  open-graph:
+    image: assets/images/social_preview_image.png
   description: >
     Sushrut's Mindscape is a personal knowledge archive documenting explorations
     in mathematics, statistics, machine learning, deep learning, and the sciences,
