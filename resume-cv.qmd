@@ -5,7 +5,7 @@ title: "Resume/CV"
 format:
   html:
     toc: true
-    toc-depth: 2
+    toc-depth: 3
     number-sections: false
     code-fold: true
     link-external-newwindow: true
@@ -27,9 +27,11 @@ execute:
 
 ## Summary
 
-Data Scientist with strong experience designing and deploying ***end-to-end machine learning systems***, spanning ***data ingestion, statistical analysis, modeling, MLOps, and production deployment***. Proven ability to work across ***time-series, signal processing, NLP, recommender systems, spatiotemporal forecasting, and database-backed analytics***, with projects and internships translating theory into ***production-grade pipelines and applications***.
+Data Scientist and Machine Learning Engineer with strong experience building ***production-grade, end-to-end data and ML systems*** spanning data ingestion, feature engineering, modeling, MLOps, and scalable deployment. Hands-on expertise across ***time-series forecasting, signal processing, NLP, recommender systems, spatiotemporal modeling, and cloud-based analytics engineering***, with multiple systems deployed using AWS and modern DevOps workflows.
 
-Hands-on experience building ***reproducible ML workflows*** using ***DVC, MLflow/DagsHub, Optuna, Docker, and CI/CD***, and deploying models via ***FastAPI, Streamlit, and AWS***. Comfortable working from raw data and sensors through feature engineering, model evaluation, and scalable inference, with a strong foundation in ***statistical modeling, experimental rigor, and system design***. Known for clear technical communication, disciplined engineering practices, and research-informed problem solving.
+Proven track record of designing ***reproducible ML pipelines*** using DVC, MLflow (DagsHub), Optuna, Docker, and CI/CD, and delivering inference services through FastAPI, Streamlit, and containerized AWS infrastructure. Experienced in serverless ETL architectures (S3, Lambda, Glue, Athena, Redshift), experiment-driven model development, and translating research-driven methods into reliable production systems.
+
+Strong foundation in statistical modeling and deep learning, with experience implementing neural architectures using ***TensorFlow and PyTorch*** for sequence modeling and spatiotemporal forecasting.
 
 ---
 
@@ -151,117 +153,117 @@ Developed spatiotemporal deep learning models for forecasting environmental risk
 
 ---
 
+### Customer Care ETL Pipeline (End-to-End Serverless Data Engineering on AWS)
+
+**Tech:** Python, pandas, SQLAlchemy, MySQL, Amazon S3, AWS Lambda, AWS Glue, AWS Glue Crawlers, Amazon Athena, Amazon Redshift Serverless, Parquet, CSV, Loguru, psycopg2, Power BI
+
+- Built an end-to-end ***customer care ETL pipeline*** that unifies structured ticket data (MySQL) and unstructured application logs into a ***single source of truth*** for analytics and dashboards.
+- Implemented a ***data lake on Amazon S3*** with clear ***raw/processed zones*** for both tickets and logs; standardized storage using ***Parquet*** for efficient querying and warehousing.
+- Developed ***incremental, exactly-once ingestion*** for daily ticket extracts using ***Python + SQLAlchemy + pandas***, with a ***date-tracker state file*** and guardrails for empty loads to prevent bad partitions.
+- Ingested daily log files into S3 and built a ***robust log-parsing pipeline*** (regex-based) to structure events (timestamp, severity, latency, CPU, error flags, user agent, etc.) for downstream analysis.
+- Operationalized log transformations using ***AWS Lambda***, including ***S3 event triggers*** that automatically transform newly landed raw logs into clean Parquet outputs.
+- Cleaned and standardized messy real-world data: fixed category typos (priority/log levels), removed null-only columns, filtered invalid values (e.g., negative response times), enforced correct data types, and deduplicated records.
+- Orchestrated ticket transformations with ***AWS Glue (Visual ETL + Script ETL)***, combining schema enforcement, filtering, SQL-based standardization, and Parquet exports with automated triggers via Lambda.
+- Enabled ***serverless ad hoc analytics*** by cataloging processed datasets with ***AWS Glue Crawlers*** and querying directly in ***Amazon Athena*** using SQL (ticket volume trends, agent workload, log-level distributions, CPU summaries).
+- Loaded curated datasets into ***Amazon Redshift Serverless*** as an OLAP layer and implemented ***event-driven incremental COPY loads*** (Lambda + psycopg2) from S3 processed outputs.
+- Delivered ***Power BI dashboards*** connected to Redshift to report operational KPIs (tickets, open/closed status, latency, CPU, log volumes) with updates reflecting new data as the pipeline runs.
+
+---
+
 ## Technical Skills
 
-### Programming & Software Engineering
+#### Programming & Software Engineering
+- **Python (advanced)**: OOP design, modular architectures, threading & multiprocessing, structured logging  
+- **R**: statistical modeling, regression, time series analysis  
+- **SQL**: complex joins, subqueries, window functions, indexing, query optimization (`EXPLAIN`)  
+- MATLAB (signal processing, academic use)  
+- LaTeX, Quarto, Markdown (technical documentation & reproducible reporting)
 
-- **Python (advanced)**: modular codebases, OOP design, threading & multiprocessing, structured logging  
-- **R**: statistical modeling, regression, time series analysis, forecasting  
-- **SQL**: complex joins, subqueries, window functions, query optimization (`EXPLAIN`)  
-- **MATLAB**: numerical computing and signal processing (academic use)  
-- Scripting & automation; reproducible research writing (**LaTeX**, **Quarto**, Markdown)
+---
 
-### Data Science & Statistical Modeling
+#### Machine Learning & Statistical Modeling
+- Regression & Classification: Linear/Ridge, Logistic Regression, Random Forest, Gradient Boosting, LightGBM  
+- Model evaluation: cross-validation, calibration, bias–variance analysis, diagnostics  
+- Statistical testing: ANOVA, chi-squared tests, Jarque–Bera, correlation analysis  
+- Hyperparameter optimization with **Optuna**  
+- Dimensionality reduction & embedding analysis: **PCA, t-SNE**
 
-- Exploratory Data Analysis (EDA) at scale (Pandas, Dask)  
-- Feature engineering for tabular, time-series, text, and geospatial data  
-- Regression, classification, and predictive modeling  
-- Model evaluation: cross-validation, bias–variance analysis, calibration, diagnostics  
-- Statistical testing: **ANOVA**, **chi-squared tests**, correlation analysis  
-- Dimensionality reduction & representation analysis (**PCA**, **t-SNE**)
+---
 
-### Time Series, Signal Processing & Spatiotemporal ML
+#### Deep Learning
+- Frameworks: **TensorFlow, PyTorch**  
+- Sequence modeling with **1D CNNs, InceptionTime, MiniROCKET**  
+- **ConvLSTM** for spatiotemporal forecasting  
+- Multi-branch neural architectures (waveform + frequency fusion)  
+- Model training, evaluation, and architectural comparison
 
-- Time-series forecasting and classification  
+---
+
+#### Time Series & Signal Processing
+- Time-series forecasting & classification  
 - Signal preprocessing: DC removal, normalization, smoothing (EWMA)  
-- Frequency-domain analysis: **rFFT**, spectral feature extraction  
-- Waveform-based modeling (raw signals + engineered spectra)  
-- Spatiotemporal modeling on geospatial grids  
-- Temporal resampling, lag feature construction, rolling statistics
+- Frequency-domain analysis: **rFFT, spectral feature extraction**  
+- Lag features, rolling statistics, temporal resampling
 
-### Machine Learning & Deep Learning
+---
 
-- **Classical ML**: Linear & Ridge Regression, Logistic Regression, Random Forests, LightGBM  
-- **Time-series ML**: **MiniROCKET**, feature-based classifiers  
-- **Deep Learning**:
-  - 1D CNNs for sequence modeling  
-  - **InceptionTime** architectures  
-  - **ConvLSTM** for spatiotemporal forecasting  
-- Model comparison across architectures and feature representations  
-- Hyperparameter optimization using **Optuna**
+#### Natural Language Processing
+- End-to-end sentiment analysis pipelines  
+- Text preprocessing: normalization, lemmatization, negation-aware stopword handling  
+- Feature extraction: **Bag-of-Words, TF-IDF, n-grams**  
+- Class imbalance handling (under-sampling, SMOTE variants)
 
-### Natural Language Processing (NLP)
+---
 
-- End-to-end **sentiment analysis pipelines**  
-- Text preprocessing: normalization, lemmatization, stopword handling (with negation retention)  
-- Feature extraction: **Bag-of-Words**, **TF-IDF**, n-grams (uni/bi/tri-grams)  
-- Class imbalance handling (under-sampling, SMOTE variants)  
-- Model selection and robustness evaluation
+#### Recommender Systems
+- Content-Based Filtering (TF-IDF, encoding, similarity ranking)  
+- Item-Based Collaborative Filtering (sparse matrices)  
+- Hybrid recommendation systems with weighted score fusion  
+- Scalable similarity computation using **Dask**
 
-### Recommender Systems
+---
 
-- **Content-Based Filtering** using TF-IDF, one-hot & frequency encoding, scaled audio features  
-- **Item-Based Collaborative Filtering**  
-- Hybrid recommender design with weighted similarity fusion  
-- Large-scale similarity computation using **Dask** and sparse matrices  
-- Recommendation ranking, normalization, and evaluation strategies
-
-### Data Engineering & Pipelines
-
-- End-to-end ML and data pipelines  
+#### Data Engineering & ETL
+- End-to-end data pipelines (batch + event-driven ingestion)  
 - Dataset versioning and lineage tracking with **DVC**  
-- Pipeline orchestration using DVC stages  
-- Scalable data ingestion, cleaning, transformation, and artifact management  
-- Schema-aware preprocessing and data validation
+- Log parsing and structured transformation pipelines  
+- Schema enforcement, data validation, deduplication, partitioning  
+- Parquet-based data lake design (raw/processed zones)
 
-### MLOps & Experimentation
+---
 
-- **Experiment tracking** with **MLflow** (hosted via **DagsHub**)  
-- Metric logging, artifact tracking, and model registry workflows  
-- Reproducible experimentation and ablation studies  
-- Model testing: loadability, signature checks, performance thresholds  
-- CI-based validation prior to production promotion
+#### Cloud & MLOps
+- **AWS**: S3, Lambda, Glue (Visual + Script ETL), Glue Crawlers, Athena, Redshift Serverless, EC2, ECR, CodeDeploy  
+- Experiment tracking with **MLflow (DagsHub)**  
+- CI/CD with **GitHub Actions**  
+- Docker containerization  
+- Blue/green deployments, auto-scaling architectures  
+- Event-driven incremental data loading (Lambda + psycopg2)
 
-### Deployment, APIs & Applications
+---
 
-- **FastAPI** for model serving and analytics APIs  
-- **Streamlit** for interactive ML applications and dashboards  
-- Dockerized ML services and applications  
-- REST-based inference services with visualization endpoints  
-- Backend integration for browser-based clients (Chrome Extension)
+#### APIs & Applications
+- **FastAPI** for production inference services  
+- **Streamlit** for real-time ML applications and dashboards  
+- REST APIs with model validation & performance safeguards  
+- Chrome extension backend integration
 
-### Cloud & DevOps
+---
 
-- **AWS**: S3 (artifact storage), ECR, EC2, CodeDeploy  
-- Containerized deployment workflows  
-- CI/CD using **GitHub Actions**  
-- Blue/green deployment strategies  
-- Auto-scaling and load-balanced architectures (applied)
-
-### Databases & Analytics Engineering
-
-- Relational schema design and **ER modeling**  
-- Database normalization up to **BCNF**  
-- Functional dependency analysis  
+#### Databases & Analytics Engineering
+- Relational schema design & **ER modeling**  
+- Normalization up to **BCNF**, functional dependency analysis  
 - PostgreSQL, SQLite  
-- Indexing strategies (B-Tree; PostgreSQL Hash index discussion)  
-- Analytical SQL for business and performance insights
+- Indexing strategies & query performance analysis
 
-### Visualization & Reporting
+---
 
+#### Visualization & Reporting
 - Matplotlib, Seaborn  
+- Confusion matrices, ROC/PR curves  
 - Time-series visualizations  
-- Confusion matrices, ROC / PR analysis  
-- Streamlit dashboards for real-time inference and analytics  
-- Technical reporting for academic and production contexts
-
-### Reproducibility, Tooling & Collaboration
-
-- Git-based version control  
-- Reproducible ML workflows and pipelines  
-- Modular, testable codebases  
-- Agile experimentation and iterative development  
-- Cross-functional collaboration with domain experts
+- Power BI dashboards (Redshift-backed)  
+- Technical reporting for research & production systems
 
 ---
 
