@@ -1,7 +1,7 @@
 ---
 title: "Customer Care ETL Pipeline"
 date: 2025-08-01
-image: "images/thumbnail_dark.svg"
+image: "images/thumbnail.png"
 categories: [Data Engineering, ETL Pipeline]
 tags: [ETL Pipeline, Project]
 description: "A simple extract-transform-load (ETL) pipeline that helps streamline customer care and support data."
@@ -9,11 +9,25 @@ description: "A simple extract-transform-load (ETL) pipeline that helps streamli
 
 # GitHub Repository
 
-You can check out the code in [this GitHub repository](https://github.com/SushrutGaikwad/careplus-etl-pipeline).
+You can check out the code in [this GitHub repository](https://github.com/SushrutGaikwad/customer-care-etl-pipeline).
+
+## Tech Stack
+
+- **Language:** Python  
+- **Data Processing:** pandas  
+- **Database (OLTP):** MySQL, SQLAlchemy  
+- **Cloud Storage (Data Lake):** Amazon S3 (raw and processed zones)  
+- **Serverless Compute:** AWS Lambda  
+- **ETL Orchestration:** AWS Glue (Visual ETL and Script ETL), AWS Glue Crawlers  
+- **Query Engine (Ad Hoc Analytics):** Amazon Athena (SQL over S3)  
+- **Data Warehouse (OLAP):** Amazon Redshift (Serverless)  
+- **File Format:** Parquet, CSV  
+- **Logging and Observability:** Loguru  
+- **BI and Dashboards:** Power BI  
 
 # Problem Statement
 
-In this project, we will assume that we are working for a customer care company called. This is a BPO (Business Process Outsourcing) company that takes care of the customer care of other companies, e.g., Walmart, Target, etc. If a Walmart customer faces any problem, they contact their customer care and create what is known as an **issue**. These issues are tracked through a ticket. Further, walmart would have outsourced their customer care to our company. Our company receives this ticket and the relevant information and one of the customer care agents of our company is assigned to this ticket. This agent will resolve the issue and the ticket will be closed. This daily ticket data is saved in the form of a structured table, i.e., each of this structured table contains the ticket data generated during a particular day. The data corresponding to these tickets is shown in @fig-ticket_data_table.
+In this project, we will assume that we are working for a customer care company. This is a BPO (Business Process Outsourcing) company that takes care of the customer care of other companies, e.g., Walmart, Target, etc. If a Walmart customer faces any problem, they contact their customer care and create what is known as an **issue**. These issues are tracked through a ticket. Further, Walmart would have outsourced their customer care to our company. Our company receives this ticket and the relevant information and one of the customer care agents of our company is assigned to this ticket. This agent will resolve the issue and the ticket will be closed. This daily ticket data is saved in the form of a structured table, i.e., each of these structured tables contains the ticket data generated during a particular day. The data corresponding to these tickets is shown in @fig-ticket_data_table.
 
 ![Tickets data. You can immediately see some data issues. It needs cleaning.](images/ticket_data_table.png){#fig-ticket_data_table fig-align="center" width=90% .invert}
 
@@ -64,7 +78,7 @@ Our company has OLTP (Online Transaction Processing) type of databases. The tick
     - Use AWS Glue, which is another serverless compute, for doing data cleaning and transformation.
     - Save this transformed data in parquet format inside a different `processed/` directory that corresponds to support tickets in the same S3 bucket.
 
-Once we have the cleaned and transformed data corresponding to both the support logs and the support tickets, we will Amazon Athena for some ad hoc analysis. We will write SQL queries to do this.
+Once we have the cleaned and transformed data corresponding to both the support logs and the support tickets, we will use Amazon Athena for some ad hoc analysis. We will write SQL queries to do this.
 
 However, to generate dashboards, we will save the cleaned and transformed data in Amazon Redshift, which is a serverless data warehouse. Finally, we will plug Power BI to this data warehouse to generate dashboards and insights. This is shown in @fig-pipeline_architecture_dashboard.
 
@@ -924,3 +938,159 @@ REGION 'us-east-2';
 ```
 
 # Power BI Dashboard
+
+We now connect a Power BI blank report with Amazon Redshift using the Amazon Redshift connector. We get the server name from the endpoing of the Redshift workgroup. Further, we add admin credentials, i.e., the username and password, in the namespace. Next, we enable the public access of the workgroup as we want to connect the cloud from out local computer. Further, we also add a new inbound rule to the VPC security group. We make the type as Custom TCP with the port range as the port of the Redshift server and the source as "Anywhere-IPv4". Once this is done, we connect the Power BI blank report with the Amazon Redshift server by using the same credentials that we added. Doing this establishes the connection and we can now access the support tickets as well as the support logs data on Redshift. Next, we select both these tables and click on "Transform Data" button and select "Import". This pulls the data into a Power Query Editor. As the data is already clean as we have already performed ETL, we click on "Close & Apply".
+
+Next, we build a simple Power BI dashboards showing some basic KPIs for both data, e.g., total logs, logged tickets, average CPU utilization, total tickets, open tickets, etc. @fig-support_tickets_dashboard_eg and @fig-support_logs_dashboard_eg show the dashboards for support tickets and support logs respectively.
+
+![Support tickets dashboard.](images/support_tickets_dashboard_eg.png){#fig-support_tickets_dashboard_eg fig-align="center" width=100%}
+
+![Support logs dashboard.](images/support_logs_dashboard_eg.png){#fig-support_logs_dashboard_eg fig-align="center" width=100%}
+
+Once we connect the dashboard with Redshift, they update in real time as the data updates.
+
+# Automated Incremental Data Load to Redshift
+
+## Support Logs
+
+Recall that we used the following script to load the support logs data from the S3 bucket to Redshift:
+
+```sql
+COPY public.support_logs
+FROM 's3 URI of processed dir inside support-logs dir of the bucket'
+IAM_ROLE 'ARN of the Redshift IAM role'
+FORMAT AS PARQUET
+REGION 'us-east-2';
+```
+
+Now this loads the entire data from the S3 bucket to Redshift. However, we want only the latest data that has been uploaded (most probably by a cron job) to Redshift. To do this, we again use a Lambda function with a Python 3.12 runtime. We will be needing the `psycopg2` library for which we need to create a custom layer to attach to this Lambda function. We upload the ZIP file corresponding to Python 3.12 from [this](https://github.com/kvssankar/aws-lambda-psycopg2) repository. We attach the required permissions (i.e., the AmazonS3FullAccess policy) to the corresponding IAM role that helps this function communicate with the S3 service.
+
+Next, we use the following code in the Lambda function:
+
+```python
+import psycopg2
+
+# Redshift serverless compute
+REDSHIFT_HOST = 'your Redshift server name'
+REDSHIFT_PORT = 'your Redshift server port'
+REDSHIFT_DATABASE = 'careplus_db'
+REDSHIFT_USER = 'your username'
+REDSHIFT_PASSWORD = 'your password'
+REDSHIFT_TABLE = 'public.support_logs'
+IAM_ROLE = 'The Redshift IAM role ARN'
+
+def lambda_handler(event, context):
+    record = event['Records'][0]
+    bucket_name = record['s3']['bucket']['name']
+    input_key = record['s3']['object']['key']
+    s3_input_path = f's3://{bucket_name}/{input_key}'
+
+    print(f"Triggered by '{s3_input_path}'")
+
+    # Connect to Redshift using psycopg2
+    conn = psycopg2.connect(
+        host=REDSHIFT_HOST,
+        port=REDSHIFT_PORT,
+        database=REDSHIFT_DATABASE,
+        user=REDSHIFT_USER,
+        password=REDSHIFT_PASSWORD
+    )
+
+    cursor = conn.cursor()
+
+    copy_sql = f"""
+    COPY {REDSHIFT_TABLE}
+    FROM '{s3_input_path}'
+    IAM_ROLE '{IAM_ROLE}'
+    FORMAT AS PARQUET
+    REGION 'us-east-2';
+    """
+
+    # Execute the COPY command
+    cursor.execute(copy_sql)
+
+    # Commit the changes
+    conn.commit()
+
+    # Log success
+    print(f"Data successfully copied from '{s3_input_path}' to '{REDSHIFT_TABLE}'")
+
+    # Close the cursor and the connection
+    cursor.close()
+    conn.close()
+```
+
+Next, we also add a new event notification to the S3 bucket with the prefix as `support-logs/processed`, the suffix as `.parquet`, the event type as "Put", and the Lambda function as the same that we selected for this purpose.
+
+## Support Tickets
+
+Again, recall that we used the following script to load the support tickets data from S3 to Redshift:
+
+```sql
+CREATE TABLE public.support_tickets (
+    ticket_id           VARCHAR(50),
+    created_at          TIMESTAMP,
+    resolved_at         TIMESTAMP,
+    agent               VARCHAR(100),
+    priority            VARCHAR(20),
+    num_interactions    BIGINT,
+    issue_category      VARCHAR(100),
+    channel             VARCHAR(50),
+    status              VARCHAR(20)
+);
+
+COPY public.support_tickets
+FROM 's3 URI of processed dir inside support-tickets dir of the bucket'
+IAM_ROLE 'ARN of the Redshift IAM role'
+FORMAT AS PARQUET
+REGION 'us-east-2';
+```
+
+Again, this loads the entire data from the S3 bucket to Redshift. However, we want only the latest data that has been uploaded (most probably by a cron job) to Redshift. To do this, we again use a Lambda function with a Python 3.12 runtime. We will be needing the `psycopg2` library for which we need to create a custom layer to attach to this Lambda function. We upload the ZIP file corresponding to Python 3.12 from [this](https://github.com/kvssankar/aws-lambda-psycopg2) repository. We attach the required permissions (i.e., the AmazonS3FullAccess policy) to the corresponding IAM role that helps this function communicate with the S3 service.
+
+Next, we use the following code in the Lambda function:
+
+```python
+import psycopg2
+
+REDSHIFT_HOST = 'your Redshift server name'
+REDSHIFT_PORT = 'your Redshift server port'
+REDSHIFT_DATABASE = 'careplus_db'
+REDSHIFT_USER = 'your username'
+REDSHIFT_PASSWORD = 'your password'
+REDSHIFT_TABLE = 'public.support_tickets'
+IAM_ROLE = 'The Redshift IAM role ARN'
+
+def lambda_handler(event, context):
+    record = event["Records"][0]
+    bucket_name = record["s3"]["bucket"]["name"]
+    input_key = record["s3"]["object"]["key"]
+
+    s3_input_path = f"s3://{bucket_name}/{input_key}"
+    print(f"Triggered by '{s3_input_path}'")
+
+    conn = psycopg2.connect(
+        host=REDSHIFT_HOST,
+        port=REDSHIFT_PORT,
+        dbname=REDSHIFT_DATABASE,
+        user=REDSHIFT_USER,
+        password=REDSHIFT_PASSWORD,
+    )
+
+    with conn.cursor() as cursor:
+        copy_sql = f"""
+        COPY {REDSHIFT_TABLE}
+        FROM '{s3_input_path}'
+        IAM_ROLE '{IAM_ROLE}'
+        FORMAT AS PARQUET
+        REGION 'us-east-2';
+        """
+        cursor.execute(copy_sql)
+        conn.commit()
+
+    print(f"Data successfully copied from '{s3_input_path}' to '{REDSHIFT_TABLE}'")
+
+    conn.close()
+```
+
+This finally finishes the entire ETL pipeline which is now automated. As the raw data is uploaded in the S3 bucket when the cron job runs, the entire pipeline is executed and the Power BI dashboard is updated.
