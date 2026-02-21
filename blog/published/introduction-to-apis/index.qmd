@@ -110,7 +110,7 @@ The **REST protocol**, which is an abbreviation for *Representational State Tran
 
 An example of a REST API call is the following:
 
-```http
+```txt
 GET /users/123 HTTP/1.1
 Host: example.com
 ```
@@ -145,7 +145,7 @@ The **GraphQL protocol** allows clients to request only the data they need, redu
 
 An example of a GraphQL API is the following:
 
-```text
+```txt
 {
     user(id: "123") {
         name
@@ -265,7 +265,7 @@ The **request** of an API is a *message* sent by a client to the API to ask for 
 
 The following is an example of an API request:
 
-```http
+```txt
 POST /users HTTP/1.1
 Host: api.example.com
 Content-Type: application/json
@@ -287,7 +287,7 @@ The **response** of an API is a *message* sent back by the API after processing 
 
 The following is an example of an API response:
 
-```http
+```txt
 HTTP/1.1 200 OK
 Content-Type: application/json
 Body:
