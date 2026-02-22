@@ -64,13 +64,16 @@ Built a ***real-time end-to-end system*** for automated fault detection in rotat
 **MS Student Data Science Intern / Research Intern**  
 **January 2022 – January 2023**
 
-Developed spatiotemporal deep learning models for forecasting environmental risk events (e.g., forest fires and stubble burning) using satellite imagery and atmospheric variables; supported operational decision-making and contributed to a peer-reviewed publication.
-
-**Highlights:**
-
-- Designed and evaluated ***ConvLSTM***-based spatiotemporal forecasting models over geospatial grids; achieved ***≈0.8 temporal correlation*** for 1-day-ahead forecasts (reported in project work).
-- Built automated pipelines for scalable preprocessing, storage, and visualization; collaborated with domain scientists to translate real-world forecasting goals into implementable modeling tasks.
-- Contributed to publication linking predicted fire-burning patterns to PM2.5 emission insights.
+- Developed ***spatiotemporal ConvLSTM deep learning models*** on large-scale satellite imagery to forecast environmental risk events (stubble burning and forest fires), achieving ***0.80 1-day temporal correlation*** across geospatial grids.  
+- Engineered ***end-to-end data pipelines*** for ingestion, preprocessing, transformation, and validation of multi-source environmental and satellite datasets, improving reproducibility and downstream modeling reliability.  
+- Harmonized heterogeneous spatial datasets by resolving ***mismatched spatial resolutions*** using interpolation techniques (e.g., linear interpolation) to ensure geospatial alignment across inputs.  
+- Trained deep spatiotemporal models on ***multi-GPU high-performance computing (HPC) clusters***, enabling scalable experimentation on terabyte-scale environmental data.  
+- Conducted exploratory data analysis and advanced feature engineering to uncover spatiotemporal patterns and validate modeling assumptions in collaboration with climate scientists.  
+- Built predictive models for ***stubble burning events*** in the Delhi–Punjab–Haryana region to support proactive air quality mitigation strategies.  
+- Designed forest fire forecasting models for northeast and central India, contributing to data-driven environmental risk monitoring and resource planning.  
+- Applied classical and deep learning time-series models (ARIMA, LSTM) to air pollution data from New Delhi, improving understanding of pollutant dynamics and forecast accuracy.  
+- Communicated technical findings to non-technical environmental and climate researchers through clear visualizations, storytelling, and recurring research presentations.  
+- Co-authored a ***peer-reviewed research publication***, contributing to advancements in environmental forecasting methodologies.
 
 **Keywords:** ConvLSTM, spatiotemporal forecasting, satellite imagery, environmental ML, geospatial grids, data pipelines, research collaboration
 
