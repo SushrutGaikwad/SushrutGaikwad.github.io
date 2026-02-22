@@ -78,95 +78,210 @@ Developed spatiotemporal deep learning models for forecasting environmental risk
 
 ## Projects
 
-### YouTube Comments Analyzer (Chrome Extension + ML Pipeline + FastAPI)
+### YouTube Comment Intelligence | End-to-End NLP & MLOps System
 
-**Tech:** Python, scikit-learn, LightGBM, MLflow, Optuna, DVC, FastAPI, AWS (S3, ECR, EC2, CodeDeploy), Docker, Git, GitHub, GitHub Actions, JavaScript
+#### Detailed Report
 
-- Built an end-to-end sentiment analysis system for YouTube comments, including an ML pipeline, deployment automation, and a Chrome extension frontend.
-- Performed iterative ***EDA + preprocessing*** (missing values, duplicates, lemmatization, stopword handling with negation retention, n-grams, word clouds).
-- Built a baseline ***Random Forest + Bag-of-Words*** model and tracked experiments using ***MLflow on DagsHub***.
-- Improved performance through staged experiments: ***BoW vs TF-IDF***, unigram/bigram/trigram comparisons, feature-size tuning, imbalance handling (under-sampling, SMOTE variants).
-- Trained and tuned multiple models using ***Optuna***, selecting ***LightGBM*** as the final model based on consistent cross-metric performance.
-- Developed a reproducible training pipeline using ***DVC stages*** (ingestion → preprocessing → feature engineering → training → evaluation → model registry).
-- Built a ***FastAPI backend*** to serve predictions and visualizations (sentiment pie chart, word cloud, monthly trend graph) to a ***Chrome extension UI***.
-- Implemented ***CI/CD using GitHub Actions***, including model tests (load/signature/performance thresholds), automated promotion to production, and Docker deployment to AWS.
+Check out the detailed report [here](projects/published/youtube-comment-intelligence/index.qmd).
+
+#### Tech Stack
+
+Python, LightGBM, XGBoost, scikit-learn, NLTK, spaCy, Optuna, MLflow, DVC, FastAPI, Docker, GitHub Actions, AWS (EC2, ECR, S3, CodeDeploy, IAM, Auto Scaling, CloudWatch), Chrome Extension APIs, JavaScript, HTML, CSS
+
+#### Key Highlights & Impact
+
+- Built a ***production-ready Chrome extension + FastAPI backend*** that analyzes up to ***500 YouTube comments per video in real time***, classifying them into positive, neutral, and negative sentiments.
+- Trained and optimized a multi-class sentiment model on ***37,000+ labeled comments***, improving performance from a weak baseline (***65% accuracy***) to a tuned ***LightGBM model approaching ~80–87% accuracy*** with significantly improved recall for negative comments.
+- Improved negative class recall from ***2% (baseline Random Forest)*** to a balanced and production-acceptable level using:
+  - Class imbalance handling (under-sampling, class weights, SMOTE variants),
+  - Feature engineering (bigrams, custom linguistic features),
+  - Extensive Bayesian hyperparameter tuning with Optuna.
+- Designed and executed ***5 structured experimentation phases***, comparing:
+  - Bag-of-Words vs TF-IDF,
+  - 7 ML models (XGBoost, LightGBM, SVM, Logistic Regression, KNN, Naive Bayes, Random Forest),
+  - Multiple imbalance strategies and ensemble methods,
+  resulting in selection of an optimized ***LightGBM production model***.
+- Engineered custom NLP features (lexical diversity, POS proportions, avg word length, etc.), increasing macro F1-score and improving minority class detection without increasing latency.
+- Implemented full ***MLOps pipeline using DVC + MLflow***, enabling:
+  - Reproducible training,
+  - Experiment tracking,
+  - Model registry (Staging → Production promotion),
+  - Automated performance gating (minimum 0.75 threshold for accuracy, precision, recall, F1).
+- Developed robust CI/CD workflow using ***GitHub Actions***, automatically:
+  - Running DVC pipelines,
+  - Testing model loading & signature,
+  - Validating performance metrics,
+  - Promoting models to production,
+  - Building and pushing Docker images to AWS ECR,
+  - Deploying via CodeDeploy to EC2 Auto Scaling group.
+- Containerized the FastAPI service with Docker and deployed to ***AWS EC2 behind an Application Load Balancer***, ensuring:
+  - Scalable inference,
+  - Rolling deployments,
+  - High availability with auto-scaling (2–3 instances).
+- Built interactive frontend features including:
+  - Sentiment percentage breakdown,
+  - Pie charts,
+  - Word clouds,
+  - Monthly sentiment trend graphs,
+  - Engagement metrics (unique commenters, avg words/comment, sentiment score out of 10).
+
+#### Model Performance Summary
+
+- **Baseline (Random Forest + BoW):**
+  - Accuracy: ***65%***
+  - Negative Recall: ***2%*** (severe imbalance issue)
+
+- **Final Production Model (LightGBM + Bigrams + Class Weights):**
+  - Accuracy: ***~80–87%***
+  - Balanced precision/recall across all three classes
+  - Negative class recall significantly improved
+  - Passed automated CI performance thresholds (≥ 0.75 across key metrics)
 
 ---
 
-### Food Delivery Time Prediction (End-to-End Regression + MLOps)
+### Food Delivery Time Prediction | End-to-End MLOps Regression System
 
-**Tech:** Python, Pandas, NumPy, scikit-learn, Optuna, MLflow, DVC, FastAPI, Docker, AWS (S3, ECR, EC2, CodeDeploy)
+#### Detailed Report
 
-- Built an ***end-to-end delivery time prediction system*** (45,593 rows, 20 features) ***including EDA → modeling → MLOps → deployment-ready API*** using ***Python*** and ***scikit-learn***.
-- Performed ***iterative data cleaning + profiling***, fixing hidden missing values (string-encoded `"NaN"`), trimming whitespace noise, resolving datatype issues, and validating missingness patterns using `missingno` visualizations.
-- Engineered high-impact features such as ***city extraction from rider IDs***, ***haversine distance + binned distance categories***, and ***datetime features*** (weekday/weekend, time-of-day buckets, pickup time minutes) to improve predictive signal.
-- Conducted statistically driven ***EDA*** using ***Chi-square tests***, ***ANOVA***, and ***Jarque–Bera normality testing***, identifying key drivers like ***traffic density***, ***distance***, ***festival effects***, and ***time-of-day trends***.
-- Developed reproducible preprocessing pipelines using `ColumnTransformer` + `Pipeline`, combining ***MinMax scaling***, ***one-hot encoding***, and ***ordinal encoding*** (traffic, distance bins), with ***Yeo–Johnson target transformation*** for improved regression behavior.
-- Established baseline regression models and evaluated trade-offs between ***dropping vs imputing missing values***, demonstrating stronger results when dropping missing rows (***MAE ≈ 4.73 min***, ***R² ≈ 0.60*** for linear regression).
-- Implemented advanced model experimentation with ***MLflow (DagsHub tracking)*** and ***Optuna Bayesian optimization***, comparing ***Random Forest***, ***Gradient Boosting***, ***XGBoost***, ***LightGBM***, ***KNN***, and ***SVM***, selecting ***LightGBM*** as best-performing (***MAE ≈ 3.05 min***, ***R² ≈ 0.84***).
-- Designed a full MLOps workflow with ***DVC pipelines (S3 remote)*** and production deployment plan using ***FastAPI + Swagger***, ***Docker containerization***, and scalable AWS architecture (***EC2 auto-scaling + load balancer***, API validation via ***Postman + stress testing***).
+Check out the detailed report [here](projects/published/food-delivery-time-prediction/index.qmd).
+
+#### Tech Stack
+
+Python, Pandas, NumPy, Scikit-learn, LightGBM, XGBoost, Optuna, MLflow, DVC, FastAPI, Docker, GitHub Actions, AWS S3, DagsHub
+
+#### Key Contributions & Impact
+
+- Built an ***end-to-end machine learning system*** to predict food delivery ETA (in minutes) using ***45,000+ real-world records*** with rider, traffic, weather, and geospatial features.
+- ***Engineered advanced features*** including Haversine distance, distance bins, time-of-day segmentation, pickup delay, and festival/traffic interactions, improving predictive signal (distance–target correlation ≈ 0.32).
+- Designed a ***robust data cleaning pipeline*** to handle 9.27% non-random missing data, inconsistent geospatial coordinates, outliers (invalid ratings, minors), and categorical noise.
+- Developed ***modular preprocessing pipelines*** using `ColumnTransformer`, implementing scaling, one-hot encoding, ordinal encoding, Yeo-Johnson target transformation, and ***hybrid imputation strategies*** (KNN + mode + missing indicators).
+- Benchmarked multiple models using Optuna (Bayesian optimization) across Random Forest, Gradient Boosting, XGBoost, LightGBM, SVM, and KNN.
+
+#### Model Performance
+
+- **Baseline Linear Regression (NaNs Dropped):**
+  - Test MAE: ***4.73 minutes***
+  - Test R²: ***0.60***
+- **Random Forest (Tuned):**
+  - Test MAE: ***3.12 minutes***
+  - Test R²: ***0.83***
+- **LightGBM (Best Standalone Model):**
+  - Test MAE: ***3.05 minutes***
+  - Test R²: ***0.84***
+- **Final Stacking Regressor (LightGBM + RF + Linear Meta Model):**
+  - Cross-validated MAE ≈ ***~3 minutes***
+  - Strong generalization with controlled overfitting compared to standalone Random Forest
+
+#### MLOps & Productionization
+
+- Tracked experiments and hyperparameter searches using ***MLflow (DagsHub)***.
+- Built a fully modular ***DVC pipeline*** with staged reproducibility (data cleaning → preprocessing → training → evaluation → model registry).
+- Implemented automated CI/CD via ***GitHub Actions***, including:
+  - Model loading validation
+  - Performance threshold testing (MAE < 5 mins)
+  - Automated promotion from Staging → Production.
+- Containerized FastAPI prediction service with Docker and exposed real-time `/predict` endpoint.
+- Designed API testing and stress-validation workflow prior to production deployment.
 
 ---
 
-### Spotify Recommendation System (Hybrid Recommender + Scalable Processing)
+### Spotify Recommendation System | End-to-End Recommender System with MLOps & AWS Deployment
 
-**Tech:** Python, Streamlit, Pandas, NumPy, Dask, scikit-learn, SciPy, Matplotlib, Seaborn, DVC Pipelines, Git, GitHub, GitHub Actions, AWS (S3, ECR, EC2, CodeDeploy)
+#### Detailed Report
 
-- Built an end-to-end ***Spotify Hybrid Song Recommender System*** combining ***Content-Based Filtering (CBF)*** and ***Item-Based Collaborative Filtering (CF)*** to improve personalization, diversity, CTR, and reduce churn.
-- Performed extensive ***EDA*** on ***50,683 Spotify tracks*** and ***9.7M+ user–song interaction records***, including missing value analysis, duplicate handling, and feature distribution insights.
-- Developed a ***content-based similarity engine*** using a rich feature pipeline with ***TF-IDF on tags***, ***one-hot encoding for categorical metadata***, ***frequency encoding***, and ***scaling for audio features***, followed by ***cosine similarity ranking***.
-- Implemented ***item-based collaborative filtering*** using a massive user–item space (≈30K songs × ≈1M users) and solved the memory bottleneck by using ***Dask + sparse interaction matrices*** for scalable similarity computation.
-- Designed a ***weighted hybrid recommender*** that combines CBF and CF similarity scores with tunable weights, including fixes for ***index misalignment*** and ***score-scale mismatch*** using sorting + min-max normalization.
-- Built an ***interactive Streamlit web app*** allowing users to select recommendation mode (CBF / CF / Hybrid), choose number of recommendations, and dynamically adjust hybrid weighting through a slider.
-- Created a reproducible ML/data workflow using a ***DVC pipeline*** with modular stages (cleaning → preparation → transformation → recommendation), enabling consistent data + artifact versioning and fast iteration.
-- Deployed the application using production-style infrastructure: ***Dockerized the app***, configured ***CI with GitHub Actions***, stored artifacts via ***S3 + DVC***, published images to ***ECR***, and automated rollout using ***EC2 + CodeDeploy (blue/green) + Auto Scaling + Load Balancer***.
+Check out the detailed report [here](projects/published/spotify-hybrid-song-recommender/index.qmd).
 
----
+#### Tech Stack
 
-### NYC Taxi Demand Prediction (Time Series Forecasting + App)
+Python, Pandas, NumPy, Scikit-learn, Dask, SciPy (Sparse Matrices), Streamlit, DVC, Docker, GitHub Actions (CI/CD), AWS S3, AWS ECR, AWS EC2, AWS CodeDeploy, AWS Auto Scaling, Cosine Similarity, TF-IDF, One-Hot Encoding
 
-**Tech:** Python, scikit-learn, LightGBM, MLflow, Optuna, DVC, FastAPI, AWS (S3, ECR, EC2, CodeDeploy), Docker, Git, GitHub, GitHub Actions, Streamlit
+#### Key Highlights
 
-- Built an ***end-to-end spatiotemporal taxi-demand forecasting system*** that predicts the ***next 15-minute pickup demand*** given a driver’s ***location (lat/long)*** and ***time***, using NYC Yellow Taxi trips from ***January to March 2016***.
-- Performed large-scale ***EDA with Dask*** to handle data that is too large for memory, identifying key demand drivers (especially ***time-of-day*** / ***day-of-week***) and diagnosing ***extreme outliers*** in location/distance/fare fields.
-- Cleaned the dataset by removing ***erroneous outliers***, then ***partitioned NYC into 30 data-driven regions*** using ***scaled lat/long*** + `MiniBatchKMeans`, selecting $k$ by targeting ***≈1–1.5 mile*** average distance to each region’s ***8 nearest neighbors***.
-- Converted raw trip logs into ***region-wise time series*** by ***resampling to 15-minute intervals*** and counting pickups per region, then applied ***EWMA smoothing*** ($\alpha = 0.4$) to stabilize short-term fluctuations.
-- Engineered forecasting features including ***4 lag demands*** ($t−1$ to $t−4$), ***day-of-week***, region identifiers, and smoothed demand; used a ***time-aware split*** (train: Jan–Feb, test: Mar).
-- Trained and evaluated a ***linear regression baseline*** that achieved about ***7.93% test MAPE*** (and ≈8.78% train MAPE), then ran ***Optuna-based model selection & hyperparameter tuning*** while tracking all runs in ***MLflow (hosted via DagsHub)*** and registering the best model.
-- Productionized the workflow as a reproducible ***DVC pipeline*** (data ingestion → cleaning → clustering → resampling/feature engineering → training → evaluation → registration), with artifacts versioned in ***S3 as the DVC remote***.
-- Delivered a ***Streamlit app*** that visualizes predicted demand on a region map (optionally ***current + 8 neighbors only***), and implemented ***CI tests (pytest) + CI/CD*** to containerize with ***Docker***, push to ***ECR***, and deploy via ***CodeDeploy*** to an ***EC2 Auto Scaling Group*** behind a ***load balancer***.
+- Built a ***hybrid recommender system*** combining Content-Based Filtering and Item-Based Collaborative Filtering on ***50,683 songs*** and ***9.7M+ user–song interactions*** (≈962K users, 30K+ active tracks).
+- Engineered high-dimensional song embeddings using ***TF-IDF (85 features), One-Hot Encoding, Frequency Encoding, Standard Scaling, and Min-Max Scaling*** via Scikit-learn’s `ColumnTransformer`.
+- Constructed an ***item–user interaction matrix (30,459 × 962,037 ≈ 29B possible entries)*** and optimized memory usage by converting it into a ***SciPy sparse matrix***, avoiding ~60GB dense allocation.
+- Leveraged ***Dask for parallelized chunk processing*** to handle large-scale interaction data that could not fit into memory.
+- Implemented cosine similarity–based ranking to generate ***top-k real-time recommendations***.
+- Designed a ***weighted hybrid model*** with normalized similarity vectors to resolve scale mismatch between sparse collaborative signals and dense content embeddings.
+- Addressed ***cold-start problem*** by dynamically switching to content-based recommendations for ~20K unseen songs.
+- Modularized the pipeline using ***DVC stages*** for reproducible data cleaning, transformation, interaction matrix creation, and hybrid recommendation.
+- Built an interactive ***Streamlit application*** with dynamic weight selection and session-level caching for improved inference speed.
+- Productionized the system with ***Docker containerization, GitHub Actions CI/CD, AWS ECR image versioning, EC2 deployment, and blue/green deployments using AWS CodeDeploy + Auto Scaling***.
 
 ---
 
-### Olist E-Commerce Database (PostgreSQL → SQLite + Streamlit App)
+### NYC Taxi Demand Prediction | End-to-End Time Series Forecasting & Application
 
-**Tech:** SQL, PostgreSQL, SQLite, ER modeling, BCNF, Functional Dependencies, Joins, Aggregations, Subqueries, Window Functions, Indexing, Query Optimization, `EXPLAIN`, Streamlit
+#### Detailed Report
 
-- Built an end-to-end ***relational database application*** for the ***Olist Brazilian e-commerce dataset (≈100K orders, 2016–2018)***, supporting customers, sellers, products, orders, payments, reviews, and geolocation analytics.
-- Designed and implemented a ***normalized PostgreSQL schema (RAW)*** with primary keys, foreign keys, and relationship constraints reflecting marketplace entities and one-to-many relationships (customers → orders, orders → items/payments/reviews, sellers → items).
-- Performed ***global BCNF verification*** by identifying candidate keys + functional dependencies across all relations; introduced ***surrogate keys*** (`geolocation_id`, `review_record_id`) to resolve duplicate-record key issues and enforce BCNF at the schema level.
-- Developed and validated ***core CRUD + analytics SQL***: insert/update/delete workflows plus multi-table SELECTs for top revenue products, seller rating summaries, high-spending customers, and low-rated delivered orders.
-- Authored and executed ***advanced analytical queries*** using ***subqueries*** and ***window functions*** (e.g., `PERCENT_RANK`) to rank sellers within states and compute revenue/behavior metrics.
-- Conducted ***query performance analysis*** using `EXPLAIN` outputs, identifying expensive joins/group-bys and proposing improvements via indexing and better query structure for large-table scans.
-- Implemented ***indexing strategies*** (B-Tree; and discussed Hash indexes in PostgreSQL) and compared before/after runtime on heavy join queries (measured execution time improvements).
-- Migrated the system from ***PostgreSQL → SQLite*** using Python scripts (`create_db.py`, `index_db.py`) and deployed an interactive ***Streamlit*** web app enabling users to run custom SQL queries against the dataset.
+Check out the detailed report [here](projects/published/taxi-demand-prediction/index.qmd).
+
+#### Tech Stack
+
+Python, pandas, Dask, NumPy, scikit-learn (StandardScaler, MiniBatchKMeans, LinearRegression), Optuna, MLflow, DagsHub, DVC, Amazon S3, Streamlit, pytest, GitHub Actions, Docker, AWS (ECR, EC2 Auto Scaling, Application Load Balancer, CodeDeploy)
+
+#### Key Highlights
+
+- Built an ***end-to-end taxi demand forecasting system*** that predicts ***next 15-minute pickup demand*** from ***(latitude, longitude) + time***, enabling driver decision-making for higher-earning regions.
+- Processed ***3 months of NYC TLC Yellow Taxi data (Jan–Mar 2016)*** and engineered a forecasting-ready dataset by ***resampling pickups into 15-min bins*** per region and generating ***4 lag features (t−1 … t−4)*** plus ***day-of-week*** signals.
+- Scaled geospatial modeling by dividing NYC into ***30 demand-aware regions*** using ***MiniBatch K-Means***, selecting ***k = 30*** based on an average ***~1–1.5 mile distance to the 8 nearest neighboring region centroids*** (driver-reachable within 15 minutes).
+- Implemented robust preprocessing by ***removing extreme outliers*** across ***geo coordinates, trip distance, fare, and related fields***, improving clustering quality and downstream demand estimates.
+- Reduced time-series noise via ***Exponentially Weighted Moving Average (EWMA)*** smoothing with ***α = 0.4***, aligned with the 4-lag feature window to avoid leakage.
+- Trained and validated a time-series baseline using a non-random split (***train: Jan–Feb 2016, test/val: Mar 2016***) and achieved ***MAPE = 8.78% (train)*** and ***MAPE = 7.93% (test)*** with ***Linear Regression***.
+- Performed ***Bayesian hyperparameter optimization with Optuna*** across candidate models and selected the best configuration, reaching a ***best test MAPE ≈ 7.93%*** (final selected model: ***Linear Regression***).
+- Built a reproducible ***DVC pipeline*** covering ingestion → outlier removal → clustering → feature engineering → training → evaluation, with ***artifact versioning*** (datasets, scaler, clustering model, encoder, regressor) and ***S3 as the DVC remote***.
+- Tracked experiments and registered models using ***MLflow (remote on DagsHub)***, logging parameters, metrics, and artifacts; promoted models through ***staging → production*** gated by automated tests.
+- Delivered an interactive ***Streamlit app*** that visualizes predicted demand as a ***color-coded NYC region map***, with an option to show predictions for the ***current region + 8 nearest neighbors*** (9 regions total) to reflect realistic driver mobility.
+- Implemented CI/CD with ***GitHub Actions + pytest***, including automated checks for ***model registry loading*** and ***performance thresholds (MAPE ≤ 10% on train & test)***; containerized the app with ***Docker*** and prepared deployment via ***AWS ECR + EC2 Auto Scaling + ALB + CodeDeploy*** (desired capacity: ***2***, min: ***1***, max: ***2***, CPU target: ***70%***).
+
+---
+
+### Olist E-Commerce Database | PostgreSQL → SQLite + Streamlit App
+
+#### Detailed Report
+
+Check out the detailed report [here](projects/published/olist-ecommerce-database/index.qmd).
+
+#### Tech Stack
+
+PostgreSQL, SQLite, SQL, Python, pandas, sqlite3, Streamlit, EXPLAIN/query plans, indexing (B-tree / hash in Postgres; B-tree in SQLite), E/R modeling (Lucidchart), Git/GitHub, Kaggle (Olist dataset)
+
+#### Key Highlights
+
+- Designed and implemented a normalized relational database for the Olist Brazilian e-commerce dataset (~100,000 orders; 2016–2018) across ***9 core tables***, enforcing PK/FK constraints and referential integrity for marketplace analytics.
+- Performed ***global BCNF verification*** by enumerating candidate keys + functional dependencies; resolved non-BCNF edge cases by introducing ***surrogate primary keys*** (`geolocation_id`, `review_record_id`) to handle duplicate-heavy relations without lossy decompositions.
+- Built a reproducible ***CSV → PostgreSQL ingestion pipeline*** using `COPY` (including duplicate-safe loads via `ON CONFLICT DO NOTHING` for reviews), enabling fast bulk loads and consistent schema initialization.
+- Authored ***10+ operational SQL queries*** (INSERT/UPDATE/DELETE/SELECT) and ***advanced analytics queries*** using `WITH` CTEs, window functions (`PERCENT_RANK`), nested subqueries, and conditional aggregation to derive seller tiers, customer value, and delivery KPIs.
+- Conducted query performance profiling with ***`EXPLAIN` / query plans*** and identified bottlenecks in join-heavy + aggregation workloads (e.g., a multi-table JOIN query measured ***~50s*** pre-indexing).
+- Implemented an indexing strategy (join keys + filter columns) and demonstrated measurable improvements on representative workloads (e.g., JOIN query reduced from ***~50s → ~42s***, ~16% speedup), while documenting why gains were bounded by optimizer behavior and workload characteristics.
+- Diagnosed and documented expensive analytical queries (e.g., state-level seller ranking query at ***~14.5 minutes***, customer payment aggregation at ***~11 minutes***) and proposed targeted indexing / access-pattern changes to reduce full scans and sort costs.
+- Migrated the full database from PostgreSQL to ***SQLite*** for lightweight deployment, recreating schema + constraints in Python and loading data via `pandas.to_sql`, enabling a portable, serverless artifact (`olist.db`) for demos and sharing.
+- Developed and deployed a ***Streamlit SQL Explorer*** that lets users run interactive SQL queries against the SQLite database for self-serve analytics and rapid experimentation.
 
 ---
 
 ### Customer Care ETL Pipeline (End-to-End Serverless Data Engineering on AWS)
 
-**Tech:** Python, pandas, SQLAlchemy, MySQL, Amazon S3, AWS Lambda, AWS Glue, AWS Glue Crawlers, Amazon Athena, Amazon Redshift Serverless, Parquet, CSV, Loguru, psycopg2, Power BI
+#### Detailed Report
 
-- Built an end-to-end ***customer care ETL pipeline*** that unifies structured ticket data (MySQL) and unstructured application logs into a ***single source of truth*** for analytics and dashboards.
-- Implemented a ***data lake on Amazon S3*** with clear ***raw/processed zones*** for both tickets and logs; standardized storage using ***Parquet*** for efficient querying and warehousing.
-- Developed ***incremental, exactly-once ingestion*** for daily ticket extracts using ***Python + SQLAlchemy + pandas***, with a ***date-tracker state file*** and guardrails for empty loads to prevent bad partitions.
-- Ingested daily log files into S3 and built a ***robust log-parsing pipeline*** (regex-based) to structure events (timestamp, severity, latency, CPU, error flags, user agent, etc.) for downstream analysis.
-- Operationalized log transformations using ***AWS Lambda***, including ***S3 event triggers*** that automatically transform newly landed raw logs into clean Parquet outputs.
-- Cleaned and standardized messy real-world data: fixed category typos (priority/log levels), removed null-only columns, filtered invalid values (e.g., negative response times), enforced correct data types, and deduplicated records.
-- Orchestrated ticket transformations with ***AWS Glue (Visual ETL + Script ETL)***, combining schema enforcement, filtering, SQL-based standardization, and Parquet exports with automated triggers via Lambda.
-- Enabled ***serverless ad hoc analytics*** by cataloging processed datasets with ***AWS Glue Crawlers*** and querying directly in ***Amazon Athena*** using SQL (ticket volume trends, agent workload, log-level distributions, CPU summaries).
-- Loaded curated datasets into ***Amazon Redshift Serverless*** as an OLAP layer and implemented ***event-driven incremental COPY loads*** (Lambda + psycopg2) from S3 processed outputs.
-- Delivered ***Power BI dashboards*** connected to Redshift to report operational KPIs (tickets, open/closed status, latency, CPU, log volumes) with updates reflecting new data as the pipeline runs.
+Check out the detailed report [here](projects/published/customer-care-etl-pipeline/index.qmd).
+
+#### Tech Stack
+
+Python, pandas, SQLAlchemy, MySQL, Amazon S3 (raw/processed zones), AWS Lambda (S3 event triggers + layers: AWSSDKPandas, psycopg2), AWS Glue (Visual ETL + Script ETL + Crawlers), Amazon Athena, Amazon Redshift Serverless, Parquet/CSV, Loguru, Power BI
+
+#### Key Highlights
+
+- Designed and implemented a ***production-style, event-driven ETL pipeline*** to unify scattered customer-care data into a ***single source of truth***, enabling consistent analytics and dashboarding.
+- Built ***incremental ingestion*** for MySQL support tickets using a ***date-tracker state file*** with ***exactly-once semantics*** (state updated only after successful S3 write) and graceful handling of empty daily extracts.
+- Ingested unstructured daily support logs and implemented ***fault-tolerant, incremental file ingestion*** (one-day-per-run) with structured, rotated logs via ***Loguru*** for auditability and debugging.
+- Converted raw log text into an analytics-ready table by parsing ***13+ fields*** (timestamp, log_level, service component, ticket/session IDs, IP, response time, CPU%, event type, error flag, user agent, message/debug) using ***regex-based extraction***.
+- Enforced data quality checks and cleaning: ***filtered invalid records*** (e.g., negative response times), ***normalized malformed log levels*** (INF0/DEBG/warnING/EROR → canonical levels), dropped non-informative columns (e.g., trace_id), and ***deduplicated*** events.
+- Implemented ***serverless transformations*** for logs in ***AWS Lambda***, writing curated outputs to ***S3 processed zone in Parquet*** using PyArrow for efficient downstream querying.
+- Built a ***Glue Visual ETL*** job for ticket cleansing (schema fixes, null-field drops, renames, invalid-value filters, SQL-based category standardization) and productionized it via ***Glue Script ETL*** triggered by ***S3 Put events***.
+- Enabled ***ad hoc analytics*** directly on the lake using ***Athena + Glue Crawlers***, creating queryable tables over Parquet datasets and supporting operational KPI exploration (ticket volume trends, agent workload, log-level distributions, CPU utilization by user agent).
+- Loaded curated data into ***Amazon Redshift Serverless*** using automated ***incremental COPY*** jobs triggered on new processed Parquet arrivals (Lambda + psycopg2), supporting scalable OLAP queries.
+- Delivered near-real-time operational dashboards in ***Power BI*** connected to Redshift, tracking KPIs such as ***total/open tickets, ticket distribution by channel/status/agent, total logs, log-level mix, and average CPU utilization***.
 
 ---
 
