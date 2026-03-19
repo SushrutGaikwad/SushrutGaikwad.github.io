@@ -1165,7 +1165,11 @@ All tests run offline without API calls, using mocked dependencies. The full tes
 
 # Gradio Chatbot Interface
 
-To make the RAG pipeline accessible beyond scripts and tests, the project includes a Gradio chatbot interface that lets users ask questions about LangChain and LangGraph interactively, with streaming responses and source citations.
+To make the RAG pipeline accessible beyond scripts and tests, the project includes a Gradio chatbot interface that lets users ask questions about LangChain and LangGraph interactively, with streaming responses and source citations. @fig-demo shows the Gradio chatbot interface demo.
+
+![Gradio Chatbot Interface.](images/demo.gif){#fig-demo fig-align="center" width=100%}
+
+Notice how the chatbot answers along with citing the sources. Also, the final question is out of scope for the RAG pipeline, and the chatbot correctly declines to answer it.
 
 ## Implementation
 
