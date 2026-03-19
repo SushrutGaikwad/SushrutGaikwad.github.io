@@ -1,5 +1,6 @@
 ---
 title: "Spotify Hybrid Song Recommender"
+author: "Sushrut"
 date: 2025-04-22
 image: images/thumbnail/spotify_logo.svg
 categories: [Recommender Systems, Content-Based Filtering, Collaborative Filtering]

@@ -1,8 +1,9 @@
 ---
 title: "YouTube Comment Intelligence"
+author: "Sushrut"
 date: 2025-08-01
 image: images/thumbnail/youtube_logo.svg
-categories: [Machine Learning, Natural Language Processing]
+categories: [Machine Learning, NLP]
 description: "A Chrome extension for sentiment analysis on YouTube comments."
 ---
 

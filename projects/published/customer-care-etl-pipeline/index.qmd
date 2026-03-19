@@ -1,5 +1,6 @@
 ---
 title: "Customer Care ETL Pipeline"
+author: "Sushrut"
 date: 2025-08-01
 image: "images/thumbnail.png"
 categories: [Data Engineering, ETL Pipeline]

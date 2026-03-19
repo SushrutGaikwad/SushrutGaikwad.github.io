@@ -1,5 +1,6 @@
 ---
 title: "Olist E-Commerce Database"
+author: "Sushrut"
 date: 2025-04-25
 image: images/thumbnail.png
 categories: [Databases, SQL]

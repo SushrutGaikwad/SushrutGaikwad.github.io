@@ -1,5 +1,6 @@
 ---
 title: "Taxi Demand Prediction"
+author: "Sushrut"
 date: 2025-08-01
 image: images/thumbnail/thumbnail.png
 categories: [Machine Learning, Time Series]

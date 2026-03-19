@@ -1,5 +1,6 @@
 ---
 title: "Food Delivery Time Prediction"
+author: "Sushrut"
 date: 2025-05-10
 image: images/thumbnail/swiggy_logo.svg
 categories: [Machine Learning]
