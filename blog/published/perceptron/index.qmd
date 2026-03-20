@@ -67,8 +67,6 @@ algorithm from that intuition, and then show exactly where and why it fails.
 At the end, you will know not just *how* the perceptron works but *why* it
 works, and why that matters for everything that comes after it.
 
----
-
 # The Perceptron Model
 
 ## Starting from the Movie Example
@@ -236,8 +234,6 @@ This notation is not just a shorthand. The dot product $\vb{w}^{\intercal}
 two vectors $\vb{w}$ and $\vb{x}$. We will use this fact extensively when we
 explain why the learning algorithm works.
 
----
-
 # The Geometric Picture: A Line That Divides the World
 
 Now that we have the equation, let us ask: what does it *look like* in space?
@@ -284,8 +280,6 @@ $$
 w_0 x_0 + w_1 x_1 + w_2 x_2 + \cdots + w_d x_d = 0.
 $$ {#eq-perceptron_boundary2}
 
----
-
 # Perceptron vs. McCulloch-Pitts Neuron
 
 At this point it is worth pausing to compare the perceptron to the
@@ -298,16 +292,16 @@ flowchart LR
         direction TB
         MP1["$$\text{Inputs: binary only }(x_j \in \{0,1\})$$"]
         MP2["All weights = 1<br>(no learnable weights)"]
-        MP3["$$\text{Threshold }\\theta \text{ fixed by hand}$$"]
-        MP4["Boundary: $$\\sum x_j = \\theta$$"]
+        MP3["$$\text{Threshold }\theta \text{ fixed by hand}$$"]
+        MP4["Boundary: $$\sum_{j=1}^d x_j = \theta$$"]
         MP1 --> MP2 --> MP3 --> MP4
     end
     subgraph P ["Perceptron"]
         direction TB
-        P1["$$\text{Inputs: real-valued }(x_j \in \\mathbb{R})$$"]
+        P1["$$\text{Inputs: real-valued }(x_j \in \mathbb{R})$$"]
         P2["$$\text{Learnable weights }w_j\text{ (encode feature importance)}$$"]
-        P3["$$\text{Learnable bias }w_0 = -\\theta\text{ (encodes prior)}$$"]
-        P4["$$\text{Boundary: }\\mathbf{w}^{\\intercal}\\mathbf{x} = 0$$"]
+        P3["$$\text{Learnable bias }w_0 = -\theta\text{ (encodes prior)}$$"]
+        P4["$$\text{Boundary: }\sum_{j=0}^d w_j x_j = 0$$"]
         P1 --> P2 --> P3 --> P4
     end
     MP -->|"Generalized by"| P
@@ -326,8 +320,6 @@ flexible and, crucially, learnable from data. The concrete failure we saw
 earlier, where equal weights gave the wrong answer for the Nolan fan, is
 exactly the kind of problem that learnable weights solve.
 
----
-
 # The OR Function: A Worked Example
 
 Before we introduce the learning algorithm, let us work through a concrete
@@ -341,10 +333,10 @@ for each input.
 ::: {.tbl tbl-colwidths="auto"}
 | $x_1$ | $x_2$ | OR  | Required condition                                    |
 |:-------:|:-------:|:---:|:-----------------------------------------------------:|
-| $0$   | $0$   | $0$ | $w_0 + w_1 \cdot 0 + w_2 \cdot 0 < 0$              |
-| $1$   | $0$   | $1$ | $w_0 + w_1 \cdot 1 + w_2 \cdot 0 \geq 0$           |
-| $0$   | $1$   | $1$ | $w_0 + w_1 \cdot 0 + w_2 \cdot 1 \geq 0$           |
-| $1$   | $1$   | $1$ | $w_0 + w_1 \cdot 1 + w_2 \cdot 1 \geq 0$           |
+| $0$   | $0$   | $0$ | $w_0 + \left(w_1 \times 0\right) + \left(w_2 \times 0\right) < 0$              |
+| $1$   | $0$   | $1$ | $w_0 + \left(w_1 \times 1\right) + \left(w_2 \times 0\right) \geq 0$           |
+| $0$   | $1$   | $1$ | $w_0 + \left(w_1 \times 0\right) + \left(w_2 \times 1\right) \geq 0$           |
+| $1$   | $1$   | $1$ | $w_0 + \left(w_1 \times 1\right) + \left(w_2 \times 1\right) \geq 0$           |
 
 : The OR function for two inputs with the perceptron condition required for each input. {#tbl-or style="width:60%; margin:auto;"}
 :::
@@ -379,8 +371,6 @@ We need a procedure that finds the weights automatically, by looking at the
 data and correcting its mistakes one at a time. That is the perceptron learning
 algorithm.
 
----
-
 # The Perceptron Learning Algorithm
 
 ## Setting Up the Problem
@@ -404,8 +394,8 @@ $$
 \mathcal{N} = \left\{ \vb{x}_i \mid y_i = 0 \right\}.
 $$
 
-$\mathcal{P}$ is the set of positive examples (liked) and $\mathcal{N}$ is the
-set of negative examples (disliked). Our goal is to find $\vb{w}$ such that
+$\mathcal{P}$ is the set of positive examples (liked movies) and $\mathcal{N}$ is the
+set of negative examples (disliked movies). Our goal is to find $\vb{w}$ such that
 every $\vb{x}_i \in \mathcal{P}$ satisfies $\vb{w}^{\intercal} \vb{x}_i \geq 0$
 and every $\vb{x}_i \in \mathcal{N}$ satisfies $\vb{w}^{\intercal} \vb{x}_i < 0$.
 
@@ -562,8 +552,6 @@ classify every point.
 Now the natural question is: why do the update rules actually work? Answering
 that requires us to look at the geometry more carefully.
 
----
-
 # Why the Weight Updates Work: The Geometry
 
 We are about to see that the perceptron updates have a beautiful geometric
@@ -638,7 +626,7 @@ misclassified positive point to $\vb{w}$ *pulls* $\vb{w}$ towards that point.
 $\vb{w}' = \vb{w} + \vb{x}_i$ makes a smaller angle with $\vb{x}_i$ than
 $\vb{w}$ did, moving $\vb{x}_i$ toward the correct
 side.](images/weight_update_positive_point.svg){#fig-weight_update_positive_point
-fig-align="center" width=55% .invert}
+fig-align="center" width=45% .invert}
 
 ## Fixing a Misclassified Negative Point
 
@@ -671,8 +659,6 @@ the OR dataset, illustrating how the decision boundary rotates with each update.
 
 {{< video images/perceptron_learning.mp4 >}}
 
----
-
 ## Recap: Where We Are
 
 ```{mermaid}
@@ -695,8 +681,6 @@ flowchart TD
 We now have a complete picture of how the perceptron works and why the learning
 algorithm is correct. All that remains is to understand where it breaks down.
 
----
-
 # What if the Data is Not Linearly Separable?
 
 Everything we have built so far assumes the data is linearly separable. But
@@ -709,10 +693,10 @@ requires for each input.
 ::: {.tbl tbl-colwidths="auto"}
 | $x_1$ | $x_2$ | XOR | Required condition                                    |
 |:-----:|:-----:|:---:|:-----------------------------------------------------:|
-| $0$   | $0$   | $0$ | $w_0 + w_1 \cdot 0 + w_2 \cdot 0 < 0$              |
-| $1$   | $0$   | $1$ | $w_0 + w_1 \cdot 1 + w_2 \cdot 0 \geq 0$           |
-| $0$   | $1$   | $1$ | $w_0 + w_1 \cdot 0 + w_2 \cdot 1 \geq 0$           |
-| $1$   | $1$   | $0$ | $w_0 + w_1 \cdot 1 + w_2 \cdot 1 < 0$              |
+| $0$   | $0$   | $0$ | $w_0 + \left(w_1 \times 0\right) + \left(w_2 \times 0\right) < 0$              |
+| $1$   | $0$   | $1$ | $w_0 + \left(w_1 \times 1\right) + \left(w_2 \times 0\right) \geq 0$           |
+| $0$   | $1$   | $1$ | $w_0 + \left(w_1 \times 0\right) + \left(w_2 \times 1\right) \geq 0$           |
+| $1$   | $1$   | $0$ | $w_0 + \left(w_1 \times 1\right) + \left(w_2 \times 1\right) < 0$              |
 
 : The XOR function for two inputs with the perceptron condition required for each input. {#tbl-xor style="width:60%; margin:auto;"}
 :::
@@ -801,8 +785,6 @@ separable and therefore beyond the reach of a single perceptron.
 The natural question is: can we do better by combining multiple perceptrons?
 The answer is yes, and that is the subject of the next post.
 
----
-
 # Conclusion: What We Have Built and Where It Leads
 
 Let us return to where we started: the movie decision. You have a set of
@@ -829,8 +811,6 @@ are geometrically interleaved. But the failure of a single perceptron is
 actually the beginning of the deeper story: a network of perceptrons can
 implement any boolean function, and with continuous activations, can approximate
 any function. That story starts in the next post.
-
----
 
 # Acknowledgment
 
