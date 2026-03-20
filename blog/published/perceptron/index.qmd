@@ -12,26 +12,112 @@ format:
     smooth-scroll: true
     math: mathjax
     toc: true
-    # toc-location: left
-    # comments:
-    #   giscus: true
+    fig-format: svg
+    mermaid:
+      theme: dark
 bibliography: ../../../references/references.bib
 csl: ../../../references/apa.csl
+execute:
+  enabled: true
+  fig-format: svg
 ---
 
-# Introduction
+# A Decision You Already Know How to Make
 
-@rosenblatt1958perceptron proposed the classical perceptron model. It is a more general computational model than the McCulloch-Pitts neuron. The main difference is the introduction of numerical weights for inputs that capture their importance, and a mechanism for learning these weights. These inputs are also no longer limited to boolean values.
+Imagine you are trying to decide whether you will enjoy a movie tonight. You
+pull up the listing and notice a few things: Matt Damon is in it, the genre is
+thriller, and Christopher Nolan directed it. You weigh these up in your head,
+apply your own personal threshold for "yes, I'll watch this," and arrive at a
+binary answer: watch or skip.
 
-This classical perceptron was refined and carefully analyzed by @minsky1969introduction. Their model is referred to as the **perceptron**, which we will focus on.
+That mental process, weighing features, summing them up, and applying a
+threshold, is, in essence, what a perceptron does. The perceptron is one of
+the oldest and most foundational ideas in machine learning. It is a simple
+binary classifier: given an input, it outputs either $1$ (positive class) or
+$0$ (negative class). Understanding it deeply is the first step toward
+understanding the neural networks that power modern AI.
 
-# Working of a Perceptron
+This post is largely based on the treatment in @minsky1969introduction and the
+lecture series by @iitm-deep-learning-playlist and
+@nptel-deep-learning-playlist.
 
-Consider that there are $d$ inputs $x_j$ (where $j \in \{1, 2, \dots, d\}$), and each of these inputs has a weight $w_j$ associated with them. @fig-general-perceptron-without-bias shows an illustration.
+## The Journey Ahead
 
-![A general perceptron without bias.](images/general_perceptron_without_bias.svg){#fig-general-perceptron-without-bias fig-align="center" width=30% .invert}
+Before we begin, here is the road we will travel:
 
-The logic for getting the output is similar to MP neuron:
+```{mermaid}
+%%| fig-align: center
+flowchart TD
+    A["A concrete decision scenario<br>(the movie example)"]
+    B["The perceptron model<br>(weights, bias, threshold)"]
+    C["Geometric picture<br>(the decision boundary)"]
+    D["Perceptron vs. MP Neuron<br>(what changed and why it matters)"]
+    E["The learning algorithm<br>(finding weights from data)"]
+    F["Why the updates work<br>(geometry of weight updates)"]
+    G["What if data is not<br>linearly separable? (XOR)"]
+    H["What comes next<br>(networks of perceptrons)"]
+    A --> B --> C --> D --> E --> F --> G --> H
+    style A fill:#2c3e50,color:#ecf0f1
+    style H fill:#2c3e50,color:#ecf0f1
+```
+
+We will build the perceptron piece by piece from first principles, develop a
+geometric intuition for what it is actually doing, derive the learning
+algorithm from that intuition, and then show exactly where and why it fails.
+At the end, you will know not just *how* the perceptron works but *why* it
+works, and why that matters for everything that comes after it.
+
+---
+
+# The Perceptron Model
+
+## Starting from the Movie Example
+
+Let us stay with the movie example and think about it concretely before writing
+any equations. Suppose we are trying to predict whether a particular person
+will like a movie. We have three yes/no features:
+
+$$
+\begin{align*}
+  x_1 \in \{0, 1\} &= \texttt{isActorDamon}\\
+  x_2 \in \{0, 1\} &= \texttt{isGenreThriller}\\
+  x_3 \in \{0, 1\} &= \texttt{isDirectorNolan}
+\end{align*}
+$$
+
+And the label we want to predict is:
+
+$$
+y \in \{0, 1\} = \texttt{didPersonLikeMovie}.
+$$
+
+The simplest possible rule: add up the features and check whether the total
+crosses some threshold $\theta$. If $x_1 + x_2 + x_3 \geq \theta$, predict
+like; otherwise, predict skip. This is actually the McCulloch-Pitts (MP) neuron
+[@mcculloch1943logical], and on the surface it seems reasonable.
+
+But let us try it on a concrete case and see where it breaks. Suppose the
+person is a Nolan superfan: they will watch any film Nolan directed,
+regardless of genre or cast. Consider these two movies:
+
+- Movie A: directed by Nolan, no Damon, not a thriller. Features: $(0, 0, 1)$, so the sum is $1$.
+- Movie B: starring Damon, a thriller, not directed by Nolan. Features: $(1, 1, 0)$, so the sum is $2$.
+
+With threshold $\theta = 2$, Movie A (which this person loves) would be
+predicted as a skip, and Movie B (which they may or may not like) would be
+predicted as a watch. The rule gets it backwards for a Nolan fan, because it
+assigns the same weight to every feature. For this person, the fact that Nolan
+directed the film is worth far more than the other two features combined.
+
+This is the gap that the perceptron fills.
+
+## Introducing Weights
+
+The perceptron, originally proposed by @rosenblatt1958perceptron and carefully
+analyzed by @minsky1969introduction, fixes the equal-weight problem by
+introducing a weight $w_j$ for each input $x_j$. The weight encodes how
+important that feature is. Instead of adding up the raw features, we add up a
+weighted sum:
 
 $$
 y = f\left(x_1, \dots, x_d\right) =
@@ -41,7 +127,24 @@ y = f\left(x_1, \dots, x_d\right) =
 \end{cases}
 $$ {#eq-perceptron_equation_first}
 
-However, notice the slight difference in the if conditions as compared to the MP neuron equation. Here, the weights play a role. We can rewrite this equation as
+Here $\theta$ is the threshold the weighted sum must clear for the output to
+be $1$, and $d$ is the number of input features.
+
+Returning to our Nolan fan: if we set $w_3$ large enough that $w_3 \times 1$
+alone clears $\theta$ even when $x_1 = 0$ and $x_2 = 0$, the perceptron will
+correctly predict that any Nolan film is a watch, regardless of the other
+features. That is the power of weights: they let the model reflect the actual
+relative importance of features.
+
+Note also that the inputs are no longer restricted to boolean values. A feature
+like $\texttt{IMDBRating}$ can be a real number, and the perceptron handles
+that just as naturally.
+
+## Absorbing the Threshold: The Bias
+
+There is a small but important notational trick that will simplify everything
+that follows. We can rewrite @eq-perceptron_equation_first by moving $\theta$
+to the left-hand side:
 
 $$
 y = f\left(x_1, \dots, x_d\right) =
@@ -51,11 +154,18 @@ y = f\left(x_1, \dots, x_d\right) =
 \end{cases}
 $$ {#eq-perceptron_equation_first2}
 
-A more acceptable convention is to club $\theta$ inside the summation by considering an extra *always-on* input $x_0 = 1$ with the corresponding weight $w_0 = -\theta$. This weight $w_0 = -\theta$ is called the **bias**. So, the general perceptron includes an extra input $x_0 = 1$ (always-on), whose weight is the bias $-\theta$. @fig-general-perceptron shows an illustration of the general perceptron.
+Now $-\theta$ is just a constant term added to the weighted sum. We can absorb
+it into the summation itself by imagining an extra input $x_0 = 1$ (always
+turned on, regardless of the movie) with a corresponding weight $w_0 = -\theta$.
+This weight $w_0$ is called the **bias**. @fig-general-perceptron shows the
+resulting model.
 
-![A general perceptron.](images/general_perceptron.svg){#fig-general-perceptron fig-align="center" width=40% .invert}
+![A general perceptron with bias. The node $x_0 = 1$ is always on; its weight
+$w_0$ is the bias.](images/general_perceptron.svg){#fig-general-perceptron
+fig-align="center" width=40% .invert}
 
-So, the perceptron equation becomes:
+With this convention, the perceptron equation becomes elegantly uniform: every
+input, including the bias input, participates in one single sum:
 
 $$
 y = f\left(x_0, x_1, \dots, x_d\right) =
@@ -65,202 +175,245 @@ y = f\left(x_0, x_1, \dots, x_d\right) =
 \end{cases}
 $$ {#eq-perceptron_equation}
 
-We can club all the inputs $x_j$ inside a single column vector $\mathbf{x}$ called the **input vector**, and club all the weights $w_j$ inside a single column vector $\mathbf{w}$ called the **weight vector**. This helps us rewrite @eq-perceptron_equation more succinctly using the transpose notation. In other words, using
+## Significance of the Bias
+
+The bias $w_0 = -\theta$ encodes a *prior*, or a prejudice, about the output.
+A high threshold $\theta$ (equivalently, a very negative bias $w_0$) means the
+weighted sum of the actual features must be large before the perceptron outputs
+$1$. The bar is high.
+
+In the movie example, a selective viewer who only likes films that
+simultaneously star Damon, are thrillers, and are directed by Nolan will have
+a high threshold $\theta$. The perceptron trained on their data will learn a
+large value of $\theta$ (very negative $w_0$). Conversely, someone who enjoys
+almost everything will have a very low threshold, perhaps even $\theta = 0$,
+meaning any non-negative weighted sum is enough for $y = 1$.
+
+The bias is not an afterthought: it lets the perceptron shift its decision
+boundary to reflect how much cumulative evidence is needed before committing
+to a positive prediction.
+
+## Vector Notation
+
+With $d$ inputs plus the bias input $x_0 = 1$, writing out the sum
+$w_0 x_0 + w_1 x_1 + \cdots + w_d x_d$ repeatedly is cumbersome. We collect
+all inputs into a column vector $\vb{x}$ and all weights into a column vector
+$\vb{w}$:
+
+$$
+\vb{w} = \begin{bmatrix} w_0 \\ w_1 \\ \vdots \\ w_d \end{bmatrix}, \qquad
+\vb{x} = \begin{bmatrix} x_0 \\ x_1 \\ \vdots \\ x_d \end{bmatrix}.
+$$
+
+The sum $\sum_{j=0}^{d} w_j x_j$ is then just the dot product
+$\vb{w}^{\intercal} \vb{x}$:
 
 $$
 \sum_{j=0}^{d} w_j x_j =
-\begin{bmatrix}
-    w_1 & w_2 & \cdots & w_d
-    \end{bmatrix}
-    \begin{bmatrix}
-    x_1\\
-    x_2\\
-    \vdots\\
-    x_d
-\end{bmatrix}
-= \mathbf{w}^{\intercal}\mathbf{x},
+\begin{bmatrix} w_0 & w_1 & \cdots & w_d \end{bmatrix}
+\begin{bmatrix} x_0 \\ x_1 \\ \vdots \\ x_d \end{bmatrix}
+= \vb{w}^{\intercal} \vb{x}.
 $$
 
-we can rewrite @eq-perceptron_equation as
+So the perceptron equation in its most compact form is:
 
 $$
-y = f (\mathbf{x}) =
+y = f\left(\vb{x}\right) =
 \begin{cases}
-    1, & \text{if $\mathbf{w}^{\intercal}\mathbf{x} \geq 0$},\\
-    0, & \text{if $\mathbf{w}^{\intercal}\mathbf{x} < 0$}.
+    1, & \text{if $\vb{w}^{\intercal} \vb{x} \geq 0$},\\
+    0, & \text{if $\vb{w}^{\intercal} \vb{x} < 0$}.
 \end{cases}
 $$ {#eq-perceptron_equation_transpose_notation}
 
-So, @eq-perceptron_equation_first, @eq-perceptron_equation_first2, @eq-perceptron_equation, and @eq-perceptron_equation_transpose_notation are one and the same. They are all perceptron equations. Also, notice that $\mathbf{w}^{\intercal} \mathbf{x}$ is just the *dot product* of the vectors $\mathbf{w}$ and $\mathbf{x}$.
+@eq-perceptron_equation_first, @eq-perceptron_equation_first2,
+@eq-perceptron_equation, and @eq-perceptron_equation_transpose_notation are
+all equivalent. They are all the perceptron equation, just written at different
+levels of explicitness. We will use $\vb{w}^{\intercal} \vb{x} \geq 0$ from
+here on.
 
-# Significance of Weights
+This notation is not just a shorthand. The dot product $\vb{w}^{\intercal}
+\vb{x}$ also has a geometric meaning: it is related to the angle between the
+two vectors $\vb{w}$ and $\vb{x}$. We will use this fact extensively when we
+explain why the learning algorithm works.
 
-The weights help us encode the importance of features. To understand this, consider a binary classification problem in which we want to predict whether a particular person will like a movie or not. For this, we will be given the data (also known as the training data) containing movies and their features along with a binary output variable indicating whether the person liked that movie or not. Say there are the following three binary features:
+---
+
+# The Geometric Picture: A Line That Divides the World
+
+Now that we have the equation, let us ask: what does it *look like* in space?
+
+The condition $\vb{w}^{\intercal} \vb{x} = 0$ defines the set of all input
+vectors $\vb{x}$ that sit exactly on the boundary between outputting $1$ and
+outputting $0$. In two dimensions ($d = 2$, so ignoring the bias for a moment),
+this is a line through the origin. In $d$ dimensions, it is a hyperplane.
+
+All inputs with $\vb{w}^{\intercal} \vb{x} \geq 0$ lie on the *positive* side
+of the boundary and get $y = 1$. All inputs with $\vb{w}^{\intercal} \vb{x} < 0$
+lie on the *negative* side and get $y = 0$. The perceptron is therefore a
+**linear classifier**: it partitions its input space into exactly two
+half-spaces with a single straight boundary.
+
+The figure below shows what this looks like for a simple 2D example. The
+weight vector $\vb{w}$ is drawn as an arrow; it is always perpendicular to
+the boundary, pointing into the positive half-space. Points on the same side
+as $\vb{w}$ get $y = 1$; points on the opposite side get $y = 0$.
+
+![Perceptron boundary with positive (green) and negative (red) points. The
+weight vector $\vb{w}$ is perpendicular to the boundary, pointing into the
+positive half-space. Positive points make an acute angle with $\vb{w}$;
+negative points make an obtuse
+angle.](images/perceptron_why_weight_updates_work.svg){#fig-perceptron_why_weight_updates_work
+fig-align="center" width=55% .invert}
+
+We will derive why $\vb{w}$ is always perpendicular to the boundary shortly.
+For now, hold on to the picture: the perceptron draws a straight line (or
+hyperplane) through the input space, and everything on one side is a positive
+prediction. This immediately implies something important: a perceptron can only
+solve problems where the two classes can be separated by a straight line. That
+is not always possible, and we will come back to this at the end of the post.
+
+The boundary equation is:
 
 $$
-\begin{align*}
-  x_1 &= \texttt{isActorDamon}\\
-  x_2 &= \texttt{isGenreThriller}\\
-  x_3 &= \texttt{isDirectorNolan}
-\end{align*}
-$$
+\vb{w}^{\intercal} \vb{x} = 0,
+$$ {#eq-perceptron_boundary}
 
-The binary output variable, obviously, is the following:
+or equivalently,
 
 $$
-\begin{align*}
-  y = \texttt{didPersonLikeMovie}
-\end{align*}
-$$
+w_0 x_0 + w_1 x_1 + w_2 x_2 + \cdots + w_d x_d = 0.
+$$ {#eq-perceptron_boundary2}
 
-Now, consider that this person is a Nolan fan, i.e., the person likes all movies directed by Nolan irrespective of the actor and the genre. If this is the case, then for the perceptron to be able to predict that this person will definitely like a movie directed by Nolan, it will need the value of $w_3$ to be high so that the sum in the if condition crosses $\theta$ (see @eq-perceptron_equation_first) even if the actor is not Damon (i.e., $\texttt{isActorDamon} = 0$) and the genre is not thriller (i.e., $\texttt{isGenreThriller} = 0$). In other words, the input $x_3 = \texttt{isDirectorNolan}$ needs to have a significantly higher importance as compared to the remaining inputs. This is how weights help us encode the importance of features.
-
-# Significance of Bias
-
-The bias helps us encode the prior or the prejudice. Let us understand this. Recall that in the perceptron equation (@eq-perceptron_equation), $w_0$ is called the bias as it represents the prior (or the prejudice). We can represent this equation in a simpler and more understandable format by substituting $w_0 = -\theta$ and $x_0 = 1$. Doing this, @eq-perceptron_equation becomes:
-
-$$
-y = f\left(x_1, \dots, x_d\right) =
-\begin{cases}
-    1, & \text{if $-\theta + w_1 x_1 + \cdots + w_d x_d \geq 0$},\\
-    0, & \text{if $-\theta + w_1 x_1 + \cdots + w_d x_d < 0$}.
-\end{cases}
-$$ {#eq-perceptron_equation_bias_simplified}
-
-So, a higher value of the threshold $\theta$ (or a high negative value of the bias $w_0 = -\theta$) means that the remaining summation of $w_1 x_1 + \cdots + w_d x_d$ will have to at least be equal to this high number so that the output is $1$. Again, consider the same movie example. @eq-perceptron_equation_bias_simplified for this example becomes
-
-$$
-y = f\left(x_1, \dots, x_d\right) =
-\begin{cases}
-    1, & \text{if $-\theta + w_1 x_1 + w_2 x_2 + w_3 x_3 \geq 0$},\\
-    0, & \text{if $-\theta + w_1 x_1 + w_2 x_2 + w_3 x_3 < 0$}.
-\end{cases}
-$$
-
-A person who likes all kinds of movies very easily will have a very low value of this threshold $\theta$. So, a perceptron trained on this person will learn a low value for $\theta$. In the simplified setup of this example, we may get $\theta = 0$ for this person. On the other hand, for a selective viewer who only likes thrillers starring Damon that are directed by Nolan, the threshold will be very high such that the prediction is $1$ only if all the three inputs are $1$. This is how the bias helps us encode the prior or the prejudice.
+---
 
 # Perceptron vs. McCulloch-Pitts Neuron
 
-The McCulloch-Pitts (MP) neuron is the following:
+At this point it is worth pausing to compare the perceptron to the
+McCulloch-Pitts (MP) neuron [@mcculloch1943logical], which preceded it.
 
-$$
-y =
-\begin{cases}
-1, & \text{if $\sum_{j=0}^{d} x_j \geq 0$},\\
-0, & \text{if $\sum_{j=0}^{d} x_j < 0$}.
-\end{cases}
-$$
+```{mermaid}
+%%| fig-align: center
+flowchart LR
+    subgraph MP ["McCulloch-Pitts Neuron"]
+        direction TB
+        MP1["$$\text{Inputs: binary only }(x_j \in \{0,1\})$$"]
+        MP2["All weights = 1<br>(no learnable weights)"]
+        MP3["$$\text{Threshold }\\theta \text{ fixed by hand}$$"]
+        MP4["Boundary: $$\\sum x_j = \\theta$$"]
+        MP1 --> MP2 --> MP3 --> MP4
+    end
+    subgraph P ["Perceptron"]
+        direction TB
+        P1["$$\text{Inputs: real-valued }(x_j \in \\mathbb{R})$$"]
+        P2["$$\text{Learnable weights }w_j\text{ (encode feature importance)}$$"]
+        P3["$$\text{Learnable bias }w_0 = -\\theta\text{ (encodes prior)}$$"]
+        P4["$$\text{Boundary: }\\mathbf{w}^{\\intercal}\\mathbf{x} = 0$$"]
+        P1 --> P2 --> P3 --> P4
+    end
+    MP -->|"Generalized by"| P
+```
 
-Whereas the perceptron equation is the following:
+The MP neuron accepts only binary inputs and assigns every feature exactly the
+same weight of $1$. Its threshold $\theta$ must be set by hand. The perceptron
+removes all three of these restrictions: inputs can be real-valued, each input
+gets its own learnable weight, and the threshold is absorbed into a learnable
+bias term. This means the decision boundary can be shifted and tilted to
+wherever the data requires, rather than being fixed in advance.
 
-$$
-y =
-\begin{cases}
-    1, & \text{if $\mathbf{w}^{\intercal} \mathbf{x} \geq 0$},\\
-    0, & \text{if $\mathbf{w}^{\intercal} \mathbf{x} < 0$},
-\end{cases}
-=
-\begin{cases}
-    1, & \text{if $\sum_{j=0}^{d} w_j x_j \geq 0$},\\
-    0, & \text{if $\sum_{j=0}^{d} w_j x_j < 0$}.
-\end{cases}
-$$
+Both models share the same fundamental geometry: a linear boundary divides the
+input space into two halves. The perceptron simply makes that boundary far more
+flexible and, crucially, learnable from data. The concrete failure we saw
+earlier, where equal weights gave the wrong answer for the Nolan fan, is
+exactly the kind of problem that learnable weights solve.
 
-So, it is clear that just like in the case of MP neuron, the perceptron also separates the input space into two halves using a linear boundary whose equation is given by
+---
 
-$$
-\mathbf{w}^{\intercal} \mathbf{x} = 0,
-$$ {#eq-perceptron_boundary}
+# The OR Function: A Worked Example
 
-or
+Before we introduce the learning algorithm, let us work through a concrete
+example by hand: the OR function. This will let us see exactly what it means
+to find a perceptron boundary, and it will make the need for an automatic
+learning procedure visceral.
 
-$$
-w_1 x_1 + w_2 x_2 + \cdots + w_d x_d = 0.
-$$ {#eq-perceptron_boundary2}
+@tbl-or shows the OR truth table alongside what the perceptron equation requires
+for each input.
 
-All the inputs that have an output of $1$ are on one side, and all the inputs that have an output of $0$ are on the other side. In other words, a single perceptron can only be used to implement linearly separable functions. The difference from MP neuron is the introduction of weights $w_j$ that can be learned, and that the inputs can be real valued.
+::: {.tbl tbl-colwidths="auto"}
+| $x_1$ | $x_2$ | OR  | Required condition                                    |
+|:-------:|:-------:|:---:|:-----------------------------------------------------:|
+| $0$   | $0$   | $0$ | $w_0 + w_1 \cdot 0 + w_2 \cdot 0 < 0$              |
+| $1$   | $0$   | $1$ | $w_0 + w_1 \cdot 1 + w_2 \cdot 0 \geq 0$           |
+| $0$   | $1$   | $1$ | $w_0 + w_1 \cdot 0 + w_2 \cdot 1 \geq 0$           |
+| $1$   | $1$   | $1$ | $w_0 + w_1 \cdot 1 + w_2 \cdot 1 \geq 0$           |
 
-Let us first revisit the OR function and see the boundary given by a perceptron. @tbl-or shows this function along with the perceptron equation for each input.
+: The OR function for two inputs with the perceptron condition required for each input. {#tbl-or style="width:60%; margin:auto;"}
+:::
 
-| $x_1$ | $x_2$ | OR  | Perceptron Equation                          |
-|:-------:|:-------:|:---:|:--------------------------------------------:|
-| $0$   | $0$   | $0$ | $w_0 + w_1 x_1 + w_2 x_2 < 0$             |
-| $1$   | $0$   | $1$ | $w_0 + w_1 x_1 + w_2 x_2 \geq 0$          |
-| $0$   | $1$   | $1$ | $w_0 + w_1 x_1 + w_2 x_2 \geq 0$          |
-| $1$   | $1$   | $1$ | $w_0 + w_1 x_1 + w_2 x_2 \geq 0$          |
-
-: The OR function for two inputs with the perceptron equation for each input. {#tbl-or style="width:50%; margin:auto;"}
-
-After substituting the inputs, the four equations result in the following four inequalities:
-
-$$
-\begin{align*}
-  w_0 + \left(w_1 \times 0\right) + \left(w_2 \times 0\right) &< 0,\\
-  w_0 + \left(w_1 \times 0\right) + \left(w_2 \times 1\right) &\geq 0,\\
-  w_0 + \left(w_1 \times 1\right) + \left(w_2 \times 0\right) &\geq 0,\\
-  w_0 + \left(w_1 \times 1\right) + \left(w_2 \times 1\right) &\geq 0.
-\end{align*}
-$$
-
-Solving these simultaneously, we get
+Substituting, the four conditions become:
 
 $$
 \begin{align*}
   w_0 &< 0,\\
-  w_2 &\geq -w_0,\\
-  w_1 &\geq -w_0,\\
-  w_1 + w_2 &\geq -w_0.
+  w_0 + w_2 &\geq 0,\\
+  w_0 + w_1 &\geq 0,\\
+  w_0 + w_1 + w_2 &\geq 0.
 \end{align*}
 $$
 
-This set of inequalities has infinite possible solutions, i.e., there are infinite combinations of the values of $w_0$, $w_1$, and $w_2$ that satisfy all the four above inequalities simultaneously. One particular solution is $w_0 = -1$, $w_1 = 1.1$, and $w_2 = 1.1$. So, the linear boundary we get using this solution, i.e., by substituting these values of $w_j$'s in @eq-perceptron_boundary2, is
+This system has infinitely many solutions. One particular solution is
+$w_0 = -1$, $w_1 = 1.1$, $w_2 = 1.1$, giving the boundary:
 
 $$
 -1 + 1.1 x_1 + 1.1 x_2 = 0.
 $$ {#eq-or_function_perceptron_boundary}
 
-@fig-perceptron_or shows this boundary along with the input points and their output.
+Good. So a valid boundary does exist for OR, and we can find it by solving
+the inequalities. But notice what just happened: we had to manually write down
+four conditions, derive a system of inequalities, and then pick a solution.
+For two inputs and three weights, that was manageable. Now imagine doing this
+for a movie recommendation system with fifty features and thousands of training
+examples. We would need to solve a system of thousands of inequalities
+simultaneously. This is clearly impractical.
 
-![OR function with the perceptron boundary given by @eq-or_function_perceptron_boundary. The red region is the negative output region, and the green region is the positive output region.](images/perceptron_or.png){#fig-perceptron_or fig-align="center" width=60% .invert}
+We need a procedure that finds the weights automatically, by looking at the
+data and correcting its mistakes one at a time. That is the perceptron learning
+algorithm.
 
-The green region is the positive half-space of the boundary with green points indicating points with $y=1$, and the red region is the negative half-space of the boundary with red points indicating points with $y=0$. As mentioned before, there are infinite possible solutions, i.e., infinite linear boundaries that separate the red and the green points are possible. This is quite evident from the space between the red and the green points in this figure. We could have done the same for an MP neuron. The only difference would have been that we wouldn't have had $w_1$ and $w_2$, and would have had $\theta$ in place of $w_0$ which would have been the only parameter in the equation.
+---
 
-# Perceptron Learning Algorithm
+# The Perceptron Learning Algorithm
 
-So far, we have randomly selected the values of the weights that solve the inequalities given by the perceptron equation simultaneously. "Solving the inequalities" basically means finding the correct linear boundary such that all the inputs with output $1$ are on it or in its positive half-space, and all the inputs with output $0$ are in its negative half-space. In other words, there is no misclassified input (or no errors), and the output given by the actual function (which was the OR function in the previous example) matches exactly with the perceptron output. However, we need a more principled approach to find the value of these weights such that it creates a linear boundary without any error (or misclassifications). To reiterate, we are considering the number of misclassifications as the error. If there is one misclassified point, e.g., a point whose output given by the true function is $1$ but the output given by perceptron is $0$ (or vice versa), the error is $1$. So, we can think of error as a function of the weights. Changing the weights will change the linear boundary, which in turn can change the error.
+## Setting Up the Problem
 
-Now, let us reconsider the problem of deciding whether a person will like a movie or not. Suppose we are given a list of $N$ movies and a label (class) associated with each movie telling us whether the person liked the movie or not. Further, suppose we represent each movie with $d$ features, some of which are boolean and some are real. For instance, say we have the following features:
+Suppose we have $N$ labelled training examples. Each example is a movie with
+$d$ features, and the label tells us whether the person liked it:
 
 $$
-\begin{align*}
-    x_1 &= \texttt{isActorDamon}\\
-    x_2 &= \texttt{isGenreThriller}\\
-    x_3 &= \texttt{isDirectorNolan}\\
-    x_4 &= \texttt{IMDBRating}\\
-    \vdots\\
-    x_d &= \texttt{criticsRating}\\
-\end{align*}
+\left\{ \left(\vb{x}_i, y_i\right) \right\}_{i=1}^{N}, \quad y_i \in \{0, 1\}.
 $$
 
-Assuming that this data of $N$ movies with the above $d$ features is linearly separable, we want a perceptron to give us the equation of (or learn) the decision boundary. In other words, we want the perceptron to find, or **learn**, the values of the weights $w_0$, $w_1$, $\dots$, $w_d$ from the given data so that we can draw the decision boundary using @eq-perceptron_boundary. We will represent all the input features of some $i$-th movie (where $i \in \{1, 2, \dots, N\}$) inside a single input vector $\mathbf{x}_i$. Recall that all the weights are clubbed inside a single weight vector $\mathbf{w}$. Notice that the input vectors are different for each movie, hence the index $i$. However, the weight vector for all the movies is the same, hence no index for $\mathbf{w}$.
+Here $\vb{x}_i$ is the input vector for the $i$-th movie (including the
+always-on bias input $x_0 = 1$), and $y_i$ is the true label. We assume the
+data is linearly separable, meaning there exists some weight vector $\vb{w}$
+such that the perceptron correctly classifies every training example.
 
-## Pseudocode
+We define two sets:
 
-The perceptron learning algorithm pseudocode is shown below:
+$$
+\mathcal{P} = \left\{ \vb{x}_i \mid y_i = 1 \right\}, \qquad
+\mathcal{N} = \left\{ \vb{x}_i \mid y_i = 0 \right\}.
+$$
 
-<!-- $$
-\begin{aligned}
-&(1)~\textbf{Input: } \left\{\left(\mathbf{x}_i, y_i\right)\right\}_{i=1}^n \text{, where } y_i \in \{0, 1\} \\\\
-&(2)~\textbf{Initialize: } \mathbf{w} \sim \text{random} \\\\
-&(3)~\textbf{Define: } \mathcal{P} \gets \left\{ \mathbf{x}_i \mid y_i = 1 \right\},\quad \mathcal{N} \gets \left\{ \mathbf{x}_i \mid y_i = 0 \right\} \\\\
-&(4)~\textbf{Repeat until convergence:} \\\\
-&(5)~\quad \text{Pick } \mathbf{x}_i \in \mathcal{P} \cup \mathcal{N} \text{ at random} \\\\
-&(6)~\quad \text{If } \mathbf{x}_i \in \mathcal{P} \text{ and } \mathbf{w}^{\intercal} \mathbf{x}_i < 0 \\\\
-&(7)~\qquad \mathbf{w} \gets \mathbf{w} + \mathbf{x}_i \\\\
-&(8)~\quad \text{If } \mathbf{x}_i \in \mathcal{N} \text{ and } \mathbf{w}^{\intercal} \mathbf{x}_i \geq 0 \\\\
-&(9)~\qquad \mathbf{w} \gets \mathbf{w} - \mathbf{x}_i
-\end{aligned}
-$$ -->
+$\mathcal{P}$ is the set of positive examples (liked) and $\mathcal{N}$ is the
+set of negative examples (disliked). Our goal is to find $\vb{w}$ such that
+every $\vb{x}_i \in \mathcal{P}$ satisfies $\vb{w}^{\intercal} \vb{x}_i \geq 0$
+and every $\vb{x}_i \in \mathcal{N}$ satisfies $\vb{w}^{\intercal} \vb{x}_i < 0$.
+
+## The Algorithm
+
+The core idea is disarmingly simple: start with a random weight vector, pick a
+training example at random, and if it is misclassified, nudge the weight vector
+to correct the mistake. Repeat until no mistakes remain.
 
 ::: {#alg-perceptron}
 <pre class="pseudocode">
@@ -269,11 +422,9 @@ $$ -->
 \begin{algorithmic}
 \INPUT Training data $\left\{\left(\mathbf{x}_i, y_i\right)\right\}_{i=1}^N$ where $y_i \in \{0,1\}$
 \OUTPUT A weight vector $\mathbf{w}$ that separates both classes (if data is linearly separable)
-
 \STATE Initialize weights $\mathbf{w} \sim \text{random}$
-\STATE Define positive set $\mathcal{P} \gets \left\{ \mathbf{x}_i \mid y_i = 1 \right\}$ 
+\STATE Define positive set $\mathcal{P} \gets \left\{ \mathbf{x}_i \mid y_i = 1 \right\}$
 \STATE Define negative set $\mathcal{N} \gets \left\{ \mathbf{x}_i \mid y_i = 0 \right\}$
-
 \REPEAT
     \STATE Pick $\mathbf{x}_i \in \mathcal{P} \cup \mathcal{N}$ at random
     \IF{$\mathbf{x}_i \in \mathcal{P}$ \AND $\mathbf{w}^\intercal \mathbf{x}_i < 0$}
@@ -292,140 +443,396 @@ $$ -->
   pseudocode.renderClass("pseudocode", { lineNumber: true });
 </script>
 
-Note that "convergence" in this algorithm means that the values of the weights in the weight vector $\mathbf{w}$ are such that all the input vectors $\mathbf{x}_i$ are correctly classified by the perceptron boundary. This boundary is found by substituting this $\mathbf{w}$ in @eq-perceptron_boundary. Notice that the line numbers 6 and 9 in this algorithm correspond to misclassifications.
+"Convergence" here means that all $N$ training examples are correctly
+classified by the current $\vb{w}$: no misclassified point remains.
 
-- Line 6
-  - If $\mathbf{x}_i \in \mathcal{P}$ (i.e., if $\mathbf{x}_i$ is a positive point), then we should have had $\mathbf{w}^{\intercal} \mathbf{x}_i \geq 0$ as points with label $1$ lie on the boundary or in its positive half-space.
-  - So, if the condition on this line is satisfied, then the input vector $\mathbf{x}_i$ is misclassified.
-  - To correct this misclassification, the expression in line 7 is implemented that updates the value of $\mathbf{w}$.
-  - More precisely, if a positive point $\mathbf{x}_i$ is misclassified, then the weight vector $\mathbf{w}$ is updated by adding that point to the weight vector.
-- Line 9
-  - If $\mathbf{x}_i \in \mathcal{N}$ (i.e., if $\mathbf{x}_i$ is a negative point), then we should have had $\mathbf{w}^{\intercal} \mathbf{x}_i < 0$ as points with label $0$ lie in the negative half-space of the boundary.
-  - Again, if the condition on this line is satisfied, then the input vector $\mathbf{x}_i$ is misclassified.
-  - Again, to correct this misclassification, the expression in line 10 is implemented that updates the value of $\mathbf{w}$.
-  - And again, more precisely, if a negative point $\mathbf{x}_i$ is misclassified, then the weight vector $\mathbf{w}$ is updated by subtracting that point from the weight vector.
+The conditions at lines 6 and 9 both detect misclassifications.
 
-## Why Do These Weight Updates Work?
+- Line 6 catches a positive example placed on the wrong side of the boundary: $\vb{x}_i \in
+\mathcal{P}$ but $\vb{w}^{\intercal} \vb{x}_i < 0$, when we need
+$\vb{w}^{\intercal} \vb{x}_i \geq 0$.
+- Line 9 catches the opposite: a negative example on the wrong side, $\vb{x}_i \in \mathcal{N}$ but
+$\vb{w}^{\intercal} \vb{x}_i \geq 0$, when we need
+$\vb{w}^{\intercal} \vb{x}_i < 0$.
 
-To understand why these weight updates work, we will have to dive into a bit of Linear Algebra and Geometry. Recall that once the correct weights $\mathbf{w}$ are learnt, we want to find the line (boundary) given by @eq-perceptron_boundary, i.e.,
+When a misclassification is detected, the weight vector is updated by adding
+or subtracting the misclassified point. But why does this fix the error? The
+answer turns out to be a direct consequence of what the dot product measures:
+the angle between two vectors. We are about to see that the entire algorithm
+reduces to a beautifully simple geometric picture, and once you see it, the
+update rules will feel completely inevitable.
+
+## Verifying the Algorithm on OR
+
+Before diving into the geometry, let us confirm the algorithm works on the OR
+example we just analyzed by hand. The following code runs the perceptron
+learning algorithm on the OR dataset and plots the learned boundary.
+
+```{python}
+#| label: fig-perceptron_or_learned
+#| fig-cap: "OR function: perceptron decision boundary learned by the algorithm. The green region is the positive half-space and the red region is the negative half-space."
+#| fig-align: center
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+
+plt.style.use("dark_background")
+
+# OR dataset: rows are [x0=1, x1, x2], labels are y
+X = np.array([
+    [1, 0, 0],
+    [1, 1, 0],
+    [1, 0, 1],
+    [1, 1, 1],
+])
+y = np.array([0, 1, 1, 1])
+
+# Perceptron learning
+rng = np.random.default_rng(42)
+w = rng.uniform(-0.5, 0.5, size=3)
+
+def predict(w, x):
+    return 1 if w @ x >= 0 else 0
+
+max_iter = 1000
+for _ in range(max_iter):
+    errors = 0
+    for xi, yi in zip(X, y):
+        pred = predict(w, xi)
+        if yi == 1 and pred == 0:
+            w = w + xi
+            errors += 1
+        elif yi == 0 and pred == 1:
+            w = w - xi
+            errors += 1
+    if errors == 0:
+        break
+
+print(f"Learned weights: w0={w[0]:.3f}, w1={w[1]:.3f}, w2={w[2]:.3f}")
+
+# Plot
+fig, ax = plt.subplots(figsize=(5, 5), facecolor="#222222")
+ax.set_facecolor("#222222")
+
+# Decision boundary: w0 + w1*x1 + w2*x2 = 0  =>  x2 = -(w0 + w1*x1) / w2
+x1_vals = np.linspace(-0.3, 1.5, 300)
+if abs(w[2]) > 1e-9:
+    x2_vals = -(w[0] + w[1] * x1_vals) / w[2]
+    ax.plot(x1_vals, x2_vals, color="#3498db", linewidth=2, label="Decision boundary")
+
+# Shade positive and negative half-spaces
+x1g, x2g = np.meshgrid(np.linspace(-0.3, 1.5, 300), np.linspace(-0.3, 1.5, 300))
+Z = w[0] + w[1] * x1g + w[2] * x2g
+ax.contourf(x1g, x2g, Z, levels=[-1e6, 0, 1e6],
+            colors=["#c0392b", "#27ae60"], alpha=0.18)
+
+# Plot data points
+colors = {0: "#e74c3c", 1: "#2ecc71"}
+for xi, yi in zip(X, y):
+    ax.scatter(xi[1], xi[2], color=colors[yi], s=120, zorder=5,
+               edgecolors="white", linewidths=0.8)
+
+ax.set_xlim(-0.3, 1.5)
+ax.set_ylim(-0.3, 1.5)
+ax.set_xlabel("$x_1$", fontsize=13, color="white")
+ax.set_ylabel("$x_2$", fontsize=13, color="white")
+ax.set_title("OR function: perceptron decision boundary", fontsize=13,
+             color="white", pad=12)
+ax.tick_params(colors="white")
+for spine in ax.spines.values():
+    spine.set_edgecolor("#555555")
+
+pos_patch = mpatches.Patch(color="#2ecc71", alpha=0.5, label="$y=1$ (positive)")
+neg_patch = mpatches.Patch(color="#e74c3c", alpha=0.5, label="$y=0$ (negative)")
+bound_line = plt.Line2D([0], [0], color="#3498db", linewidth=2,
+                        label="Decision boundary")
+ax.legend(handles=[pos_patch, neg_patch, bound_line], fontsize=10,
+          facecolor="#333333", edgecolor="#555555", labelcolor="white")
+
+plt.tight_layout()
+plt.show()
+```
+
+The algorithm finds one of the infinitely many valid boundaries, separating
+the single negative point $(0, 0)$ from the three positive points. The
+boundary it lands on depends on the random initialisation and the order in
+which it processes the training examples, but all valid solutions correctly
+classify every point.
+
+Now the natural question is: why do the update rules actually work? Answering
+that requires us to look at the geometry more carefully.
+
+---
+
+# Why the Weight Updates Work: The Geometry
+
+We are about to see that the perceptron updates have a beautiful geometric
+interpretation. The payoff is worth the short detour through dot product
+geometry.
+
+## The Angle Interpretation of the Dot Product
+
+Recall that we introduced $\vb{w}^{\intercal} \vb{x}$ as a compact way to
+write the weighted sum. It turns out the dot product also encodes the angle
+between the two vectors. Specifically, for any two vectors $\vb{a}$ and
+$\vb{b}$:
 
 $$
-\mathbf{w}^{\intercal} \mathbf{x} = 0.
+\vb{a}^{\intercal} \vb{b} = \norm{\vb{a}} \norm{\vb{b}} \cos\left(\alpha\right),
 $$
 
-This is the correct perceptron boundary (line) that correctly classifies all the points. It divides the input space into two halves. Trivially, any point $\mathbf{x}$ that lies on this line will satisfy this equation. Further, as $\mathbf{w}^{\intercal} \mathbf{x}$ is just the dot product, which is $0$, we can say that the angle $\alpha$ between the vectors $\mathbf{w}$ and a point $\mathbf{x}$ that lies on this line is $90^{\circ}$. This follows from the fact that the angle between the vectors $\mathbf{w}$ and $\mathbf{x}$ is given by
+where $\alpha \in \left[0^{\circ}, 180^{\circ}\right]$ is the angle between
+them. Rearranging:
 
 $$
-\mathbf{w}^{\intercal} \mathbf{x} = \left\lvert\left\lvert \mathbf{w} \right\rvert\right\rvert \left\lvert\left\lvert \mathbf{x} \right\rvert\right\rvert \cos (\alpha),
-$$
-
-$$
-\therefore \cos (\alpha) = \frac{\mathbf{w}^{\intercal} \mathbf{x}}{\left\lvert\left\lvert \mathbf{w} \right\rvert\right\rvert \left\lvert\left\lvert \mathbf{x} \right\rvert\right\rvert}.
+\cos\left(\alpha\right) = \frac{\vb{a}^{\intercal} \vb{b}}{\norm{\vb{a}} \norm{\vb{b}}}.
 $$ {#eq-angle_between_two_vectors}
 
-Now as $\mathbf{w}^{\intercal} \mathbf{x} = 0$, substituting it in @eq-angle_between_two_vectors we get
+The sign of the dot product directly tells us the angle: if
+$\vb{a}^{\intercal} \vb{b} > 0$ then $\alpha < 90^{\circ}$ (acute angle, the
+vectors point roughly in the same direction); if it equals zero then
+$\alpha = 90^{\circ}$ (perpendicular); and if it is negative then
+$\alpha > 90^{\circ}$ (obtuse angle, the vectors point roughly in opposite
+directions).
 
-$$
-\cos (\alpha) = 0 \implies \alpha = 90^{\circ}.
-$$
+This is the key fact we need.
 
-So, the weight vector $\mathbf{w}$ is always perpendicular to the decision boundary.
+## The Weight Vector is Perpendicular to the Boundary
 
-(**Note**: We are considering $\alpha$ to be the smallest possible angle between $\mathbf{w}$ and $\mathbf{x}$. So, $0^{\circ} \leq \alpha \leq 180^{\circ}$.)
+Recall the decision boundary: $\vb{w}^{\intercal} \vb{x} = 0$. Any point
+$\vb{x}$ lying exactly on the boundary has a dot product of zero with $\vb{w}$.
+By @eq-angle_between_two_vectors, this means $\alpha = 90^{\circ}$: the weight
+vector is perpendicular to every point on the boundary, and hence perpendicular
+to the boundary itself. This is why $\vb{w}$ appears as a perpendicular arrow
+in @fig-perceptron_why_weight_updates_work.
 
-Now, have a look at @fig-perceptron_why_weight_updates_work.
+This is not just a curiosity. Since $\vb{w}$ is perpendicular to the boundary
+and points into the positive half-space, the dot product $\vb{w}^{\intercal}
+\vb{x}$ is simply measuring whether $\vb{x}$ is on the same side as $\vb{w}$
+(positive dot product, acute angle, $y = 1$) or the opposite side (negative
+dot product, obtuse angle, $y = 0$). The perceptron's decision rule is,
+geometrically, just a question of angle.
 
-![Perceptron boundary with positive (green) and negative (red) points.](images/perceptron_why_weight_updates_work.svg){#fig-perceptron_why_weight_updates_work fig-align="center" width=55% .invert}
+For a correctly classified positive point $\vb{x}_i \in \mathcal{P}$:
+$\vb{w}^{\intercal} \vb{x}_i \geq 0$, so the angle between $\vb{w}$ and
+$\vb{x}_i$ is at most $90^{\circ}$, as required. For a correctly classified
+negative point $\vb{x}_i \in \mathcal{N}$: $\vb{w}^{\intercal} \vb{x}_i < 0$,
+so the angle is greater than $90^{\circ}$, as required.
 
-We can see that all the positive points, i.e., points in the positive half-space of the boundary, make an *acute angle* with weight vector $\mathbf{w}$, whereas all the negative points, i.e., points in the negative half-space of the boundary, make an *obtuse angle* with weight vector $\mathbf{w}$. This is also clear from @eq-angle_between_two_vectors. For positive points, we have $\mathbf{w}^{\intercal} \mathbf{x} \geq 0$. So, this equation becomes
+## Fixing a Misclassified Positive Point
 
-$$
-\cos (\alpha) \geq 0 \implies \alpha \leq 90^{\circ}.
-$$
+Now suppose $\vb{x}_i \in \mathcal{P}$ is misclassified: the current $\vb{w}$
+gives $\vb{w}^{\intercal} \vb{x}_i < 0$. By @eq-angle_between_two_vectors,
+the angle between $\vb{w}$ and $\vb{x}_i$ is currently obtuse. But for a
+positive point, we need this angle to be acute. We need to rotate $\vb{w}$
+towards $\vb{x}_i$.
 
-Similarly, for negative points, we have $\mathbf{w}^{\intercal} \mathbf{x} < 0$. So, this equation becomes
+The update $\vb{w} \gets \vb{w} + \vb{x}_i$ does exactly this. The new weight
+vector $\vb{w}' = \vb{w} + \vb{x}_i$ is the vector sum, and by the
+parallelogram law, it lies strictly between $\vb{w}$ and $\vb{x}_i$, thus
+making a smaller angle with $\vb{x}_i$ than $\vb{w}$ did. Adding the
+misclassified positive point to $\vb{w}$ *pulls* $\vb{w}$ towards that point.
+@fig-weight_update_positive_point shows this geometry.
 
-$$
-\cos (\alpha) < 0 \implies \alpha > 90^{\circ}.
-$$
+![Weight update for a misclassified positive point. The new weight vector
+$\vb{w}' = \vb{w} + \vb{x}_i$ makes a smaller angle with $\vb{x}_i$ than
+$\vb{w}$ did, moving $\vb{x}_i$ toward the correct
+side.](images/weight_update_positive_point.svg){#fig-weight_update_positive_point
+fig-align="center" width=55% .invert}
 
-Now let us go back to the algorithm. Recall that if a positive point $\mathbf{x}_i$ was misclassified, it means that for this point $\mathbf{w}^{\intercal} \mathbf{x}_i < 0$. Substituting this in @eq-angle_between_two_vectors, we get
+## Fixing a Misclassified Negative Point
 
-$$
-\cos (\alpha) < 0 \implies \alpha > 90^{\circ}.
-$$
+Conversely, suppose $\vb{x}_i \in \mathcal{N}$ is misclassified:
+$\vb{w}^{\intercal} \vb{x}_i \geq 0$, so the angle is currently acute. For
+a negative point, we need it to be obtuse. We need to rotate $\vb{w}$ away
+from $\vb{x}_i$.
 
-So, for a misclassified positive point, the angle between the point and the weight vector is obtuse. However, for a positive point, we want this angle to be acute. Hence, adding the point to the weight vector will **pull** the weight vector towards the point, decreasing the angle between them. This is shown in @fig-weight_update_positive_point.
+The update $\vb{w} \gets \vb{w} - \vb{x}_i$ does this. The new weight vector
+$\vb{w}' = \vb{w} - \vb{x}_i$ makes a larger angle with $\vb{x}_i$, pushing
+$\vb{x}_i$ toward the negative side. @fig-weight_update_negative_point shows
+the geometry.
 
-![Weight update for a misclassified positive point. Notice how the angle between the weight vector and the sum of the weight vector and the point is smaller as compared to the angle between the weight vector and the point.](images/weight_update_positive_point.svg){#fig-weight_update_positive_point fig-align="center" width=55% .invert}
+![Weight update for a misclassified negative point. The new weight vector
+$\vb{w}' = \vb{w} - \vb{x}_i$ makes a larger angle with $\vb{x}_i$, pushing
+it toward the negative
+side.](images/weight_update_negative_point.svg){#fig-weight_update_negative_point
+fig-align="center" width=45% .invert}
 
-After a few iterations, the angle will become acute. Hence if a positive point is misclassified, the point is added to the weight vector.
+Each update is a small rotation of the decision boundary. The algorithm
+converges because, for linearly separable data, these rotations are always
+making progress: the angle between $\vb{w}$ and each positive point can only
+decrease in the aggregate, and similarly for negative points. This is the
+content of the Perceptron Convergence Theorem, which guarantees that if the
+data is linearly separable, the algorithm will find a separating $\vb{w}$ in a
+finite number of updates [@minsky1969introduction, Ch. 11].
 
-Similarly, if a negative point $\mathbf{x}_i$ was misclassified, it means that for this point $\mathbf{w}^{\intercal} \mathbf{x}_i \geq 0$. Substituting this in @eq-angle_between_two_vectors, we get
+The following animation shows the perceptron learning algorithm in action on
+the OR dataset, illustrating how the decision boundary rotates with each update.
 
-$$
-\cos (\alpha) \geq 0 \implies \alpha \leq 90^{\circ}.
-$$
+{{< video images/perceptron_learning.mp4 >}}
 
-So, for a misclassified negative point, the angle between the point and the weight vector is acute. However, for a negative point, we want this angle to be obtuse. Hence, subtracting the point from the weight vector will **push** the weight vector away from the point, increasing the angle between them. This is shown in @fig-weight_update_negative_point.
+---
 
-![Weight update for a misclassified negative point. Notice how the angle between the weight vector and the difference of the weight vector and the point is larger as compared to the angle between the weight vector and the point.](images/weight_update_negative_point.svg){#fig-weight_update_negative_point fig-align="center" width=45% .invert}
+## Recap: Where We Are
 
-After a few iterations, the angle will become obtuse. Hence if a negative point is misclassified, the point is subtracted from the weight vector.
+```{mermaid}
+%%| fig-align: center
+flowchart TD
+    A["A concrete decision scenario<br>(the movie example)"]
+    B["The perceptron model<br>(weights, bias, threshold)"]
+    C["Geometric picture<br>(the decision boundary)"]
+    D["Perceptron vs. MP Neuron<br>(what changed and why it matters)"]
+    E["The learning algorithm<br>(finding weights from data)"]
+    F["Why the updates work<br>(geometry of weight updates)"]
+    G["What if data is not<br>linearly separable? (XOR)"]
+    H["What comes next<br>(networks of perceptrons)"]
+    A --> B --> C --> D --> E --> F --> G --> H
+    style F fill:#27ae60,color:#fff
+    style G fill:#2c3e50,color:#ecf0f1
+    style H fill:#2c3e50,color:#ecf0f1
+```
+
+We now have a complete picture of how the perceptron works and why the learning
+algorithm is correct. All that remains is to understand where it breaks down.
+
+---
 
 # What if the Data is Not Linearly Separable?
 
-So far, we have used perceptron only for linearly separable data. We have also seen that if the data is linearly separable, then perceptron will be able to classify all the points correctly. Let us now see what happens when the data is not linearly separable. As an example, consider the XOR function. @tbl-xor shows the XOR output and the perceptron equations.
+Everything we have built so far assumes the data is linearly separable. But
+what happens when it is not?
 
-| $x_1$ | $x_2$ | XOR | Perceptron Equation                          |
-|:-----:|:-----:|:---:|:--------------------------------------------:|
-| $0$   | $0$   | $0$ | $w_0 + w_1 x_1 + w_2 x_2 < 0$                |
-| $1$   | $0$   | $1$ | $w_0 + w_1 x_1 + w_2 x_2 \geq 0$             |
-| $0$   | $1$   | $1$ | $w_0 + w_1 x_1 + w_2 x_2 \geq 0$             |
-| $1$   | $1$   | $0$ | $w_0 + w_1 x_1 + w_2 x_2 < 0$                |
+Consider the XOR function, where the output is $1$ exactly when the two inputs
+differ. @tbl-xor shows the truth table alongside what the perceptron equation
+requires for each input.
 
-: The XOR function for two inputs with the perceptron equation for each input. {#tbl-xor style="width:50%; margin:auto;"}
+::: {.tbl tbl-colwidths="auto"}
+| $x_1$ | $x_2$ | XOR | Required condition                                    |
+|:-----:|:-----:|:---:|:-----------------------------------------------------:|
+| $0$   | $0$   | $0$ | $w_0 + w_1 \cdot 0 + w_2 \cdot 0 < 0$              |
+| $1$   | $0$   | $1$ | $w_0 + w_1 \cdot 1 + w_2 \cdot 0 \geq 0$           |
+| $0$   | $1$   | $1$ | $w_0 + w_1 \cdot 0 + w_2 \cdot 1 \geq 0$           |
+| $1$   | $1$   | $0$ | $w_0 + w_1 \cdot 1 + w_2 \cdot 1 < 0$              |
 
-After substituting the inputs, the four equations result in the following four inequalities:
+: The XOR function for two inputs with the perceptron condition required for each input. {#tbl-xor style="width:60%; margin:auto;"}
+:::
 
-$$
-\begin{align*}
-  w_0 + \left(w_1 \times 0\right) + \left(w_2 \times 0\right) &< 0,\\
-  w_0 + \left(w_1 \times 0\right) + \left(w_2 \times 1\right) &\geq 0,\\
-  w_0 + \left(w_1 \times 1\right) + \left(w_2 \times 0\right) &\geq 0,\\
-  w_0 + \left(w_1 \times 1\right) + \left(w_2 \times 1\right) &< 0.
-\end{align*}
-$$
-
-Solving these simultaneously, we get
+Substituting, the conditions are:
 
 $$
 \begin{align*}
   w_0 &< 0,\\
-  w_2 &\geq -w_0,\\
-  w_1 &\geq -w_0,\\
-  w_1 + w_2 &< -w_0.
+  w_0 + w_2 &\geq 0,\\
+  w_0 + w_1 &\geq 0,\\
+  w_0 + w_1 + w_2 &< 0.
 \end{align*}
 $$
 
-Clearly, these inequalities cannot be satisfied simultaneously as the last inequality contradicts the two inequalities before it. In other words, we cannot find a boundary (or a set of weights) such that all the positive points are on one side and all the negative points on the other side. @fig-xor shows the XOR function.
+The second and third inequalities give $w_1 \geq -w_0 > 0$ and
+$w_2 \geq -w_0 > 0$. Adding these: $w_1 + w_2 \geq -2w_0 > -w_0$. But the
+fourth inequality requires $w_1 + w_2 < -w_0$. This is a direct contradiction.
+No set of weights can satisfy all four conditions simultaneously.
 
-![The XOR function.](images/XOR.svg){#fig-xor fig-align="center" width=50% .invert}
+The following plot shows why geometrically: the positive points $(1, 0)$ and
+$(0, 1)$ sit on one diagonal, and the negative points $(0, 0)$ and $(1, 1)$
+sit on the other. No straight line can put both positive points on one side and
+both negative points on the other.
 
-Clearly, no line can be drawn such that the positive (green) points are on one side and the negative (red) points are on the other side. So, a single perceptron cannot implement a non-linearly separable function exactly. This is clearly a problem as most real world data are not linearly separable. However, a network of perceptrons can implement non-linearly separable functions. That is the topic for another blog post.
+```{python}
+#| label: fig-xor_plot
+#| fig-cap: "XOR: the positive and negative points sit on opposite diagonals. No straight line can separate them."
+#| fig-align: center
+import numpy as np
+import matplotlib.pyplot as plt
 
-# Summary
+plt.style.use("dark_background")
 
-- A **perceptron** is a fundamental binary classifier that computes a weighted sum of inputs and applies a threshold to decide the output.
-- It generalizes the McCulloch-Pitts neuron by introducing **learnable weights** and a **bias** term, allowing greater flexibility and real-valued inputs.
-- The **bias** shifts the decision boundary and reflects prior tendencies, while **weights** capture the importance of individual features.
-- The perceptron forms a **linear decision boundary** (a hyperplane) that separates the input space into two halves.
-- The **perceptron learning algorithm** adjusts weights iteratively based on misclassifications, and converges if the data is **linearly separable**.
-- Geometrically, weight updates rotate the decision boundary by changing the angle between the weight vector and misclassified points.
-- The perceptron fails on **non-linearly separable functions** like XOR, as no single hyperplane can separate the classes.
-- Despite its limitations, the perceptron is historically significant. It laid the foundation for more powerful models like **multilayer perceptrons (MLPs)**.
-- A **network of perceptrons** can solve non-linear problems, which will be the topic of another blog post.
+fig, ax = plt.subplots(figsize=(5, 5), facecolor="#222222")
+ax.set_facecolor("#222222")
+
+# XOR truth table
+points = [(0, 0, 0), (1, 0, 1), (0, 1, 1), (1, 1, 0)]
+colors = {0: "#e74c3c", 1: "#2ecc71"}
+labels_added = {0: False, 1: False}
+
+for x1, x2, label in points:
+    lbl = ("$y=1$ (positive)" if label == 1 else "$y=0$ (negative)") \
+          if not labels_added[label] else "_nolegend_"
+    ax.scatter(x1, x2, color=colors[label], s=200, zorder=5,
+               edgecolors="white", linewidths=1.2, label=lbl)
+    labels_added[label] = True
+
+ax.set_xlim(-0.5, 1.5)
+ax.set_ylim(-0.5, 1.5)
+ax.set_xlabel("$x_1$", fontsize=14, color="white")
+ax.set_ylabel("$x_2$", fontsize=14, color="white")
+ax.set_title("XOR: no linear boundary can separate the classes",
+             fontsize=12, color="white", pad=12)
+ax.tick_params(colors="white")
+for spine in ax.spines.values():
+    spine.set_edgecolor("#555555")
+
+for x1, x2, label in points:
+    ax.annotate(f"({x1},{x2})", xy=(x1, x2),
+                xytext=(x1 + 0.08, x2 + 0.08),
+                fontsize=11, color="white")
+
+ax.legend(fontsize=11, facecolor="#333333", edgecolor="#555555",
+          labelcolor="white")
+
+plt.tight_layout()
+plt.show()
+```
+
+If you try to draw a line separating the green points from the red points, you
+will quickly see it is impossible: any line that separates $(1, 0)$ and $(0, 1)$
+from the origin will also capture $(1, 1)$ on the positive side (or vice versa).
+The positive and negative classes are interleaved in a way that no straight line
+can disentangle.
+
+The perceptron learning algorithm, faced with non-linearly separable data, will
+never converge. It will loop forever, oscillating between weight vectors that
+misclassify different subsets of points, never finding one that works for all
+of them. This is a fundamental limitation, and it is precisely what
+@minsky1969introduction documented in their careful analysis. Their work showed
+that many practically interesting functions, including XOR, are non-linearly
+separable and therefore beyond the reach of a single perceptron.
+
+The natural question is: can we do better by combining multiple perceptrons?
+The answer is yes, and that is the subject of the next post.
+
+---
+
+# Conclusion: What We Have Built and Where It Leads
+
+Let us return to where we started: the movie decision. You have a set of
+features about a film, you weight them by importance, sum them up, and apply
+a threshold. The perceptron formalizes exactly this intuition, and the
+concrete failure of equal-weight summing for our Nolan fan was the precise
+gap that weights fill.
+
+Along the way, we established several things that will reappear throughout
+the rest of this series. The perceptron generalizes the McCulloch-Pitts neuron
+[@mcculloch1943logical] by introducing learnable weights and a bias, allowing
+it to handle real-valued inputs and to shift its decision boundary freely. The
+boundary itself is always a hyperplane, and the weight vector $\vb{w}$ always
+points perpendicularly into the positive half-space. This geometric fact is not
+an accident: it is the reason the learning algorithm works. Every weight update
+is a rotation of the boundary, pulling it toward misclassified positive points
+and pushing it away from misclassified negative points. The Perceptron
+Convergence Theorem [@minsky1969introduction] guarantees this process terminates
+whenever the data is linearly separable.
+
+The hard limit is linear separability. The XOR example shows that a single
+perceptron cannot represent functions where the positive and negative classes
+are geometrically interleaved. But the failure of a single perceptron is
+actually the beginning of the deeper story: a network of perceptrons can
+implement any boolean function, and with continuous activations, can approximate
+any function. That story starts in the next post.
+
+---
 
 # Acknowledgment
 
-I have referred to the YouTube playlists [@iitm-deep-learning-playlist; @nptel-deep-learning-playlist] while writing this blog post.
+I have referred to the YouTube playlists [@iitm-deep-learning-playlist;
+@nptel-deep-learning-playlist] while writing this blog post.
