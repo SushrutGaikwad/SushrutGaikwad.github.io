@@ -13,56 +13,206 @@ format:
     math: mathjax
     toc: true
     fig-format: svg
-    # toc-location: left
-    # comments:
-    #   giscus: true
+    mermaid:
+      theme: dark
 bibliography: ../../../references/references.bib
 csl: ../../../references/apa.csl
-execute: 
+execute:
   enabled: true
   fig-format: svg
 ---
 
-# Introduction
+# A Bakery, a Notebook, and a Question
 
-Arthur Samuel -@samuel1959some coined the term **Machine Learning** (ML). He wrote a program that learnt to play checkers by playing it against itself. There was no explicit programming of any strategy. With more experience, it eventually started playing checkers better than Arthur Samuel himself. What I mean by "experience" here is training data. As the amount of training data increased, i.e., as the machine played more games against itself, the better player it became.
+Imagine you run a small bakery. Every morning, you face the same problem: how many loaves of bread should you bake today? Bake too many and you throw away stale bread at closing time. Bake too few and you lose customers who walk in hoping for a fresh loaf.
 
-Tom Mitchell -@learning1997tom defines ML as:
+Over the past year, you have been keeping a notebook. Each day, you jotted down a few things: the day of the week, whether it was raining, whether there was a local event nearby, and how many loaves you actually sold. After twelve months, you have a thick notebook full of entries as shown in @tbl-bakery_notebook.
+
+::: {.tbl tbl-colwidths="auto"}
+| Day       | Rain? | Local Event? | Loaves Sold |
+|:---------:|:-----:|:------------:|:-----------:|
+| Monday    | No    | No           | 40          |
+| Tuesday   | Yes   | No           | 25          |
+| Saturday  | No    | Yes          | 80          |
+| Wednesday | No    | No           | 35          |
+| Sunday    | Yes   | Yes          | 55          |
+| $\vdots$  | $\vdots$ | $\vdots$ | $\vdots$    |
+
+: A snippet of the bakery notebook. {#tbl-bakery_notebook style="width:50%; margin:auto;"}
+:::
+
+One evening, you sit down with this notebook and start noticing patterns. Rainy days tend to bring fewer customers. Saturdays with a local event are reliably busy. You begin to wonder: could you write down a *rule* that takes in tomorrow's conditions (day, weather, event) and spits out a good estimate for how many loaves to bake?
+
+This, at its heart, is the question that machine learning tries to answer. Not for bakeries specifically, but for any situation where you have historical data and want to make predictions or discover patterns. The twist is that instead of you poring over the notebook, you let a computer do it, and you let the computer figure out the rules on its own.
+
+# What is Machine Learning?
+
+The term "machine learning" was introduced by Arthur Samuel in 1959 [@samuel1959some]. Samuel wrote a program that learned to play checkers by playing thousands of games against itself. He never told the program any strategy for winning. He simply let it play, observe the outcomes, and adjust. Over time, the program started beating Samuel himself. The key ingredient was *experience*: the more games the program played (its training data), the better it became.
+
+A few decades later, Tom Mitchell gave a more precise definition that has become a standard reference in the field [@mitchell1997machine]:
 
 > "A computer program is said to learn from experience $E$ with respect to some class of tasks $T$ and performance measure $P$, if its performance at tasks in $T$, as measured by $P$, improves with experience $E$."
 
-ML is a *subfield* of Artificial Intelligence (AI), which is a much broader field. Loosely, AI deals with building programs that operate at the very highest level. ML is one approach to implement these programs. AI can have programs that do not use any data. However, data is a key requirement for ML. In recent years, advancements in ML, particularly in deep learning (which includes generative AI), have stirred up a lot of interest in AI.
+Let us map this back to our bakery example to make the definition concrete:
 
-## Training Data and Test Data
+- **Task** $T$: Predict how many loaves to bake tomorrow.
+- **Performance measure** $P$: How close our prediction is to the actual number of loaves sold (we want to minimize the difference).
+- **Experience** $E$: The year's worth of entries in our notebook.
 
-These two types of data are very fundamental yet extremely crucial for any ML algorithm.
+If a computer program can use these notebook entries to get better and better at predicting tomorrow's sales, then by Mitchell's definition, that program is *learning*.
 
-- The **training data** is the data using which the ML algorithm learns to solve the problem by recognizing patterns.
-- The **test data** is the data which is used to test the learned ML algorithm's performance.
+## Where Does Machine Learning Fit?
 
-The ML algorithm does not see the test data during training. Hence, its performance on the test data is a decent indicator of its performance.
+Machine learning is a *subfield* of Artificial Intelligence (AI). AI is a much broader discipline concerned with building programs that can perform tasks typically associated with human intelligence: reasoning, perception, language understanding, decision making, and more. Machine learning is one specific approach to building such programs: the approach that relies on *data* and *experience* rather than hand-coded rules.
 
-To understand this difference better, consider this analogy. A student is like an ML algorithm. The exercises in their book are like training data. They try to grasp the concepts by solving these exercises. The questions on an exam are like test data. The questions on the exam are similar to the ones in the book, but not the same. The student has not seen the exam questions before. Hence, the student's performance on the exam is a good indicator of how well they have grasped the concepts.
+Not all AI systems use machine learning. A chess engine that searches through millions of possible moves using hand-crafted evaluation rules is AI, but it is not learning from data. Conversely, every machine learning system is, by definition, an AI system.
+
+In recent years, a particular branch of machine learning called *deep learning* (which uses large neural networks) has driven remarkable progress in areas like image recognition, language generation, and game playing. Generative AI, the technology behind large language models and image generators, is a product of deep learning. This has led to a surge of interest in the broader AI field.
+
+The following diagram shows how these fields are nested:
+
+```{mermaid}
+%%| fig-align: center
+flowchart TB
+    AI["<b>Artificial Intelligence</b><br/>Programs that perform tasks<br/>associated with human intelligence"]
+    ML["<b>Machine Learning</b><br/>Programs that learn from data<br/>and improve with experience"]
+    DL["<b>Deep Learning</b><br/>ML using large<br/>neural networks"]
+    GenAI["<b>Generative AI</b><br/>DL models that generate<br/>text, images, code, etc."]
+
+    AI --> ML
+    ML --> DL
+    DL --> GenAI
+
+    style AI fill:#1a5276,color:#fff,stroke:#fff
+    style ML fill:#1e8449,color:#fff,stroke:#fff
+    style DL fill:#b9770e,color:#fff,stroke:#fff
+    style GenAI fill:#922b21,color:#fff,stroke:#fff
+```
+
+Notice that each layer is a subset of the one above it. Deep learning is a subset of machine learning, which is a subset of AI. This post focuses on the machine learning layer.
+
+# The Road Ahead
+
+Before we go further, here is a map of the territory we will cover. Think of it as a trail map: you can glance back at it any time you want to remember where we are in the story.
+
+```{mermaid}
+%%| fig-align: center
+flowchart TB
+    A["<b>What is ML?</b><br/>Definitions and<br/>the bakery example"]
+    B["<b>Training vs.<br/>Test Data</b><br/>How algorithms<br/>learn and are evaluated"]
+    C["<b>Supervised<br/>Learning</b><br/>Input-output pairs,<br/>notation, regression,<br/>classification"]
+    D["<b>Unsupervised<br/>Learning</b><br/>Finding patterns<br/>without labels"]
+    E["<b>Reinforcement<br/>Learning</b><br/>Learning by<br/>trial and error"]
+    F["<b>Wrapping Up</b><br/>The big picture<br/>and what comes next"]
+
+    A --> B --> C --> D --> E --> F
+
+    style A fill:#1e8449,color:#fff,stroke:#fff
+    style F fill:#b9770e,color:#fff,stroke:#fff
+```
+
+We have already covered the first stop. Next, we will talk about the two kinds of data that every machine learning algorithm needs.
+
+# Training Data and Test Data
+
+These two types of data are fundamental to every machine learning algorithm, and getting the distinction right is crucial.
+
+The **training data** is the data from which the algorithm learns. It is the notebook the algorithm studies in order to discover patterns. In our bakery example, the training data is the year of entries you have been recording.
+
+The **test data** is a separate set of data that the algorithm has *never seen during training*. We use it to evaluate how well the algorithm has learned. If the algorithm performs well on data it has never encountered before, we have good reason to believe it has genuinely learned the underlying patterns rather than merely memorizing the training entries.
+
+Why is this separation so important? Consider an analogy. A student preparing for an exam (the algorithm) studies the exercises in their textbook (the training data). The exam questions (the test data) are similar in style to the textbook exercises but are not identical. The student has never seen these specific questions before. Their exam score is therefore a meaningful indicator of how well they have understood the material, not just how well they have memorized the answers. An algorithm that performs brilliantly on training data but poorly on test data is like a student who memorized the answer key but understood nothing.
+
+The following diagram summarizes this flow:
+
+```{mermaid}
+%%| fig-align: center
+flowchart LR
+    DATA["<b>All Available Data</b>"]
+    TRAIN["<b>Training Data</b><br/>Algorithm learns<br/>patterns from this"]
+    TEST["<b>Test Data</b><br/>Held back, never<br/>seen during training"]
+    MODEL["<b>Learned Model</b>"]
+    EVAL["<b>Evaluation</b><br/>How well does the model<br/>perform on unseen data?"]
+
+    DATA --> TRAIN
+    DATA --> TEST
+    TRAIN --> MODEL
+    MODEL --> EVAL
+    TEST --> EVAL
+
+    style TRAIN fill:#1e8449,color:#fff,stroke:#fff
+    style TEST fill:#922b21,color:#fff,stroke:#fff
+    style EVAL fill:#b9770e,color:#fff,stroke:#fff
+```
+
+With the concepts of training and test data in hand, we are ready to ask a deeper question: *in what different ways can an algorithm learn from its training data?* It turns out there are three major paradigms, and each one answers this question differently. Let us start with the most common one.
 
 # Machine Learning Paradigms
 
 ## Supervised Learning
 
-The **supervised learning** paradigm of ML involves having input-output pairs in the training data. Each data point corresponds to a particular input-output pair. We show the ML algorithm the input and its corresponding correct output and let it learn the correct relationship between them such that when a new input that the algorithm has not seen before is shown to it, it produces the correct output. So, we are *supervising* the algorithm's learning. More technically, supervised learning amounts to learning the correct input to output mapping present in the training data.
+### The Idea
 
-Say we have a total of $n$ training data points. As mentioned before, each of these data points corresponds to a particular input-output pair. Generally each input is made up of $d$ **predictors** (sometimes also known as **features** or **attributes**), and a single output. So, each input can be thought of as a (column) vector given by
+Return to our bakery notebook (@tbl-bakery_notebook). Each entry has two parts: the *conditions* for that day (day of week, rain, local event) and the *outcome* we care about (loaves sold). In other words, every entry is an *input-output pair*. The input describes the situation, and the output is the answer we want to predict.
+
+In **supervised learning**, we hand the algorithm a collection of these input-output pairs and say: "Figure out the relationship between inputs and outputs so that when I give you a new input you have never seen, you can predict the correct output." We are *supervising* the algorithm's learning by showing it the correct answers during training.
+
+You might be wondering: why is this called "supervised"? Think of a tutor sitting next to a student, checking each answer and saying "correct" or "try again." The labeled outputs in the training data play the role of the tutor.
+
+### From Concrete to Notation
+
+Let us now formalize this. We will build the notation piece by piece, anchoring every new symbol to something you already understand from the bakery example.
+
+**Step 1: A single data point.** Each entry in our notebook is a single data point. The input for one day might be: (Monday, No rain, No event). In a real ML system, we would encode these as numbers (for example, Monday $= 1$, No $= 0$, Yes $= 1$). So a single input becomes a list of $d$ numbers, where $d$ is the number of features. In our bakery, $d = 3$ (day of week, rain, local event).
+
+We write this input as a column vector:
 
 $$
 \vb{x}_i =
 \begin{bmatrix}
-  x_1\\
-  x_2\\
+  x_{i1}\\
+  x_{i2}\\
   \vdots\\
-  x_d
+  x_{id}
 \end{bmatrix},
 $$
 
-i.e., $\vb{x}_i \in \mathbb{R}^{d}$, and the output corresponding to this input is denoted as $y_i$ (where $i \in \{1, 2, \dots, n\}$). We can collectively view the entire training data inside a matrix in the following way:
+where $\vb{x}_i \in \mathbb{R}^{d}$, and $i$ indexes which data point we are looking at. The corresponding output (loaves sold that day) is a single number, which we denote $y_i$.
+
+For instance, the first row of our bakery notebook might correspond to $\vb{x}_1 = \left[1, 0, 0\right]^{\intercal}$ (Monday, no rain, no event) and $y_1 = 40$.
+
+**Step 2: The full training dataset.** Say we have $n$ days in our notebook. We can stack all the input vectors as rows of a matrix and all the outputs into a vector. This gives us:
+
+$$
+\vb{X} \in \mathbb{R}^{n \times d} =
+\begin{bmatrix}
+  \leftarrow & \vb{x}_1^{\intercal} & \rightarrow\\
+  \leftarrow & \vb{x}_2^{\intercal} & \rightarrow\\
+  \vdots & \vdots & \vdots\\
+  \leftarrow & \vb{x}_n^{\intercal} & \rightarrow
+\end{bmatrix}
+=
+\begin{bmatrix}
+  x_{11} & x_{12} & \cdots & x_{1d}\\
+  x_{21} & x_{22} & \cdots & x_{2d}\\
+  \vdots & \vdots & \ddots & \vdots\\
+  x_{n1} & x_{n2} & \cdots & x_{nd}
+\end{bmatrix},
+$$
+
+and
+
+$$
+\vb{y} \in \mathbb{R}^{n} =
+\begin{bmatrix}
+  y_1\\
+  y_2\\
+  \vdots\\
+  y_n
+\end{bmatrix}.
+$$
+
+We can also view the entire training dataset as a single augmented structure:
 
 $$
 \text{Training data} =
@@ -88,84 +238,177 @@ $$
     x_{11} & x_{12} & \cdots & x_{1d} & y_1\\
     x_{21} & x_{22} & \cdots & x_{2d} & y_2\\
     \vdots & \vdots & \vdots & \ddots & \vdots\\
-    x_{n1} & x_{n2} & \cdots & x_{nd} & y_n\\
+    x_{n1} & x_{n2} & \cdots & x_{nd} & y_n
   \end{bmatrix}.
 $$
 
-This means we can separate out all the inputs and put them in the following matrix:
+This is why, in the ML literature, you will see the inputs collectively denoted as $\vb{X}$ and the outputs as $\vb{y}$. Every time you encounter these symbols, you can think of them as "the notebook" (inputs on the left, outputs on the right).
+
+:::{.callout-note}
+## A note on vector conventions
+Throughout this blog and all subsequent posts, we follow these conventions. Vectors are lowercase, bold, and non-italic (e.g., $\vb{x}$), and they are always treated as column vectors. A row vector is written as the transpose $\vb{x}^{\intercal}$. Matrices are uppercase, bold, and non-italic (e.g., $\vb{X}$). The transpose is denoted by ${}^{\intercal}$, not by ${}^T$. For Greek-letter vectors, we use bold upright forms such as $\boldsymbol{\uptheta}$.
+:::
+
+### The Goal of Supervised Learning
+
+The goal is to learn a function $f$ that maps inputs to outputs:
 
 $$
-\vb{X} \in \mathbb{R}^{n\times d} =
-\begin{bmatrix}
-  \leftarrow & \vb{x}_1^{\intercal} & \rightarrow\\
-  \leftarrow & \vb{x}_2^{\intercal} & \rightarrow\\
-  \vdots & \vdots & \vdots\\
-  \leftarrow & \vb{x}_n^{\intercal} & \rightarrow
-\end{bmatrix}
-=
-\begin{bmatrix}
-  x_{11} & x_{12} & \cdots & x_{1d}\\
-  x_{21} & x_{22} & \cdots & x_{2d}\\
-  \vdots & \vdots & \ddots & \vdots\\
-  x_{n1} & x_{n2} & \cdots & x_{nd}\\
-\end{bmatrix},
+y = f\left(\vb{x}\right).
 $$
 
-and their corresponding outputs in the following vector:
+We want this function to work well not just on the training data, but also on new, unseen inputs (the test data). How we define "works well," how we find $f$, and what forms $f$ can take are the subjects of the posts that follow this one. For now, the key insight is: supervised learning is about learning input-to-output mappings from labeled examples.
 
-$$
-\vb{y} \in \mathbb{R}^{n} =
-\begin{bmatrix}
-  y_1\\
-  y_2\\
-  \vdots\\
-  y_n
-\end{bmatrix}.
-$$
-
-Hence, in literature, all the inputs are collectively denoted with $\vb{X}$ and all the outputs are collectively denoted as $\vb{y}$.
+Now, within supervised learning, there are two major subtypes, and the distinction comes down to what kind of output $y$ we are trying to predict.
 
 ### Regression
 
-**Regression** is a type of supervised learning paradigm in which the output of each data point is a real number, i.e., $y_i \in \mathbb{R}$ for all $i \in \{1, 2, \dots, n\}$. An example is the following:
+What if the output is a *continuous* number? For instance, in our bakery example, the output is "loaves sold," which could be 25, 40, 55.5, or any real number. When $y_i \in \mathbb{R}$ for all $i \in \left\{1, 2, \dots, n\right\}$, we call this a **regression** problem.
 
-- House price prediction:
-  - Input ($\vb{x}_i \in \mathbb{R}^{d}$): Attributes of the house, e.g., area ($x_{i1}$), number of rooms ($x_{i2}$), date of construction ($x_{i3}$), etc.
+Another classic example:
+
+- **House price prediction:**
+  - Input ($\vb{x}_i \in \mathbb{R}^{d}$): Attributes of the house, e.g., area in square feet ($x_{i1}$), number of rooms ($x_{i2}$), year of construction ($x_{i3}$), etc.
   - Output ($y_i \in \mathbb{R}$): Price of the house.
+
+The word "regression" has a specific historical origin (it traces back to Francis Galton's 19th-century work on "regression toward the mean"), but in modern ML, it simply means: the output is a real number.
 
 ### Classification
 
-**Classification** is a type of supervised learning paradigm in which the output of each data point is categorical, i.e., $y_i \in \{1, 2, \dots, k\}$ for all $i \in \{1, 2, \dots, n\}$. You can also think of it as each input having a label stuck on it, and there are $k$ different types of these labels. In other words, each input belongs to a particular *class* from a total of $k$ classes. The label on the input can be thought of as the *class label*. An example is the following:
+Now consider a different question about our bakery: instead of "how many loaves will I sell?" suppose we ask "will I sell out today: yes or no?" The output is no longer a continuous number. It is one of two categories: *sold out* or *did not sell out*.
 
-- Tumor classification:
+When the output is categorical, i.e., $y_i \in \left\{1, 2, \dots, k\right\}$ for all $i \in \left\{1, 2, \dots, n\right\}$, we call this a **classification** problem. You can think of each input as having a *label* stuck on it, and there are $k$ possible labels. The algorithm's job is to learn which label goes with which kind of input.
+
+When $k = 2$ (as in our "sold out or not" example), this is called *binary classification*. When $k > 2$, it is called *multiclass classification*.
+
+Another classic example:
+
+- **Tumor classification:**
   - Input ($\vb{x}_i \in \mathbb{R}^{d}$): Attributes of the tumor, e.g., color ($x_{i1}$), thickness ($x_{i2}$), size ($x_{i3}$), etc.
-  - Ouput ($y_i \in \{1, 2\}$): Whether the tumor is malignant or benign.
+  - Output ($y_i \in \left\{1, 2\right\}$): Whether the tumor is malignant (class 1) or benign (class 2).
 
-The classification paradigm in which $k=2$ is called *binary classification*. Also, in practice, class labels are often encoded numerically, but the output remains categorical in nature.
+In practice, class labels are often encoded as numbers (0 and 1, or 1 through $k$), but the output remains categorical in nature. The number 2 does not mean "twice as much as 1"; it simply means "a different category."
+
+### Where We Stand
+
+Let us take a moment to see how far we have come. We started with a bakery notebook and a simple question: can a computer learn from data? We formalized the idea of training data as input-output pairs ($\vb{X}$, $\vb{y}$), and we saw that supervised learning comes in two flavors depending on the nature of the output: regression (continuous) and classification (categorical).
+
+```{mermaid}
+%%| fig-align: center
+flowchart TB
+    SL["<b>Supervised Learning</b><br/>Learn from input-output pairs"]
+    REG["<b>Regression</b><br/>Output is continuous<br/>(e.g., loaves sold, house price)"]
+    CLS["<b>Classification</b><br/>Output is categorical<br/>(e.g., sold out or not, tumor type)"]
+
+    SL --> REG
+    SL --> CLS
+
+    style SL fill:#1e8449,color:#fff,stroke:#fff
+    style REG fill:#1a5276,color:#fff,stroke:#fff
+    style CLS fill:#922b21,color:#fff,stroke:#fff
+```
+
+But supervised learning relies on having labeled data: every input comes with a known correct output. What if we do not have labels? What if we just have a pile of data and want to see if there is any interesting structure hiding inside it? That leads us to the next paradigm.
 
 ## Unsupervised Learning
 
-The **unsupervised learning** paradigm of ML does not explicitly distinguish between input-output. It involves simply providing the ML algorithm with the data and let it detect some interesting patterns in it.
+In **unsupervised learning**, we do not have input-output pairs. We simply hand the algorithm a collection of data points and ask it to find patterns, structure, or groupings on its own. There is no "correct answer" to check against; the algorithm is not supervised.
 
-An example is customer segmentation. This involves clustering customers into various groups using their purchase data. The ML algorithm is expected to learn their purchase habits from the data and divide them into meaningful groups. The groups, for instance, can be "high-value frequent buyers", "occasional / casual buyers", "bargain hunters", "bulk / stock-up buyers", etc. Note that we cannot determine these groups using our own imagination. They are supposed to be discovered in the data by the algorithm in the learning process.
+Consider our bakery again, but now from a different angle. Suppose you have a record of every customer who has visited your bakery over the past year: what they bought, how often they came, how much they spent, and at what time of day. You do not have any pre-assigned labels like "loyal customer" or "occasional visitor." You just have raw purchase data.
+
+An unsupervised learning algorithm could analyze this data and *discover* natural groupings among your customers. Perhaps it finds that there are clusters of customers who behave similarly: one cluster of people who come every morning and buy one croissant, another cluster of people who come on weekends and buy large orders for parties, and a third cluster of bargain hunters who only show up during sales. These groups were not defined by you; they were discovered in the data by the algorithm.
+
+This process is called **clustering**, and it is one of the most common tasks in unsupervised learning. Other unsupervised tasks include dimensionality reduction (finding a simpler representation of complex data) and anomaly detection (identifying unusual data points).
+
+The critical distinction from supervised learning is this: in supervised learning, we tell the algorithm what the "right answer" looks like for each input. In unsupervised learning, we do not. The algorithm must figure out what is interesting about the data without any guidance on what the output should be.
+
+We now have two paradigms: one where the algorithm learns from labeled examples, and one where it discovers structure without labels. But there is a third paradigm that works very differently from both, one where the algorithm learns not from a fixed dataset but from *interacting with the world*. Let us turn to that next.
 
 ## Reinforcement Learning
 
-The **reinforcement learning** paradigm of ML involves an *agent* that learns by interacting with an environment. Unlike supervised learning, there is no explicit input-output pairing, and unlike unsupervised learning, the goal is not merely to discover structure in data. Instead, the agent learns by trial and error, guided by a scalar feedback signal called a *reward*.
+The **reinforcement learning** (RL) paradigm involves an *agent* that learns by interacting with an *environment* [@sutton2018reinforcement]. Unlike supervised learning, there is no pre-collected dataset of input-output pairs. Unlike unsupervised learning, the goal is not to find hidden structure. Instead, the agent learns by trial and error, guided by a numerical feedback signal called a *reward*.
 
-At each step, the agent observes the current *state* of the environment and takes an *action*. As a result of this action, the environment transitions to a new state and provides a reward. The objective of the agent is to learn a strategy (called a *policy*) that maximizes the total reward accumulated over time.
+Here is how it works. At each step:
 
-An example is game playing:
+1. The agent observes the current **state** of the environment.
+2. The agent takes an **action**.
+3. The environment transitions to a new state.
+4. The environment provides a **reward** (a number indicating how good or bad the outcome was).
 
-- Game playing (e.g., chess, Go, video games):
-  - State: Current configuration of the game board.
-  - Action: A legal move available to the player.
-  - Reward: A numerical signal indicating success or failure (e.g., $+1$ for a win, $−1$ for a loss).
+The objective of the agent is to learn a strategy (called a **policy**) that maximizes the total reward accumulated over time.
 
-The key challenge in reinforcement learning is that rewards are often *delayed*. An action that seems unhelpful in the short term may lead to better outcomes in the future. Hence, reinforcement learning focuses on learning *long-term consequences* of actions rather than immediate correctness.
+```{mermaid}
+%%| fig-align: center
+flowchart LR
+    Agent["<b>Agent</b><br/>Observes state,<br/>chooses action"]
+    Env["<b>Environment</b><br/>Transitions to new state,<br/>provides reward"]
 
-In subsequent posts, I will formalize all these ML ideas mathematically, study concrete algorithms, and analyze their assumptions, limitations, and guarantees.
+    Agent -- "Action" --> Env
+    Env -- "New State + Reward" --> Agent
+
+    style Agent fill:#1a5276,color:#fff,stroke:#fff
+    style Env fill:#1e8449,color:#fff,stroke:#fff
+```
+
+A classic example is game playing (e.g., chess, Go, or video games):
+
+- **State:** The current configuration of the game board.
+- **Action:** A legal move available to the player.
+- **Reward:** A numerical signal indicating success or failure (e.g., $+1$ for a win, $-1$ for a loss, $0$ for a draw).
+
+Remember Arthur Samuel's checkers program from the beginning of this post? That was, in fact, an early form of reinforcement learning. The program played games (took actions), observed outcomes (received rewards), and gradually improved its strategy (learned a better policy).
+
+The key challenge in reinforcement learning is that rewards are often *delayed*. A chess move that looks harmless now might set up a devastating attack ten moves later, or a seemingly strong move might lead to a trap. The agent must learn to evaluate the *long-term consequences* of its actions, not just the immediate reward. This is what makes reinforcement learning particularly challenging and fascinating.
+
+# Bringing It All Together
+
+Let us step back and look at the full picture. We started this post with a simple scenario: a baker trying to predict tomorrow's bread sales. From that starting point, we built up an understanding of what machine learning is, how data is used, and what the three major paradigms look like.
+
+The following diagram summarizes the taxonomy of ML paradigms we have covered:
+
+```{mermaid}
+%%| fig-align: center
+flowchart TB
+    ML["<b>Machine Learning</b>"]
+    SL["<b>Supervised Learning</b><br/>Learns from<br/>input-output pairs"]
+    UL["<b>Unsupervised Learning</b><br/>Discovers structure<br/>without labels"]
+    RL["<b>Reinforcement Learning</b><br/>Learns by interacting<br/>with an environment"]
+    REG["<b>Regression</b><br/>Continuous output"]
+    CLS["<b>Classification</b><br/>Categorical output"]
+
+    ML --> SL
+    ML --> UL
+    ML --> RL
+    SL --> REG
+    SL --> CLS
+
+    style ML fill:#1a5276,color:#fff,stroke:#fff
+    style SL fill:#1e8449,color:#fff,stroke:#fff
+    style UL fill:#b9770e,color:#fff,stroke:#fff
+    style RL fill:#922b21,color:#fff,stroke:#fff
+    style REG fill:#1e8449,color:#fff,stroke:#aaa
+    style CLS fill:#1e8449,color:#fff,stroke:#aaa
+```
+
+And here is how each paradigm applies to different versions of our bakery problem:
+
+::: {.tbl tbl-colwidths="auto"}
+| Paradigm | Bakery Version | What the Algorithm Gets |
+|:--------:|:--------------:|:-----------------------:|
+| Regression | "How many loaves will I sell?" | Inputs + continuous output |
+| Classification | "Will I sell out: yes or no?" | Inputs + categorical output |
+| Unsupervised | "What types of customers do I have?" | Data only, no labels |
+| Reinforcement | "How should I adjust prices day by day to maximize profit?" | Actions, states, rewards |
+
+: Machine learning paradigms applied to the bakery. {#tbl-ml_paradigms_bakery style="width:70%; margin:auto;"}
+:::
+
+Each paradigm is a different lens for looking at a problem. The right choice depends on what kind of data you have and what question you are trying to answer.
+
+# What Comes Next
+
+This post laid the conceptual groundwork. We now have a shared vocabulary (training data, test data, supervised, unsupervised, reinforcement learning, regression, classification) and a shared intuition (the bakery notebook). In subsequent posts, we will formalize these ideas mathematically, study concrete algorithms, and analyze their assumptions, limitations, and guarantees. The first stop will be *linear regression*, where we take the regression idea from this post and build a complete, working algorithm from scratch.
 
 # Acknowledgment
 
-I have referred to the @stanford_cs229_ml_youtube YouTube playlist while writing this blog post.
+This post draws on the Stanford CS229 Machine Learning lecture series [@stanford_cs229_ml_youtube] and the treatment of core ML concepts in @mitchell1997machine.
