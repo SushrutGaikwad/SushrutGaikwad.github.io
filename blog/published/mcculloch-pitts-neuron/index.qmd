@@ -3,7 +3,7 @@ title: "McCulloch-Pitts Neuron"
 draft: false
 author: "Sushrut"
 date: 2025-06-12
-description: "An introduction to the McCulloch-Pitts neuron, one of the earliest computational models of the brain. This post explains its thresholding logic, ability to implement Boolean functions, and geometric interpretation as a linearly separable model."
+description: "An introduction to the McCulloch-Pitts neuron, one of the earliest computational models of the brain. This post builds the model from a simple movie-recommendation scenario, then shows how it implements Boolean functions and reveals its geometric nature as a linearly separable classifier."
 categories: [Deep Learning]
 tags: [McCulloch-Pitts Neuron, Blog]
 format:
@@ -12,60 +12,107 @@ format:
     smooth-scroll: true
     math: mathjax
     toc: true
-    # toc-location: left
-    # comments:
-    #   giscus: true
+    fig-format: svg
+    mermaid:
+      theme: dark
 bibliography: ../../../references/references.bib
 csl: ../../../references/apa.csl
 ---
 
-# Introduction
+# Can a Machine "Think" Like a Brain Cell?
 
-@mcculloch1943logical proposed a highly simplified computational model of the biological neuron in 1943, known as the **McCulloch-Pitts (MP) neuron**. The goal was to try and mimic the biological neuron and check if some simple functions can be implemented.
+In 1943, neurophysiologist Warren McCulloch and logician Walter Pitts asked a deceptively simple question: what is the *simplest* mathematical gadget that behaves like a biological neuron? A real neuron receives electrical signals from its neighbors, and if the combined stimulation is strong enough, it "fires" and sends a signal of its own. If the stimulation is too weak, it stays silent. That is it: accumulate, compare to a threshold, fire or stay quiet.
 
-# Thresholding Logic
+McCulloch and Pitts stripped this idea down to its mathematical bones and proposed what is now called the **McCulloch-Pitts (MP) neuron** [@mcculloch1943logical]. Their model is the starting point for nearly every neural network that followed, so understanding it well is worth the effort. In this post, we will build the MP neuron from scratch, starting not with equations but with a question you have probably answered dozens of times: *should I watch this movie?*
 
-Consider $d$ *binary* input features represented as $x_1$, $x_2$, $\dots$, $x_d$, and a *binary* output $y$. This is shown in @fig-general-mp-neuron.
+# A Concrete Scenario: Should You Watch This Movie?
 
-![A general McCulloch-Pitts (MP) neuron.](images/general_mp_neuron.svg){#fig-general-mp-neuron fig-align="center" width=40% .invert}
+Imagine you are scrolling through a streaming service on a Friday evening. You stumble upon a movie you have never seen, and you need to make a quick yes-or-no decision: watch it or skip it. How do you decide?
 
-What this model does is something very simple. It first aggregates all the inputs, which is indicated by $g$, and then applies a basic threshold function $f$ on this aggregation. More precisely, the following is what happens. The inputs $x_1$, $x_2$, $\dots$, $x_d$ can be excitatory or inhibitory.
+Most people run through a mental checklist. Suppose yours looks like this:
 
-- If *any* of the inputs $x_j$ (where $j\in \{1, 2, \dots, d\}$) is inhibitory:
-  - Then the output is $y=0$.
-- Else if *none* of the inputs $x_j$ are inhibitory:
-  - The function $g$ aggregates the inputs, i.e.,
+::: {.tbl tbl-colwidths="auto"}
+| Feature | Question |
+|:-------:|:--------:|
+| $x_1$ | Is the director Nolan? |
+| $x_2$ | Is the genre Sci-Fi? |
+| $x_3$ | Is the IMDB rating above 8? |
 
-    $$
-    g\left(x_1, x_2, \dots, x_d\right) = g\left(\mathbf{x}\right) = x_1 + x_2 + \cdots + x_d = \sum_{j=1}^{d} x_j,
-    $$ {#eq-mp_neuron_aggregation}
+: Your mental checklist for deciding whether to watch a movie. {#tbl-movie_checklist style="width:50%; margin:auto;"}
+:::
 
-    and the output $y$ is given by:
+Each answer is binary: yes ($1$) or no ($0$). After running through the checklist, you mentally tally up the "yes" answers. If enough of them are positive, you hit play. If not, you keep scrolling.
 
-    $$
-    y = f (g (\mathbf{x})) =
-    \begin{cases}
-        1, & \text{if $g(\mathbf{x}) \geq \theta$},\\
-        0, & \text{if $g(\mathbf{x}) < \theta$}.
-    \end{cases}
-    $$ {#eq-mp_neuron_thresholding_logic}
+Notice what is happening here. You are doing two things:
 
-    This can be more simply written as:
+1. **Aggregating** your binary checks into a single number (the count of "yes" answers).
+2. **Comparing** that number against a personal threshold.
 
-    $$
-    y = f \left(x_1, \dots, x_d\right) =
-    \begin{cases}
-        1, & \text{if $x_1 + \cdots + x_d \geq \theta$},\\
-        0, & \text{if $x_1 + \cdots + x_d < \theta$}.
-    \end{cases}
-    $$ {#eq-mp_neuron_thresholding_logic_simpler}
+A very easy-going viewer might watch anything that satisfies at least one check (threshold of $1$). A picky viewer might require all three checks to pass (threshold of $3$). The threshold models your personality.
 
-    Here, $\theta$ is called the **thresholding parameter**. So, the output $y$ is $1$ if the aggregation (or sum) of all the inputs is greater than or equal to the thresholding parameter $\theta$, and is $0$ otherwise.
+This, in essence, is exactly what a McCulloch-Pitts neuron does. Let us now make this precise.
 
-Note that in @eq-mp_neuron_thresholding_logic, we are representing all the inputs $x_1$, $x_2$, $\dots$, $x_d$ collectively in the vector $\mathbf{x}$, which is given by
+# Roadmap
+
+Before we dive into the formalism, here is the journey we will take.
+
+```{mermaid}
+%%| fig-align: center
+flowchart LR
+    A["Concrete<br/>Example"] --> B["Formalizing<br/>the Model"]
+    B --> C["Boolean<br/>Functions"]
+    C --> D["Geometric<br/>Interpretation"]
+    D --> E["Limitations<br/>and Next Steps"]
+
+    style A fill:#10a37f,color:#fff
+```
+
+We are currently at the green node: we have the concrete movie example in hand. Next, we will translate it into mathematical notation. After that, we will see what kinds of logical functions this simple model can compute (and what it cannot). Finally, we will look at the model through a geometric lens, which will reveal both its elegance and its fundamental limitation.
+
+# Formalizing the MP Neuron
+
+## From Tallying to Summation
+
+Let us go back to the movie scenario. We had three binary features $x_1$, $x_2$, and $x_3$. The "tally" of yes-answers is simply their sum:
 
 $$
-\mathbf{x} =
+x_1 + x_2 + x_3.
+$$
+
+If we generalize to $d$ binary features, the tally becomes
+
+$$
+g\left(x_1, x_2, \dots, x_d\right) = x_1 + x_2 + \cdots + x_d = \sum_{j=1}^{d} x_j.
+$$ {#eq-mp_neuron_aggregation}
+
+Here, $g$ is the **aggregation function**. It takes all $d$ inputs and collapses them into a single number. Nothing fancy: just a sum.
+
+## From "Enough Yes-Answers" to a Threshold
+
+The decision ("watch or skip") is then a comparison of this sum against a threshold $\theta$:
+
+$$
+y = f\left(g\left(\vb{x}\right)\right) =
+\begin{cases}
+    1, & \text{if } g\left(\vb{x}\right) \geq \theta,\\
+    0, & \text{if } g\left(\vb{x}\right) < \theta.
+\end{cases}
+$$ {#eq-mp_neuron_thresholding_logic}
+
+Or, substituting @eq-mp_neuron_aggregation directly:
+
+$$
+y = f\left(x_1, x_2, \dots, x_d\right) =
+\begin{cases}
+    1, & \text{if } x_1 + x_2 + \cdots + x_d \geq \theta,\\
+    0, & \text{if } x_1 + x_2 + \cdots + x_d < \theta.
+\end{cases}
+$$ {#eq-mp_neuron_thresholding_logic_simpler}
+
+Here, $\vb{x}$ is the column vector of all inputs:
+
+$$
+\vb{x} =
 \begin{bmatrix}
     x_1\\
     x_2\\
@@ -74,166 +121,250 @@ $$
 \end{bmatrix}.
 $$
 
-## Intuition for Thresholding Logic
+That is the entire MP neuron: sum the inputs, compare to $\theta$, output $1$ or $0$. @fig-general_mp_neuron shows a diagram of this model.
 
-To build an intuition for thresholding, consider the example of deciding whether you would like a movie given some of its features (or inputs) that are binary. You are given a dataset of movies. The output $y$ of a movie is $1$ if you like it, and is $0$ if you don't. The binary features can be
+![A general McCulloch-Pitts (MP) neuron.](images/general_mp_neuron.svg){#fig-general_mp_neuron fig-align="center" width=40% .invert}
+
+## Excitatory and Inhibitory Inputs
+
+There is one more detail. In our movie example, all the features were "good things" (checks in favor of watching). But what if one of the features is a deal-breaker? For instance, suppose $x_4$ is "Does the movie contain spoilers for a show you haven't finished?" If $x_4 = 1$, you would skip the movie *no matter how many other checks pass*. This kind of input is called **inhibitory**: if *any* inhibitory input is $1$, the neuron's output is immediately $0$, regardless of the other inputs. All other (non-deal-breaker) inputs are called **excitatory**.
+
+The following flowchart summarizes the complete decision process of an MP neuron.
+
+```{mermaid}
+%%| fig-align: center
+flowchart TD
+    A["Receive inputs<br/>x₁, x₂, ..., xd"] --> B{"Is any input<br/>inhibitory<br/>and equal to 1?"}
+    B -- "Yes" --> C["Output y = 0"]
+    B -- "No" --> D["Compute sum<br/>g(x) = x₁ + x₂ + ... + xd"]
+    D --> E{"Is g(x) ≥ θ?"}
+    E -- "Yes" --> F["Output y = 1"]
+    E -- "No" --> G["Output y = 0"]
+```
+
+So the MP neuron operates in two stages. First, it checks for deal-breakers. If none are present, it proceeds to the aggregation and thresholding step described by @eq-mp_neuron_thresholding_logic_simpler.
+
+## Checkpoint: Where Are We?
+
+```{mermaid}
+%%| fig-align: center
+flowchart LR
+    A["Concrete<br/>Example"] --> B["Formalizing<br/>the Model"]
+    B --> C["Boolean<br/>Functions"]
+    C --> D["Geometric<br/>Interpretation"]
+    D --> E["Limitations<br/>and Next Steps"]
+
+    style A fill:#555,color:#fff
+    style B fill:#10a37f,color:#fff
+```
+
+Let us take stock. We started with a relatable scenario (deciding whether to watch a movie) and translated it into a precise mathematical model: the MP neuron. This model takes $d$ binary inputs, sums them up, and compares the sum to a threshold $\theta$. If any input is inhibitory and active, the output is forced to $0$. Otherwise, the output is $1$ when the sum meets or exceeds the threshold, and $0$ when it does not.
+
+The natural next question is: what kinds of computations can this simple model perform? It turns out that the MP neuron can implement some of the most fundamental operations in logic. Let us see how.
+
+# The MP Neuron in Action: Boolean Functions
+
+A **Boolean function** is a function whose inputs and output are all binary ($0$ or $1$). The AND, OR, and NOT functions are the most basic examples, and every digital circuit is built from them. If the MP neuron can implement these, it is already surprisingly powerful for such a simple model.
+
+## The AND Function
+
+The AND function outputs $1$ only when *all* inputs are $1$. With three excitatory inputs, the truth table looks like this:
+
+::: {.tbl tbl-colwidths="auto"}
+| $x_1$ | $x_2$ | $x_3$ | $x_1 + x_2 + x_3$ | AND output |
+|:------:|:------:|:------:|:------------------:|:----------:|
+| 0 | 0 | 0 | 0 | 0 |
+| 0 | 0 | 1 | 1 | 0 |
+| 0 | 1 | 0 | 1 | 0 |
+| 0 | 1 | 1 | 2 | 0 |
+| 1 | 0 | 0 | 1 | 0 |
+| 1 | 0 | 1 | 2 | 0 |
+| 1 | 1 | 0 | 2 | 0 |
+| 1 | 1 | 1 | 3 | 1 |
+
+: Truth table for the AND function with three inputs. {#tbl-and_truth_table style="width:60%; margin:auto;"}
+:::
+
+Look at the sum column. The output should be $1$ only when the sum equals $3$ (the maximum possible). Every other sum ($0$, $1$, or $2$) should give an output of $0$. So we need a threshold $\theta$ such that sums of $3$ or more pass, and sums of $2$ or less fail. Setting $\theta = 3$ does exactly this:
 
 $$
-\begin{align*}
-x_1 &= \text{Is the director Nolan?}\\
-x_2 &= \text{Is the movie Sci-Fi?}\\
-x_3 &= \text{Is the IMDB rating $>8$?}\\
-\vdots
-\end{align*}
-$$
-
-Think of these features as favourable checks. In other words, if more of these binary features have the value $1$, it is more likely that you would like the movie. The thresholding parameter $\theta$ here models your personality. If you are someone who would like any movie, then $\theta$ would be lower for you. However, if you like the movie only when most of your favourable checks are satisfied, then $\theta$ would be higher for you.
-
-# Implementing Boolean Functions
-
-"Implementing a Boolean function" means the following. Consider the AND Boolean function. The output of this function is $1$ only if all the inputs are $1$. Else, the output is $0$. So, an MP neuron will be able to implement this Boolean function if it exactly models this behavior.
-
-## AND Function
-
-Recall that the equation for an MP neuron is given by @eq-mp_neuron_thresholding_logic_simpler. Consider that there are $3$ Boolean inputs $x_1$, $x_2$, and $x_3$, and all of them are excitatory. So, the MP neuron modeling the AND function should have three inputs. Hence, substituting $d=3$ in @eq-mp_neuron_thresholding_logic_simpler, we get
-
-$$
-y = f \left(x_1, x_2, x_3\right) =
+y = f\left(x_1, x_2, x_3\right) =
 \begin{cases}
-    1, & \text{if $x_1 + x_2 + x_3 \geq \theta$},\\
-    0, & \text{if $x_1 + x_2 + x_3 < \theta$}.
+    1, & \text{if } x_1 + x_2 + x_3 \geq 3,\\
+    0, & \text{if } x_1 + x_2 + x_3 < 3.
 \end{cases}
 $$
 
-Now, the AND function outputs $1$ only if *all the inputs* are $1$. If all the inputs are $1$, we will have their sum as
+You can verify this against every row of @tbl-and_truth_table. In general, for $d$ inputs, the AND function requires $\theta = d$: the threshold equals the total number of inputs, so all of them must be $1$ for the sum to reach it.
+
+## The OR Function
+
+The OR function outputs $1$ when *at least one* input is $1$. Here is the truth table for three inputs:
+
+::: {.tbl tbl-colwidths="auto"}
+| $x_1$ | $x_2$ | $x_3$ | $x_1 + x_2 + x_3$ | OR output |
+|:------:|:------:|:------:|:------------------:|:---------:|
+| 0 | 0 | 0 | 0 | 0 |
+| 0 | 0 | 1 | 1 | 1 |
+| 0 | 1 | 0 | 1 | 1 |
+| 0 | 1 | 1 | 2 | 1 |
+| 1 | 0 | 0 | 1 | 1 |
+| 1 | 0 | 1 | 2 | 1 |
+| 1 | 1 | 0 | 2 | 1 |
+| 1 | 1 | 1 | 3 | 1 |
+
+: Truth table for the OR function with three inputs. {#tbl-or_truth_table style="width:60%; margin:auto;"}
+:::
+
+This time, the output should be $1$ whenever the sum is $1$ or more. The only row with output $0$ is the one where all inputs are $0$ (sum $= 0$). So we set $\theta = 1$:
 
 $$
-x_1 + x_2 + x_3 = 1 + 1 + 1 = 3
-$$
-
-This clearly indicates that for an MP neuron modeling the AND function with three inputs, the value of the threshold $\theta$ should be $3$. Hence, substituting $\theta = 3$, we get the equation of this MP neuron as
-
-$$
-y = f \left(x_1, x_2, x_3\right) =
+y = f\left(x_1, x_2, x_3\right) =
 \begin{cases}
-    1, & \text{if $x_1 + x_2 + x_3 \geq 3$},\\
-    0, & \text{if $x_1 + x_2 + x_3 < 3$}.
+    1, & \text{if } x_1 + x_2 + x_3 \geq 1,\\
+    0, & \text{if } x_1 + x_2 + x_3 < 1.
 \end{cases}
 $$
 
-## OR Function
+Again, you can check this against @tbl-or_truth_table. In general, the OR function always requires $\theta = 1$, regardless of the number of inputs.
 
-Again, recall that the equation for an MP neuron is given by @eq-mp_neuron_thresholding_logic_simpler. Consider that there are $3$ Boolean inputs $x_1$, $x_2$, and $x_3$, and all of them are excitatory. So, the MP neuron modeling the OR function should have three inputs. Hence, substituting $d=3$ in @eq-mp_neuron_thresholding_logic_simpler, we get
+## The NOT Function
+
+The NOT function has a single input and flips it: $0$ becomes $1$, and $1$ becomes $0$. This is where the inhibitory mechanism comes in.
+
+We treat the single input $x_1$ as **inhibitory**. Consider what happens in each case. If $x_1 = 1$, then because $x_1$ is inhibitory and active, the output is immediately $y = 0$. This is exactly what NOT should produce when the input is $1$. If $x_1 = 0$, no inhibitory input is active, so we proceed to the threshold check. Using @eq-mp_neuron_thresholding_logic_simpler with $d = 1$, we need $x_1 \geq \theta$ to output $1$. Since $x_1 = 0$, we need $0 \geq \theta$, which means $\theta$ must be $0$ (or negative). Setting $\theta = 0$ gives us:
 
 $$
-y = f \left(x_1, x_2, x_3\right) =
+y = f\left(x_1\right) =
 \begin{cases}
-    1, & \text{if $x_1 + x_2 + x_3 \geq \theta$},\\
-    0, & \text{if $x_1 + x_2 + x_3 < \theta$}.
+    1, & \text{if } x_1 \geq 0,\\
+    0, & \text{if } x_1 < 0.
 \end{cases}
 $$
 
-Now, the OR function outputs $1$ only if *at least one* of the inputs is $1$. If this is true, then the *least value* of their sum is
+Since $x_1 = 0 \geq 0$, we get $y = 1$, which is the correct NOT output.
 
-$$
-x_1 + x_2 + x_3 = 1
-$$
+You might be wondering: "Wait, if $x_1 = 1$ and $\theta = 0$, wouldn't the threshold check also give $y = 1$?" Yes, it would, but the inhibitory check happens *first*. The threshold check in the equation above only applies when no inhibitory input is active. That two-stage process (check for deal-breakers first, then threshold) is what makes NOT work.
 
-This clearly indicates that for an MP neuron modeling the OR function with three inputs, the value of the threshold $\theta$ should be $1$. Hence, substituting $\theta = 1$, we get the equation of this MP neuron as
+## Checkpoint: Where Are We?
 
-$$
-y = f \left(x_1, x_2, x_3\right) =
-\begin{cases}
-    1, & \text{if $x_1 + x_2 + x_3 \geq 1$},\\
-    0, & \text{if $x_1 + x_2 + x_3 < 1$}.
-\end{cases}
-$$
+```{mermaid}
+%%| fig-align: center
+flowchart LR
+    A["Concrete<br/>Example"] --> B["Formalizing<br/>the Model"]
+    B --> C["Boolean<br/>Functions"]
+    C --> D["Geometric<br/>Interpretation"]
+    D --> E["Limitations<br/>and Next Steps"]
 
-## NOT Function
+    style A fill:#555,color:#fff
+    style B fill:#555,color:#fff
+    style C fill:#10a37f,color:#fff
+```
 
-For an MP neuron to model the NOT function, we will have to consider just a single input $x_1$ that is inhibitory. We will have two cases:
+So far, we have seen that the MP neuron can implement AND ($\theta = d$), OR ($\theta = 1$), and NOT (using an inhibitory input with $\theta = 0$). These are the three fundamental Boolean operations, and a single MP neuron handles each of them cleanly.
 
-- If $x_1 = 1$, then $y = 0$. This case is already handled, as it matches the exact behavior of the NOT function if the input is $1$.
-- If $x_1 = 0$, then using @eq-mp_neuron_thresholding_logic_simpler with $d=1$, we get
-  
-  $$
-    y = f \left(x_1\right) =
-    \begin{cases}
-        1, & \text{if $x_1 \geq \theta$},\\
-        0, & \text{if $x_1 < \theta$}.
-    \end{cases}
-  $$
+But this raises a deeper question: can the MP neuron implement *any* Boolean function? Or are there functions it simply cannot represent? To answer this, we need to look at what the MP neuron is doing from a geometric perspective. This is where things get really interesting.
 
-  As we have $x_1=0$, and we want the output $y$ to be the opposite, i.e., $y=1$ if $x_1 = 0$, we can model it by assigning $\theta = 0$. Hence, substituting $\theta = 0$, we get the equation of this MP neuron in this case as
+# Seeing It Geometrically
 
-  $$
-    y = f \left(x_1\right) =
-    \begin{cases}
-        1, & \text{if $x_1 \geq 0$},\\
-        0, & \text{if $x_1 < 0$}.
-    \end{cases}
-  $$
+## The Decision Boundary
 
-Can any Boolean function be represented using an MP neuron? To answer this, we will first have to understand the geometric interpretation of an MP neuron.
-
-# Geometric Interpretation of an MP Neuron
-
-Consider an MP neuron implementing the OR function with two inputs $x_1$ and $x_2$. The four possible inputs to the neuron are: $(0, 0)$, $(0, 1)$, $(1, 0)$, and $(1, 1)$. The output, using @eq-mp_neuron_thresholding_logic_simpler with $d=2$ and $\theta = 1$, is given by
+Let us revisit the OR function, but with just two inputs ($d = 2$) so that we can plot things on a 2D plane. With $\theta = 1$, the MP neuron computes:
 
 $$
 y =
 \begin{cases}
-    1, & \text{if $x_1 + x_2 \geq 1$},\\
-    0, & \text{if $x_1 + x_2 < 1$}.
+    1, & \text{if } x_1 + x_2 \geq 1,\\
+    0, & \text{if } x_1 + x_2 < 1.
 \end{cases}
 $$
 
-Clearly, we get a linear decision boundary given by the equation
+Since both inputs are binary, there are exactly four possible input points: $\left(0, 0\right)$, $\left(0, 1\right)$, $\left(1, 0\right)$, and $\left(1, 1\right)$. Let us evaluate each one:
+
+::: {.tbl tbl-colwidths="auto"}
+| $x_1$ | $x_2$ | $x_1 + x_2$ | $y$ (OR) |
+|:------:|:------:|:----------:|:--------:|
+| 0 | 0 | 0 | 0 |
+| 0 | 1 | 1 | 1 |
+| 1 | 0 | 1 | 1 |
+| 1 | 1 | 2 | 1 |
+
+: The 2-input OR function evaluated at all possible inputs. {#tbl-or_2_inputs style="width:50%; margin:auto;"}
+:::
+
+Now, the equation $x_1 + x_2 = 1$ defines a straight line on the 2D plane. This line is the **decision boundary**. Every point on or above this line (where $x_1 + x_2 \geq 1$) is classified as $1$, and every point below it (where $x_1 + x_2 < 1$) is classified as $0$. @fig-or_function_2_inputs_mp_neuron shows this.
+
+![An MP neuron implementing an OR function with two inputs. The green points have an output of $1$ and the red point has an output of $0$. The line $x_1 + x_2 = 1$ is the decision boundary.](images/or_function_2_inputs_mp_neuron.svg){#fig-or_function_2_inputs_mp_neuron fig-align="center" width=40% .invert}
+
+## How the Threshold Shapes the Boundary
+
+The static figure above shows the decision boundary for one particular threshold ($\theta = 1$, the OR function). But what happens as we change $\theta$? The line $x_1 + x_2 = \theta$ shifts across the plane: a small $\theta$ places the boundary close to the origin (so most points fire), while a large $\theta$ pushes it far from the origin (so fewer points fire). The following animation shows this in action. Watch how the four input points change color (green for output $1$, red for output $0$) as the boundary sweeps from $\theta = 0$ to $\theta = 3$ and back.
+
+{{< video images/mp_neuron_decision_boundary.mp4 >}}
+
+At $\theta = 0$, every point satisfies the threshold and fires. At $\theta = 1$, we get the OR function (only $\left(0, 0\right)$ is red). At $\theta = 2$, we get the AND function (only $\left(1, 1\right)$ is green). And at $\theta = 3$, no point reaches the threshold. The single parameter $\theta$ controls which Boolean function the neuron implements, and geometrically, it controls where the decision boundary sits.
+
+## From Lines to Hyperplanes
+
+In the 2D case, the decision boundary $x_1 + x_2 = \theta$ is a line. In general, for $d$ inputs, the decision boundary
 
 $$
-x_1 + x_2 = 1.
-$$
+x_1 + x_2 + \cdots + x_d = \theta
+$$ {#eq-mp_neuron_decision_boundary}
 
-Any input point lying on or in the positive half space of this boundary has an output of $1$, and any input point lying in the negative half space of this boundary has an output of $0$. @fig-or-function-2-inputs-mp-neuron shows this.
+is a **hyperplane** in $d$-dimensional space. All input points on one side of this hyperplane produce output $1$, and all input points on the other side produce output $0$.
 
-![An MP neuron implementing an OR function with two inputs. The green points have an output of 1 and the red point has an output of 0.](images/or_function_2_inputs_mp_neuron.svg){#fig-or-function-2-inputs-mp-neuron fig-align="center" width=40% .invert}
+## Linear Separability
 
-So, a single MP neuron splits the input points into two halves using a linear boundary, or more generally a hyperplane, given by
+This geometric view reveals something fundamental about the MP neuron. Because it always draws a straight (linear) boundary to separate the $1$-outputs from the $0$-outputs, it can only represent Boolean functions where such a clean separation is possible. This property is called **linear separability**.
 
-$$
-x_1 + x_2 + \cdots + x_d = \theta,
-$$
+::: {.callout-note}
+## Linear Separability
+A Boolean function is **linearly separable** if there exists a hyperplane such that all inputs with output $1$ lie on one side, and all inputs with output $0$ lie on the other side. A single MP neuron can represent a Boolean function *if and only if* that function is linearly separable.
+:::
 
-where $d$ is the number of inputs. All inputs that produce an output of $0$ will be on one side of this hyperplane, and all the inputs that produce an output of $1$ will be on the other side of this hyperplane. In other words, a single MP neuron can be used to represent Boolean functions that are *linearly separable*. Linear separability for Boolean functions means that there exists a line (plane) such that all inputs with an output of $1$ lie on one side of this line (plane), and all inputs with an output of $0$ lie on the other side of this line (plane).
+The AND and OR functions are both linearly separable (as we have seen), so the MP neuron handles them. But are there Boolean functions that are *not* linearly separable?
 
-# Questions to Ponder
+# Limitations and Looking Ahead
 
-Are there any non-linearly separable Boolean functions? If so, can they be represented using an MP neuron? We will address these questions eventually. More precisely, we would like to address the following questions:
+## Checkpoint: Where Are We?
 
-- What about non-Boolean (say, real) inputs?
-- Do we always need to hand code the threshold?
-- Are all inputs equally important?
-- What about functions that are not linearly separable?
+```{mermaid}
+%%| fig-align: center
+flowchart LR
+    A["Concrete<br/>Example"] --> B["Formalizing<br/>the Model"]
+    B --> C["Boolean<br/>Functions"]
+    C --> D["Geometric<br/>Interpretation"]
+    D --> E["Limitations<br/>and Next Steps"]
 
-# Summary
+    style A fill:#555,color:#fff
+    style B fill:#555,color:#fff
+    style C fill:#555,color:#fff
+    style D fill:#555,color:#fff
+    style E fill:#10a37f,color:#fff
+```
 
-- The **MP neuron** is a binary model that sums inputs and compares the result to a threshold $\theta$.
-- If any input is **inhibitory**, the output is immediately $0$.
-- Otherwise, the output, for $d$ input features, is:
-  $$
-  y = 
-  \begin{cases}
-    1, & \text{if } \sum_{j=1}^{d} x_j \geq \theta, \\
-    0, & \text{otherwise}.
-  \end{cases}
-  $$
+We have built the MP neuron from a concrete example, formalized it, seen it implement Boolean functions, and understood its geometric nature. Now we arrive at the natural final question: where does this model break down?
 
-- It can implement Boolean functions:
-  - **AND**: $\theta = d$,
-  - **OR**: $\theta = 1$,
-  - **NOT**: uses an inhibitory input.
-- The MP neuron creates a **linear decision boundary** in input space, and hence it can only model **linearly separable** Boolean functions.
+## The Limits of a Single Neuron
+
+The MP neuron, elegant as it is, has several important limitations.
+
+- First, it only accepts **binary inputs**. Every input must be $0$ or $1$. What about real-valued features like temperature, price, or probability? The MP neuron has no way to handle them.
+- Second, there is **no learning**. We had to *manually choose* the threshold $\theta$ for each Boolean function (e.g., $\theta = 3$ for AND, $\theta = 1$ for OR). The model does not learn the right threshold from data. We had to figure it out ourselves.
+- Third, **all inputs are treated as equally important**. The aggregation function simply sums the inputs with no mechanism to say "the director matters more than the genre." In other words, there are no *weights* on the inputs.
+- Finally, **not all Boolean functions are representable**. Because the MP neuron can only draw linear decision boundaries, it cannot represent any Boolean function that is not linearly separable. The most famous example of such a function is the XOR (exclusive OR), which outputs $1$ when exactly one of the two inputs is $1$, and $0$ otherwise. No single straight line can separate the $1$-outputs from the $0$-outputs for XOR. (We will explore this in detail in a future post.)
+
+Each of these limitations points toward a richer model, and the history of neural networks is largely the story of overcoming them, one by one.
+
+# Summary: Closing the Loop
+
+Let us return to where we started: you, scrolling through a streaming service, deciding whether to watch a movie. That simple mental process of tallying up binary checks and comparing the count against a personal cutoff turned out to be exactly the logic behind the McCulloch-Pitts neuron. We formalized the tally as a summation (@eq-mp_neuron_aggregation) and the cutoff as a threshold comparison (@eq-mp_neuron_thresholding_logic_simpler), and we added the notion of inhibitory inputs to handle deal-breaker features that override everything else.
+
+With this model in hand, we showed that a single MP neuron can implement the fundamental Boolean functions: AND by setting $\theta = d$ so that every input must be active, OR by setting $\theta = 1$ so that a single active input suffices, and NOT by leveraging the inhibitory mechanism with $\theta = 0$. We then looked at the model through a geometric lens and discovered that the MP neuron draws a linear decision boundary (a hyperplane defined by @eq-mp_neuron_decision_boundary) to separate inputs that fire from inputs that do not. This means the MP neuron can only represent linearly separable functions, which is both its core insight and its fundamental limitation.
+
+Despite these constraints, the MP neuron is historically significant as the first formal model connecting neuroscience to computation [@mcculloch1943logical]. Every modern neural network, from a simple perceptron to a large language model, is a descendant of this 1943 idea. The journey from here to those descendants is the story of adding weights, adding learning rules, and stacking neurons into networks. That story begins with the perceptron, which we will cover next.
 
 # Acknowledgment
 
-I have referred to the YouTube playlists [@iitm-deep-learning-playlist; @nptel-deep-learning-playlist] while writing this blog post.
+This blog post draws on the lecture series by Mitesh Khapra and colleagues [@iitm-deep-learning-playlist; @nptel-deep-learning-playlist].
