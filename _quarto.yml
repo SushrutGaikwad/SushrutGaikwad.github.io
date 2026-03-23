@@ -72,7 +72,7 @@ format:
   html:
     # mainfont: "Source Sans 3"
     link-external-newwindow: true
-    math: mathjax
+    math: none
     theme:
       dark: darkly
       light: flatly
@@ -87,10 +87,7 @@ format:
           <script>
             window.MathJax = {
               loader: {
-                load: [
-                  '[tex]/physics',
-                  '[tex]/upgreek'
-                ]
+                load: ['[tex]/physics', '[tex]/upgreek']
               },
               tex: {
                 inlineMath: [['$','$'], ['\\(','\\)']],
@@ -101,13 +98,25 @@ format:
               }
             };
           </script>
-
-          <!-- MathJax loader -->
           <script id="MathJax-script" async
                   src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js"></script>
-
-          <!-- pseudocode.js -->
           <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pseudocode@2.4.1/build/pseudocode.min.css">
+    include-after-body:
+      - text: |
           <script src="https://cdn.jsdelivr.net/npm/pseudocode@2.4.1/build/pseudocode.min.js"></script>
+          <script>
+            document.addEventListener("DOMContentLoaded", function() {
+              if (typeof MathJax !== 'undefined' && MathJax.startup) {
+                MathJax.startup.promise.then(function() {
+                  pseudocode.renderClass("pseudocode", { lineNumber: true });
+                });
+              } else {
+                // Fallback: wait a bit for MathJax to load
+                setTimeout(function() {
+                  pseudocode.renderClass("pseudocode", { lineNumber: true });
+                }, 1000);
+              }
+            });
+          </script>
 
 jupyter: python3

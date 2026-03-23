@@ -310,10 +310,6 @@ We can write this as a formal algorithm:
 </pre>
 :::
 
-<script>
-  pseudocode.renderClass("pseudocode", { lineNumber: true });
-</script>
-
 @fig-gradient_descent_animation shows gradient descent in action on the contour plot from @fig-cost_contour_plot. Watch how the parameter vector starts at an initial point and takes steps that curve toward the minimum, following the steepest downhill path at each iteration.
 
 ![Gradient descent animation for the cost function in @fig-cost_contour_plot.](images/gradient_descent_animation.gif){#fig-gradient_descent_animation fig-align="center" width=85%}

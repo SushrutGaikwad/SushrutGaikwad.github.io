@@ -507,10 +507,6 @@ The gradient descent pseudocode is the following:
 </pre>
 :::
 
-<script>
-  pseudocode.renderClass("pseudocode", { lineNumber: true });
-</script>
-
 In Python, this can be written as the following:
 
 ```python
