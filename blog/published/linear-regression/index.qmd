@@ -2,7 +2,7 @@
 title: "Linear Regression"
 draft: false
 author: "Sushrut"
-date: 2025-12-28
+date: 2026-03-22
 description: "A first-principles introduction to linear regression, from eyeballing a line on a scatter plot to deriving the closed-form solution and its probabilistic justification."
 categories: [Machine Learning, Supervised Learning, Math]
 tags: [Machine Learning, Linear Regression, Regression, Blog]
