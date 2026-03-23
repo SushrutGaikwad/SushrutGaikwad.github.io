@@ -573,7 +573,7 @@ The normal equations gave us a clean algebraic solution. But there is a beautifu
 
 # The Geometric Perspective: Linear Regression as Projection {#sec-geometric-perspective}
 
-So far, we have derived the normal equations by taking derivatives and setting them to zero. The result, @eq-normal_equations_solution, works perfectly, but the derivation does not give much intuition for *why* the formula has the particular structure it does. In this section, we will arrive at the same formula from a completely different angle: geometry. The insight is that finding the best linear regression fit is the same as projecting a vector onto a subspace. This perspective is one of the most elegant ideas in all of applied mathematics.
+So far, we have derived the normal equations by taking derivatives and setting them to zero. The result, @eq-normal_equations_solution, works perfectly, but the derivation does not give much intuition for *why* the formula has the particular structure it does. In this section, we will arrive at the same formula from a completely different angle: geometry. The insight is that finding the best linear regression fit is the same as projecting a vector onto a subspace. This perspective is one of the most elegant ideas in all of applied mathematics. The treatment in this section is inspired by the beautiful explanation of least squares as projection in Prof. Gilbert Strang's linear algebra course [@MIT18.06SCLinearAlgebra2011].
 
 ## Setting the Stage
 
@@ -679,7 +679,7 @@ If $\vb{y}$ already lies in $\text{Col}\left(\vb{X}\right)$ (meaning the data ca
 
 Let us take a moment to appreciate what just happened. In @sec-normal-equations, we derived the normal equations by asking: "At what $\boldsymbol{\uptheta}$ does the gradient of $J$ vanish?" In this section, we derived the same equations by asking: "What $\hat{\vb{y}}$ in the column space of $\vb{X}$ is closest to $\vb{y}$?" The calculus approach and the geometric approach are two perspectives on the same underlying truth.
 
-The geometric perspective also gives us deeper understanding of several things we noted earlier. The condition that $\vb{X}^{\intercal}\vb{X}$ must be invertible corresponds to $\vb{X}$ having full column rank, which means its columns span a proper $\left(d+1\right)$-dimensional subspace onto which we can project. If the columns of $\vb{X}$ are linearly dependent, the projection is not uniquely defined (there are infinitely many ways to write the same projected vector as a linear combination of the columns), and $\vb{X}^{\intercal}\vb{X}$ becomes singular.
+The geometric perspective also gives us deeper understanding of several things we noted earlier. The condition that $\vb{X}^{\intercal}\vb{X}$ must be invertible corresponds to $\vb{X}$ having full column rank, which means its columns span a proper $\left(d+1\right)$-dimensional subspace onto which we can project. If the columns of $\vb{X}$ are linearly dependent, the projection is not uniquely defined (there are infinitely many ways to write the same projected vector as a linear combination of the columns), and $\vb{X}^{\intercal}\vb{X}$ becomes singular. For a deeper treatment of projections and their connection to least squares, Prof.Strang's linear algebra lectures [@MIT18.06SCLinearAlgebra2011] are an excellent resource.
 
 We have now seen linear regression from three perspectives: optimization (gradient descent), algebra (setting derivatives to zero), and geometry (projection). All three agree. With this rich understanding in hand, let us turn to our final question: *why* squared error? We chose it because it seemed reasonable, but is there a deeper justification? It turns out there is, and it comes from probability theory.
 
@@ -847,4 +847,4 @@ In the next post, we will extend this framework to classification, where the out
 
 # Acknowledgment
 
-This post is based on the treatment in @ng_cs229_notes and the accompanying Stanford CS229 lecture series [@stanford_cs229_ml_youtube].
+This post is based on the treatment in @ng_cs229_notes and the accompanying Stanford CS229 lecture series [@stanford_cs229_ml_youtube]. The geometric perspective on linear regression as projection is inspired by @MIT18.06SCLinearAlgebra2011.
