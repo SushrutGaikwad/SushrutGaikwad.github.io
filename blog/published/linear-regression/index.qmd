@@ -24,7 +24,7 @@ execute:
 
 # Where We Left Off
 
-In the [previous post](../introduction-to-machine-learning/index.qmd), we introduced the three major paradigms of machine learning and promised that our first deep dive would be into *linear regression*: the simplest supervised learning algorithm, and one of the most important. That post ended with a question: given a dataset of input-output pairs, how do we actually *build* a model that predicts well on new data? This post answers that question, from scratch.
+In the [introduction to machine learning post](../introduction-to-machine-learning/index.qmd), we introduced the three major paradigms of machine learning and promised that our first deep dive would be into *linear regression*: the simplest supervised learning algorithm, and one of the most important. That post ended with a question: given a dataset of input-output pairs, how do we actually *build* a model that predicts well on new data? This post answers that question, from scratch.
 
 This post is largely based on the treatment in @ng_cs229_notes and the accompanying lecture series [@stanford_cs229_ml_youtube]. Where additional context is helpful, we draw on standard references in the field.
 
