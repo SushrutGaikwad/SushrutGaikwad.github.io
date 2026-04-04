@@ -1,0 +1,2487 @@
+---
+title: "Linear Algebra for Machine Learning: A First-Principles Guide"
+draft: false
+author: "Sushrut"
+date: 2026-03-10
+description: "A comprehensive, story-driven guide to linear algebra, building from concrete examples to the mathematical tools that power machine learning. Covers matrix operations, eigenvalues, matrix calculus, and least squares."
+categories: [Linear Algebra, Mathematics]
+tags: [Linear Algebra, Machine Learning, Mathematics, Matrix Calculus, Eigenvalues]
+format:
+  html:
+    link-citations: true
+    smooth-scroll: true
+    math: mathjax
+    toc: true
+    fig-format: svg
+    mermaid:
+      theme: dark
+bibliography: ../../../references/references.bib
+csl: ../../../references/apa.csl
+execute: 
+  enabled: true
+  fig-format: svg
+---
+
+# Introduction
+
+Imagine you are a real estate agent in a small town. You have been tracking house sales for a while, and you notice something: bigger houses tend to sell for more money. Not a shocking revelation, but you want to be more precise. You want a formula that takes the area of a house (in square feet) and spits out a predicted price.
+
+You pull up your records and jot down a few recent sales:
+
+::: {.tbl tbl-colwidths="auto"}
+| House | Area (sq ft) | Price (\$) |
+|:-----:|:------------:|:----------:|
+| 1     | 2104         | 399,900    |
+| 2     | 1600         | 329,900    |
+
+: Two recent house sales in your town. {#tbl-two_houses style="width:40%; margin:auto;"}
+:::
+
+You decide to try the simplest possible model: a straight line. That is, you assume the price $y$ is roughly
+
+$$
+y = w_0 + w_1 x,
+$$
+
+where $x$ is the area, $w_1$ is the "price per square foot," and $w_0$ is some base price. If this model were *exactly* right for both houses, you would need
+
+$$
+\begin{align*}
+w_0 + 2104 \, w_1 &= 399{,}900\\
+w_0 + 1600 \, w_1 &= 329{,}900.
+\end{align*}
+$$
+
+Two equations, two unknowns. You learned how to solve this in high school: subtract the second from the first to get $504 \, w_1 = 70{,}000$, so $w_1 \approx 138.89$ and $w_0 \approx 107{,}643$. Done. The line passes exactly through both points:
+
+```{python}
+#| label: fig-two_houses_exact_fit
+#| fig-cap: "With only two data points, a straight line fits them exactly. Two equations, two unknowns, one perfect solution."
+#| fig-align: center
+#| code-fold: true
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+plt.style.use('dark_background')
+
+areas = np.array([2104, 1600])
+prices = np.array([399_900, 329_900])
+
+w1 = 70_000 / 504
+w0 = 399_900 - w1 * 2104
+
+x_line = np.linspace(1300, 3200, 200)
+y_line = w0 + w1 * x_line
+
+fig, ax = plt.subplots(figsize=(8, 5))
+ax.scatter(areas, prices, color='#f59e0b', s=100, zorder=5, edgecolors='white', linewidths=0.8)
+ax.plot(x_line, y_line, color='#10a37f', linewidth=2, label=f'$y = {w0:,.0f} + {w1:.2f}x$')
+
+for i, (a, p) in enumerate(zip(areas, prices)):
+    ax.annotate(f'  House {i+1}', (a, p), fontsize=10, color='white', va='bottom')
+
+ax.set_xlabel('Area (sq ft)', fontsize=12)
+ax.set_ylabel('Price ($)', fontsize=12)
+ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f'{x:,.0f}'))
+ax.legend(fontsize=11, loc='upper left')
+ax.set_xlim(1300, 3200)
+ax.set_ylim(200_000, 560_000)
+
+plt.tight_layout()
+plt.show()
+```
+
+But now suppose your records grow. You have five houses, not two:
+
+::: {.tbl tbl-colwidths="auto"}
+| House | Area (sq ft) | Price (\$) |
+|:-----:|:------------:|:----------:|
+| 1     | 2104         | 399,900    |
+| 2     | 1600         | 329,900    |
+| 3     | 2400         | 369,000    |
+| 4     | 1416         | 232,000    |
+| 5     | 3000         | 539,900    |
+
+: Five recent house sales in your town. {#tbl-five_houses style="width:40%; margin:auto;"}
+:::
+
+Now you have five equations but still only two unknowns ($w_0$ and $w_1$):
+
+$$
+\begin{align*}
+w_0 + 2104 \, w_1 &= 399{,}900\\
+w_0 + 1600 \, w_1 &= 329{,}900\\
+w_0 + 2400 \, w_1 &= 369{,}000\\
+w_0 + 1416 \, w_1 &= 232{,}000\\
+w_0 + 3000 \, w_1 &= 539{,}900.
+\end{align*}
+$$
+
+No single straight line passes through all five points perfectly. The system is *overdetermined*: more equations than unknowns. There is no exact solution. You can see this clearly if you plot the five points alongside the line we found from the first two houses:
+
+```{python}
+#| label: fig-five_houses_no_exact_fit
+#| fig-cap: "With five data points, the line that fit the first two houses perfectly now misses the other three. No single straight line can pass through all five points. We need a way to find the *best approximate* line."
+#| fig-align: center
+#| code-fold: true
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+plt.style.use('dark_background')
+
+areas = np.array([2104, 1600, 2400, 1416, 3000])
+prices = np.array([399_900, 329_900, 369_000, 232_000, 539_900])
+
+# Line from the two-house exact fit
+w1 = 70_000 / 504
+w0 = 399_900 - w1 * 2104
+
+x_line = np.linspace(1200, 3200, 200)
+y_line = w0 + w1 * x_line
+
+fig, ax = plt.subplots(figsize=(8, 5))
+
+# Plot residual lines (gaps between points and the line)
+for a, p in zip(areas, prices):
+    predicted = w0 + w1 * a
+    ax.plot([a, a], [predicted, p], color='#ef4444', linewidth=1.2, linestyle='--', alpha=0.7)
+
+ax.scatter(areas, prices, color='#f59e0b', s=100, zorder=5, edgecolors='white', linewidths=0.8)
+ax.plot(x_line, y_line, color='#10a37f', linewidth=2, label=f'Line from 2-house fit')
+
+for i, (a, p) in enumerate(zip(areas, prices)):
+    offset = 8_000 if i != 2 else -18_000
+    ax.annotate(f'House {i+1}', (a, p), fontsize=9, color='white',
+                textcoords="offset points", xytext=(8, 5 if offset > 0 else -12))
+
+ax.set_xlabel('Area (sq ft)', fontsize=12)
+ax.set_ylabel('Price ($)', fontsize=12)
+ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f'{x:,.0f}'))
+ax.legend(fontsize=11, loc='upper left')
+ax.set_xlim(1200, 3200)
+ax.set_ylim(180_000, 580_000)
+
+# Add annotation for the residuals
+ax.annotate('Gaps (errors)', xy=(2400, (w0 + w1 * 2400 + 369_000) / 2),
+            fontsize=10, color='#ef4444', fontstyle='italic',
+            textcoords="offset points", xytext=(15, 0))
+
+plt.tight_layout()
+plt.show()
+```
+
+The dashed red lines show the *gaps* between each data point and the line. Some points sit above the line, some below. No matter how you tilt or shift the line, you cannot make all five gaps vanish at once.
+
+So what do you do? You look for the *best approximate* solution, the line that comes as close as possible to all five points. But to even talk about that precisely, you need a language for handling many equations at once, a way to measure "closeness," and tools for finding the best answer systematically. That language is **linear algebra**.
+
+Let's write the five equations above more compactly. Notice that every equation has the same structure: a $w_0$ term, a $w_1 \times \left(\text{area}\right)$ term, and a price on the right. We can stack everything into a single expression:
+
+$$
+\underbrace{
+\begin{bmatrix}
+1 & 2104\\
+1 & 1600\\
+1 & 2400\\
+1 & 1416\\
+1 & 3000
+\end{bmatrix}
+}_{\vb{A}}
+\underbrace{
+\begin{bmatrix}
+w_0\\
+w_1
+\end{bmatrix}
+}_{\vb{x}}
+=
+\underbrace{
+\begin{bmatrix}
+399{,}900\\
+329{,}900\\
+369{,}000\\
+232{,}000\\
+539{,}900
+\end{bmatrix}
+}_{\vb{b}}.
+$$ {#eq-house_price_system}
+
+Or, in one line:
+
+$$
+\vb{A}\vb{x} = \vb{b}.
+$$ {#eq-ax_equals_b}
+
+This is the equation that will drive our entire journey. We have packed five equations into a single, compact expression using a *matrix* $\vb{A}$, a *vector* $\vb{x}$ of unknowns, and a *vector* $\vb{b}$ of observed prices. Every concept we develop in this post, from matrix multiplication to eigenvalues to calculus on matrices, exists to help us understand, manipulate, and ultimately solve equations like @eq-ax_equals_b.
+
+The questions this equation raises will guide us through the rest of the post:
+
+1. **What exactly are these objects** ($\vb{A}$, $\vb{x}$, $\vb{b}$), and how do we work with them? This leads us to *basic notation and matrix multiplication*.
+2. **What operations can we perform** on matrices, and what properties do they have? This leads us to *transposes, inverses, norms, and the determinant*.
+3. **When does** $\vb{A}\vb{x} = \vb{b}$ **have an exact solution**, and when does it not? This leads us to *linear independence, rank, and the range and nullspace of a matrix*.
+4. **What is the "best" approximate solution** when no exact one exists? This leads us to *matrix calculus and least squares*.
+5. **What hidden structure** does a matrix have, and how can we exploit it? This leads us to *eigenvalues, eigenvectors, and diagonalization*.
+
+This post is based primarily on the linear algebra review by @kolter2020linalg, originally written for Stanford's CS229 machine learning course. We will follow the conceptual arc of that reference, but our goal here is different: rather than a concise review, we want to build every idea from first principles, grounded in the concrete house-price example above, with visual intuition at every step. For readers who want additional depth on the geometric side, @Strang2023IntroductionLinearAlgebra provides an excellent companion treatment.
+
+Let's see where we are headed.
+
+# Roadmap
+
+Before we dive in, here is a bird's-eye view of the journey. Each box is a major concept we will develop, and the arrows show how one idea flows into the next. We will revisit this roadmap at key milestones, highlighting where we are and what comes next.
+
+```{mermaid}
+%%| fig-align: center
+flowchart TD
+    A["<b>Motivation</b><br/>The house-price problem<br/>and Ax = b"] --> B["<b>Notation</b><br/>Matrices, vectors,<br/>and their entries"]
+    B --> C["<b>Multiplication</b><br/>Vector-vector, matrix-vector, matrix-matrix<br/>(four views)"]
+    C --> D["<b>Operations & Properties</b><br/>Identity, transpose, symmetric,<br/>trace, norms"]
+    D --> E["<b>Independence & Rank</b><br/>When do equations<br/>have solutions?"]
+    E --> F["<b>The Inverse</b><br/>Solving Ax = b<br/>directly"]
+    F --> G["<b>Orthogonal Matrices</b><br/>Geometry-preserving<br/>transformations"]
+    G --> H["<b>Range & Nullspace</b><br/>What a matrix can reach<br/>and what it kills"]
+    H --> I["<b>The Determinant</b><br/>Volume, singularity,<br/>and invertibility"]
+    I --> J["<b>Quadratic Forms & PSD</b><br/>Curvature of<br/>matrix expressions"]
+    J --> K["<b>Eigenvalues</b><br/>The natural axes<br/>of a matrix"]
+    K --> L["<b>Matrix Calculus</b><br/>Gradients and Hessians<br/>for vector functions"]
+    L --> M["<b>Least Squares</b><br/>The best approximate<br/>solution to Ax = b"]
+    M --> N["<b>Eigenvalues as Optimization</b><br/>Finding the most<br/>important directions"]
+
+    style A fill:#10a37f,color:#fff
+    style M fill:#f59e0b,color:#fff
+    style N fill:#f59e0b,color:#fff
+```
+
+The green box at the top is where we just came from: the motivating problem. The amber boxes near the bottom are the two big payoffs. *Least Squares* will finally answer our house-price question (finding the best line), and *Eigenvalues as Optimization* will show us how to find the most "important" directions in data, an idea that connects directly to techniques like Principal Component Analysis (PCA).
+
+Everything in between builds the machinery we need to get there. Each section earns its place by answering a question the previous section raised.
+
+Let's begin building. Our first task is to make the notation in @eq-house_price_system precise: what exactly *is* a matrix? What is a vector? And how do we talk about their individual pieces?
+
+# Basic Concepts and Notation
+
+In the introduction, we packed five equations into the compact form $\vb{A}\vb{x} = \vb{b}$ (see @eq-house_price_system). We used a rectangular grid of numbers ($\vb{A}$), a column of unknowns ($\vb{x}$), and a column of prices ($\vb{b}$). But we relied on intuition about what these objects are and how they work. Before we can do anything useful with them, we need to make the vocabulary precise.
+
+The good news: you already understand the key objects from the house-price example. All we are doing in this section is giving them formal names.
+
+## Matrices
+
+A **matrix** is a rectangular array of numbers, organized into rows and columns. When we write $\vb{A} \in \mathbb{R}^{m \times n}$, we mean that $\vb{A}$ has $m$ rows and $n$ columns, and every entry is a real number. In our house-price example, the matrix $\vb{A}$ from @eq-house_price_system has 5 rows (one per house) and 2 columns (one for the intercept term, one for area), so $\vb{A} \in \mathbb{R}^{5 \times 2}$.
+
+We refer to the entry sitting in the $i$th row and $j$th column as $a_{ij}$ (or equivalently $A_{ij}$). In full generality, an $m \times n$ matrix looks like this:
+
+$$
+\vb{A} =
+\begin{bmatrix}
+a_{11} & a_{12} & \cdots & a_{1n}\\
+a_{21} & a_{22} & \cdots & a_{2n}\\
+\vdots & \vdots & \ddots & \vdots\\
+a_{m1} & a_{m2} & \cdots & a_{mn}
+\end{bmatrix}.
+$$ {#eq-matrix_general}
+
+Let's ground this immediately. In our house-price matrix (@eq-house_price_system),
+
+$$
+\vb{A} =
+\begin{bmatrix}
+1 & 2104\\
+1 & 1600\\
+1 & 2400\\
+1 & 1416\\
+1 & 3000
+\end{bmatrix},
+$$
+
+the entry $a_{32}$ sits in the 3rd row and 2nd column, which is $2400$: the area of house 3. The entry $a_{41}$ is $1$ (the intercept term for house 4). The subscript pattern is always "row first, column second."
+
+## Vectors
+
+A **vector** is simply a matrix with a single column. When we write $\vb{x} \in \mathbb{R}^n$, we mean a column of $n$ real numbers:
+
+$$
+\vb{x} =
+\begin{bmatrix}
+x_1\\
+x_2\\
+\vdots\\
+x_n
+\end{bmatrix}.
+$$
+
+By convention, a vector is *always* a column vector (tall and thin) unless stated otherwise. In our problem (@eq-house_price_system), $\vb{x} \in \mathbb{R}^2$ holds the two unknowns:
+
+$$
+\vb{x} =
+\begin{bmatrix}
+w_0\\
+w_1
+\end{bmatrix},
+$$
+
+and $\vb{b} \in \mathbb{R}^5$ holds the five observed prices:
+
+$$
+\vb{b} =
+\begin{bmatrix}
+399{,}900\\
+329{,}900\\
+369{,}000\\
+232{,}000\\
+539{,}900
+\end{bmatrix}.
+$$
+
+If we ever need a **row vector** (short and wide), we write it as the *transpose* of a column vector: $\vb{x}^{\intercal}$. We will define the transpose operation formally in a later section, but the idea is simple: flip the column on its side so the entries run left to right instead of top to bottom.
+
+$$
+\vb{x}^{\intercal} =
+\begin{bmatrix}
+x_1 & x_2 & \cdots & x_n
+\end{bmatrix}.
+$$
+
+You might be wondering: why default to column vectors? The short answer is that it makes the rules of matrix multiplication (which we will develop next) work out cleanly. Columns are the "natural" orientation, and rows are obtained by transposing.
+
+## Two Ways to Slice a Matrix
+
+Here is an idea that will prove surprisingly important throughout this post. A matrix can be viewed in two different ways, depending on whether you focus on its columns or its rows.
+
+### The Column View
+
+We can think of a matrix as a collection of column vectors placed side by side:
+
+$$
+\vb{A} =
+\begin{bmatrix}
+\uparrow & \uparrow & \cdots & \uparrow\\
+\vb{a}_1 & \vb{a}_2 & \cdots & \vb{a}_n\\
+\downarrow & \downarrow & \cdots & \downarrow
+\end{bmatrix},
+$$ {#eq-matrix_column_view}
+
+where $\vb{a}_j$ denotes the $j$th column of $\vb{A}$. Each column is a vector in $\mathbb{R}^m$ (it has $m$ entries, one per row).
+
+For our house-price matrix (@eq-house_price_system), the two columns are:
+
+$$
+\vb{a}_1 =
+\begin{bmatrix}
+1\\ 1\\ 1\\ 1\\ 1
+\end{bmatrix}, \quad
+\vb{a}_2 =
+\begin{bmatrix}
+2104\\ 1600\\ 2400\\ 1416\\ 3000
+\end{bmatrix}.
+$$
+
+The first column is all ones (the intercept terms), and the second column lists the areas of the five houses.
+
+### The Row View
+
+Alternatively, we can think of the same matrix as a stack of row vectors:
+
+$$
+\vb{A} =
+\begin{bmatrix}
+\leftarrow & \vb{a}_1^{\intercal} & \rightarrow\\
+\leftarrow & \vb{a}_2^{\intercal} & \rightarrow\\
+\vdots & \vdots & \vdots\\
+\leftarrow & \vb{a}_m^{\intercal} & \rightarrow
+\end{bmatrix},
+$$ {#eq-matrix_row_view}
+
+where $\vb{a}_i^{\intercal}$ denotes the $i$th row of $\vb{A}$. We write the rows with a transpose symbol because each row is a column vector that has been "flipped on its side."
+
+For our matrix (@eq-house_price_system), the third row is:
+
+$$
+\vb{a}_3^{\intercal} =
+\begin{bmatrix}
+1 & 2400
+\end{bmatrix},
+$$
+
+which contains the data for house 3 (the intercept and the area).
+
+::: {.callout-note}
+## A note on notation
+You may have noticed that we used $\vb{a}_j$ for the $j$th *column* and $\vb{a}_i^{\intercal}$ for the $i$th *row*. This is potentially confusing because both use the letter $\vb{a}$ with a subscript. Unfortunately, there is no universal convention here. The intended meaning is usually clear from context: if the subscript index matches the row dimension, it is a row; if it matches the column dimension, it is a column. Throughout this post, we will always make the meaning explicit when there is any risk of ambiguity.
+:::
+
+### Why Both Views Matter
+
+The column view and row view are not just two ways to write the same thing; they lead to genuinely different *ways of thinking* about what a matrix does. When we multiply a matrix by a vector in the next section, the column view will reveal that the result is a *linear combination of the columns*, while the row view will show the result as a stack of *dot products between the rows and the vector*. Both perspectives are correct, and being comfortable switching between them is one of the most valuable skills in linear algebra.
+
+```{mermaid}
+%%| fig-align: center
+flowchart TD
+    S["Scalar: a single number, e.g., a₃₂ = 2400"] --> V["Vector: a column of numbers, e.g., x ∈ ℝⁿ"]
+    V --> M["Matrix: a grid of numbers, e.g., A ∈ ℝᵐˣⁿ"]
+    M --> CV["<b>Column View</b><br/>Matrix as a collection<br/>of column vectors"]
+    M --> RV["<b>Row View</b><br/>Matrix as a stack<br/>of row vectors"]
+```
+
+We now have the vocabulary: scalars, vectors, matrices, and two ways to slice a matrix. But vocabulary alone does not let us *do* anything. We need grammar: rules for combining these objects. The most fundamental operation in all of linear algebra is **matrix multiplication**, and it is what we turn to next.
+
+# Matrix Multiplication
+
+We have names for our objects: scalars, vectors, and matrices. Now we need to learn how to *combine* them. The central operation is **matrix multiplication**, and understanding it deeply is worth more than memorizing a dozen formulas.
+
+We will build up to the full matrix-matrix product in three stages: first vectors with vectors, then matrices with vectors, and finally matrices with matrices. At each stage, we will find that there are multiple ways to view the same operation, and the ability to switch between views is one of the most powerful skills in linear algebra.
+
+## Vector-Vector Products
+
+The simplest case of multiplication involves two vectors. There are two ways to multiply vectors, and they produce very different results.
+
+### The Inner Product (Dot Product)
+
+Given two vectors $\vb{x}, \vb{y} \in \mathbb{R}^n$ of the *same* size, their **inner product** (also called the dot product) is the scalar
+
+$$
+\vb{x}^{\intercal} \vb{y} =
+\begin{bmatrix} x_1 & x_2 & \cdots & x_n \end{bmatrix}
+\begin{bmatrix} y_1 \\ y_2 \\ \vdots \\ y_n \end{bmatrix}
+= x_1 y_1 + x_2 y_2 + \cdots + x_n y_n
+= \sum_{i=1}^{n} x_i y_i.
+$$ {#eq-inner_product}
+
+Notice the mechanics: we flip $\vb{x}$ on its side (making it a row), line it up against $\vb{y}$ (still a column), multiply corresponding entries, and add them all up. The result is a single number.
+
+Let's try a small example. Take $\vb{x} = \begin{bmatrix} 1 \\ 2104 \end{bmatrix}$ (the data for house 1 from our matrix $\vb{A}$) and $\vb{y} = \begin{bmatrix} 107{,}643 \\ 138.89 \end{bmatrix}$ (our weights $w_0$ and $w_1$ from the two-house fit). Then
+
+$$
+\vb{x}^{\intercal} \vb{y} = \left(1 \times 107{,}643\right) + \left(2104 \times 138.89\right) \approx 399{,}900.
+$$
+
+That is exactly the predicted price for house 1. The inner product computed the prediction for one house. This is not a coincidence; it is exactly what our model $y = w_0 + w_1 x$ does when written in vector form.
+
+One useful property: the inner product is symmetric, meaning $\vb{x}^{\intercal} \vb{y} = \vb{y}^{\intercal} \vb{x}$. The order does not matter because scalar multiplication is commutative ($x_i y_i = y_i x_i$), and the sum does not care about order either.
+
+### The Outer Product
+
+There is a second way to multiply two vectors, and it produces something much larger. Given $\vb{x} \in \mathbb{R}^m$ and $\vb{y} \in \mathbb{R}^n$ (not necessarily the same size), their **outer product** is the $m \times n$ *matrix*
+
+$$
+\vb{x} \vb{y}^{\intercal} =
+\begin{bmatrix} x_1 \\ x_2 \\ \vdots \\ x_m \end{bmatrix}
+\begin{bmatrix} y_1 & y_2 & \cdots & y_n \end{bmatrix}
+=
+\begin{bmatrix}
+x_1 y_1 & x_1 y_2 & \cdots & x_1 y_n\\
+x_2 y_1 & x_2 y_2 & \cdots & x_2 y_n\\
+\vdots & \vdots & \ddots & \vdots\\
+x_m y_1 & x_m y_2 & \cdots & x_m y_n
+\end{bmatrix}.
+$$ {#eq-outer_product}
+
+The entry in row $i$, column $j$ is simply $x_i y_j$. Notice the contrast: the inner product takes two vectors of the *same* size and returns a *scalar*; the outer product takes two vectors of *possibly different* sizes and returns a *matrix*.
+
+The outer product might seem exotic right now, but it will reappear when we look at one of the four views of matrix-matrix multiplication. For now, here is a useful application: suppose you want to build a matrix whose columns are all the same vector $\vb{x} \in \mathbb{R}^m$. Let $\vb{1} \in \mathbb{R}^n$ be the vector of all ones. Then
+
+$$
+\vb{x} \vb{1}^{\intercal} =
+\begin{bmatrix} x_1 \\ x_2 \\ \vdots \\ x_m \end{bmatrix}
+\begin{bmatrix} 1 & 1 & \cdots & 1 \end{bmatrix}
+=
+\begin{bmatrix}
+x_1 & x_1 & \cdots & x_1\\
+x_2 & x_2 & \cdots & x_2\\
+\vdots & \vdots & \ddots & \vdots\\
+x_m & x_m & \cdots & x_m
+\end{bmatrix}.
+$$
+
+Every column is a copy of $\vb{x}$. This "broadcasting" trick shows up frequently in data processing and machine learning.
+
+### Inner vs. Outer: A Quick Summary
+
+```{mermaid}
+%%| fig-align: center
+flowchart LR
+    A["Two vectors x and y"] --> B["Inner product: x⊤y → scalar<br/>Multiply and sum"]
+    A --> C["Outer product: xy⊤ → matrix<br/>All pairwise products"]
+```
+
+The inner product *compresses* two vectors into one number. The outer product *expands* them into a full grid. Both are special cases of matrix multiplication; the only difference is how the vectors are oriented (row times column vs. column times row).
+
+## Matrix-Vector Products
+
+Now we step up: what happens when we multiply a matrix $\vb{A} \in \mathbb{R}^{m \times n}$ by a vector $\vb{x} \in \mathbb{R}^n$? The result is a new vector $\vb{y} = \vb{A}\vb{x} \in \mathbb{R}^m$. There are two ways to understand this product, corresponding to the two ways we sliced a matrix in the previous section.
+
+### View 1: Row-wise (a stack of dot products)
+
+If we write $\vb{A}$ using the row view (@eq-matrix_row_view), the product becomes:
+
+$$
+\vb{y} = \vb{A}\vb{x} =
+\begin{bmatrix}
+\leftarrow & \vb{a}_1^{\intercal} & \rightarrow\\
+\leftarrow & \vb{a}_2^{\intercal} & \rightarrow\\
+\vdots & \vdots & \vdots\\
+\leftarrow & \vb{a}_m^{\intercal} & \rightarrow
+\end{bmatrix}
+\vb{x}
+=
+\begin{bmatrix}
+\vb{a}_1^{\intercal} \vb{x}\\
+\vb{a}_2^{\intercal} \vb{x}\\
+\vdots\\
+\vb{a}_m^{\intercal} \vb{x}
+\end{bmatrix}.
+$$ {#eq-matvec_row_view}
+
+Each entry $y_i$ of the result is the inner product of the $i$th row of $\vb{A}$ with $\vb{x}$:
+
+$$
+y_i = \vb{a}_i^{\intercal} \vb{x}.
+$$
+
+Let's see this on our example. In the house-price problem, $\vb{A}\vb{x}$ computes
+
+$$
+\vb{A}\vb{x} =
+\begin{bmatrix}
+1 & 2104\\
+1 & 1600\\
+1 & 2400\\
+1 & 1416\\
+1 & 3000
+\end{bmatrix}
+\begin{bmatrix}
+w_0\\
+w_1
+\end{bmatrix}
+=
+\begin{bmatrix}
+w_0 + 2104 \, w_1\\
+w_0 + 1600 \, w_1\\
+w_0 + 2400 \, w_1\\
+w_0 + 1416 \, w_1\\
+w_0 + 3000 \, w_1
+\end{bmatrix}.
+$$
+
+Each entry is $w_0 + w_1 \times \left(\text{area of house } i\right)$, which is the predicted price for house $i$. So $\vb{A}\vb{x}$ is the vector of all five predicted prices at once! The row view tells us: **to get the $i$th prediction, take the dot product of the $i$th row of $\vb{A}$ with the weight vector $\vb{x}$.**
+
+### View 2: Column-wise (a linear combination of columns) {#sec-matvec_column_view}
+
+Now write $\vb{A}$ using the column view (@eq-matrix_column_view). The same product becomes something that looks quite different:
+
+$$
+\vb{y} = \vb{A}\vb{x} =
+\begin{bmatrix}
+\uparrow & \uparrow & \cdots & \uparrow\\
+\vb{a}_1 & \vb{a}_2 & \cdots & \vb{a}_n\\
+\downarrow & \downarrow & \cdots & \downarrow
+\end{bmatrix}
+\begin{bmatrix}
+x_1\\ x_2\\ \vdots\\ x_n
+\end{bmatrix}
+= x_1 \vb{a}_1 + x_2 \vb{a}_2 + \cdots + x_n \vb{a}_n.
+$$ {#eq-matvec_column_view}
+
+This is a remarkable rewriting. It says: **$\vb{A}\vb{x}$ is a weighted sum (linear combination) of the columns of $\vb{A}$, where the weights come from $\vb{x}$.**
+
+On our example:
+
+$$
+\vb{A}\vb{x} = w_0
+\begin{bmatrix}
+1\\ 1\\ 1\\ 1\\ 1
+\end{bmatrix}
++ w_1
+\begin{bmatrix}
+2104\\ 1600\\ 2400\\ 1416\\ 3000
+\end{bmatrix}.
+$$
+
+The first column (all ones) gets scaled by $w_0$ (the base price), and the second column (the areas) gets scaled by $w_1$ (the price per square foot). The predicted price vector is the sum of these two scaled columns. This column view will turn out to be deeply connected to concepts like *span*, *range*, and *linear independence* that we will meet later.
+
+::: {.callout-tip}
+## The column view is the more powerful perspective
+Both views compute the same result, and the row view is often easier for hand calculations. But the column view is where the geometric insight lives. It tells you that $\vb{A}\vb{x}$ always lands in the "column space" of $\vb{A}$: the set of all possible weighted sums of its columns. This idea will be central when we discuss why our overdetermined system has no exact solution and how to find the best approximation.
+:::
+
+::: {#fig-matvec_linear_combination}
+{{< video images/matvec_linear_combination.mp4 >}}
+
+Matrix-vector product as a linear combination of column vectors.
+:::
+
+### Left-Multiplication by a Row Vector
+
+We can also multiply on the other side: a row vector $\vb{x}^{\intercal}$ on the left times a matrix $\vb{A}$ on the right. Given $\vb{A} \in \mathbb{R}^{m \times n}$ and $\vb{x} \in \mathbb{R}^m$, the product $\vb{y}^{\intercal} = \vb{x}^{\intercal} \vb{A}$ is a row vector in $\mathbb{R}^n$.
+
+Just as before, there are two views. Writing $\vb{A}$ in the column view, each entry of $\vb{y}^{\intercal}$ is the inner product of $\vb{x}$ with the corresponding column of $\vb{A}$:
+
+$$
+\vb{y}^{\intercal} = \vb{x}^{\intercal} \vb{A} =
+\vb{x}^{\intercal}
+\begin{bmatrix}
+\uparrow & \uparrow & \cdots & \uparrow\\
+\vb{a}_1 & \vb{a}_2 & \cdots & \vb{a}_n\\
+\downarrow & \downarrow & \cdots & \downarrow
+\end{bmatrix}
+=
+\begin{bmatrix}
+\vb{x}^{\intercal} \vb{a}_1 & \vb{x}^{\intercal} \vb{a}_2 & \cdots & \vb{x}^{\intercal} \vb{a}_n
+\end{bmatrix}.
+$$
+
+Writing $\vb{A}$ in the row view, the result is a linear combination of the *rows* of $\vb{A}$:
+
+$$
+\vb{y}^{\intercal} = \vb{x}^{\intercal} \vb{A} =
+\begin{bmatrix} x_1 & x_2 & \cdots & x_m \end{bmatrix}
+\begin{bmatrix}
+\leftarrow & \vb{a}_1^{\intercal} & \rightarrow\\
+\leftarrow & \vb{a}_2^{\intercal} & \rightarrow\\
+\vdots & \vdots & \vdots\\
+\leftarrow & \vb{a}_m^{\intercal} & \rightarrow
+\end{bmatrix}
+= x_1 \vb{a}_1^{\intercal} + x_2 \vb{a}_2^{\intercal} + \cdots + x_m \vb{a}_m^{\intercal}.
+$$
+
+So multiplying on the right produces a linear combination of *columns*, while multiplying on the left produces a linear combination of *rows*. The pattern is satisfyingly symmetric.
+
+## Matrix-Matrix Products
+
+We are now ready for the most general case: the product of two matrices $\vb{A} \in \mathbb{R}^{m \times n}$ and $\vb{B} \in \mathbb{R}^{n \times p}$. The result is a matrix $\vb{C} = \vb{A}\vb{B} \in \mathbb{R}^{m \times p}$.
+
+Notice the dimension requirement: the number of columns in $\vb{A}$ (which is $n$) must equal the number of rows in $\vb{B}$ (also $n$). The "inner dimensions" must match. The result has the "outer dimensions": $m$ rows from $\vb{A}$ and $p$ columns from $\vb{B}$.
+
+The standard definition says each entry of $\vb{C}$ is
+
+$$
+C_{ij} = \sum_{k=1}^{n} A_{ik} B_{kj}.
+$$ {#eq-matmul_entrywise}
+
+This formula is correct but not very illuminating. The real insight comes from looking at the same product from four different angles, each built from the perspectives we have already developed.
+
+### The Four Views of Matrix Multiplication
+
+```{mermaid}
+%%| fig-align: center
+flowchart LR
+    AB["<b>C = AB</b><br/>A ∈ ℝᵐˣⁿ, B ∈ ℝⁿˣᵖ"] --> V1["<b>View 1: Inner products</b><br/>Cᵢⱼ = (row i of A) · (col j of B)<br/>Entry-level"]
+    AB --> V2["<b>View 2: Column-wise</b><br/>col j of C = A × (col j of B)<br/>Matrix-vector level"]
+    AB --> V3["<b>View 3: Row-wise</b><br/>row i of C = (row i of A) × B<br/>Matrix-vector level"]
+    AB --> V4["<b>View 4: Outer products</b><br/>C = Σ (col k of A)(row k of B)<br/>Sum of rank-1 matrices"]
+```
+
+Let's walk through each one.
+
+**View 1: A grid of inner products.** If we write $\vb{A}$ by rows and $\vb{B}$ by columns, the $\left(i,j\right)$th entry of $\vb{C}$ is the inner product of the $i$th row of $\vb{A}$ and the $j$th column of $\vb{B}$:
+
+$$
+\vb{C} =
+\begin{bmatrix}
+\vb{a}_1^{\intercal} \vb{b}_1 & \vb{a}_1^{\intercal} \vb{b}_2 & \cdots & \vb{a}_1^{\intercal} \vb{b}_p\\
+\vb{a}_2^{\intercal} \vb{b}_1 & \vb{a}_2^{\intercal} \vb{b}_2 & \cdots & \vb{a}_2^{\intercal} \vb{b}_p\\
+\vdots & \vdots & \ddots & \vdots\\
+\vb{a}_m^{\intercal} \vb{b}_1 & \vb{a}_m^{\intercal} \vb{b}_2 & \cdots & \vb{a}_m^{\intercal} \vb{b}_p
+\end{bmatrix}.
+$$
+
+This is the most direct translation of @eq-matmul_entrywise. It operates at the level of individual entries.
+
+**View 2: Column by column.** If we write $\vb{B}$ by columns, then each column of $\vb{C}$ is a matrix-vector product:
+
+$$
+\vb{C} = \vb{A}\vb{B} =
+\vb{A}
+\begin{bmatrix}
+\uparrow & \uparrow & \cdots & \uparrow\\
+\vb{b}_1 & \vb{b}_2 & \cdots & \vb{b}_p\\
+\downarrow & \downarrow & \cdots & \downarrow
+\end{bmatrix}
+=
+\begin{bmatrix}
+\uparrow & \uparrow & \cdots & \uparrow\\
+\vb{A}\vb{b}_1 & \vb{A}\vb{b}_2 & \cdots & \vb{A}\vb{b}_p\\
+\downarrow & \downarrow & \cdots & \downarrow
+\end{bmatrix}.
+$$ {#eq-matmul_column_view}
+
+In other words, $\vb{c}_j = \vb{A}\vb{b}_j$. This view operates at the level of *columns* rather than individual entries. It reduces the matrix-matrix product to a collection of matrix-vector products, which we already understand.
+
+**View 3: Row by row.** If we write $\vb{A}$ by rows, then each row of $\vb{C}$ is a vector-matrix product:
+
+$$
+\vb{C} = \vb{A}\vb{B} =
+\begin{bmatrix}
+\leftarrow & \vb{a}_1^{\intercal} & \rightarrow\\
+\leftarrow & \vb{a}_2^{\intercal} & \rightarrow\\
+\vdots & \vdots & \vdots\\
+\leftarrow & \vb{a}_m^{\intercal} & \rightarrow
+\end{bmatrix}
+\vb{B}
+=
+\begin{bmatrix}
+\leftarrow & \vb{a}_1^{\intercal} \vb{B} & \rightarrow\\
+\leftarrow & \vb{a}_2^{\intercal} \vb{B} & \rightarrow\\
+\vdots & \vdots & \vdots\\
+\leftarrow & \vb{a}_m^{\intercal} \vb{B} & \rightarrow
+\end{bmatrix}.
+$$
+
+The $i$th row of $\vb{C}$ is $\vb{c}_i^{\intercal} = \vb{a}_i^{\intercal} \vb{B}$. This is the row-wise counterpart of View 2.
+
+**View 4: A sum of outer products.** This is the most surprising view. Write $\vb{A}$ by columns and $\vb{B}$ by rows:
+
+$$
+\vb{C} = \vb{A}\vb{B} =
+\begin{bmatrix}
+\uparrow & \uparrow & \cdots & \uparrow\\
+\vb{a}_1 & \vb{a}_2 & \cdots & \vb{a}_n\\
+\downarrow & \downarrow & \cdots & \downarrow
+\end{bmatrix}
+\begin{bmatrix}
+\leftarrow & \vb{b}_1^{\intercal} & \rightarrow\\
+\leftarrow & \vb{b}_2^{\intercal} & \rightarrow\\
+\vdots & \vdots & \vdots\\
+\leftarrow & \vb{b}_n^{\intercal} & \rightarrow
+\end{bmatrix}
+= \sum_{k=1}^{n} \vb{a}_k \vb{b}_k^{\intercal}.
+$$ {#eq-matmul_outer_product_view}
+
+Each term $\vb{a}_k \vb{b}_k^{\intercal}$ is an $m \times p$ outer product (a matrix), and $\vb{C}$ is the sum of $n$ such matrices. If the outer product sum looks puzzling, try verifying it on a small $2 \times 2$ example: write out the columns of $\vb{A}$ and the rows of $\vb{B}$, form each outer product, and add them up. You will get the same answer as the entry-wise formula.
+
+::: {.callout-important}
+## Why bother with four views?
+It may seem excessive to look at the same operation four different ways. After all, the answer is the same regardless of which view you use. The reason is practical: **different views make different problems easy.**
+
+View 1 (inner products) is the definition, useful for computing individual entries. View 2 (column-wise) is the workhorse for understanding systems of equations: if $\vb{B}$ holds several right-hand sides, you are solving multiple systems at once. View 3 (row-wise) is the natural perspective for data science, where each row of $\vb{A}$ is a data point. View 4 (outer products) appears in low-rank approximations and recommender systems.
+
+The direct advantage of these various viewpoints is that they allow you to **think at the level of vectors instead of individual numbers.** This is the key to working with linear algebra fluently. Whenever you can express a derivation in terms of vectors or matrices rather than scalar indices, do it; the result will be cleaner and less error-prone [@kolter2020linalg].
+:::
+
+## Properties of Matrix Multiplication
+
+Before we move on, there are three properties of matrix multiplication worth noting, because they will appear repeatedly:
+
+**Associativity:** $\left(\vb{A}\vb{B}\right)\vb{C} = \vb{A}\left(\vb{B}\vb{C}\right)$. Parenthesization does not matter. (You can verify this by showing that the $\left(i,j\right)$th entries are equal on both sides; the proof amounts to swapping the order of two finite sums, which is always valid.)
+
+**Distributivity:** $\vb{A}\left(\vb{B} + \vb{C}\right) = \vb{A}\vb{B} + \vb{A}\vb{C}$. Multiplication distributes over addition, just as with ordinary numbers.
+
+**Non-commutativity:** In general, $\vb{A}\vb{B} \neq \vb{B}\vb{A}$. This is a crucial difference from scalar arithmetic. Sometimes $\vb{B}\vb{A}$ does not even *exist* (if the dimensions are incompatible), and even when it does exist, the result is typically different from $\vb{A}\vb{B}$. For example, if $\vb{A} \in \mathbb{R}^{3 \times 2}$ and $\vb{B} \in \mathbb{R}^{2 \times 4}$, then $\vb{A}\vb{B} \in \mathbb{R}^{3 \times 4}$ but $\vb{B}\vb{A}$ is not defined because the dimensions $4$ and $3$ do not match. Even for two square $2 \times 2$ matrices, swapping the order usually gives a different answer.
+
+## Taking Stock
+
+Let's pause and see where we are on our roadmap:
+
+```{mermaid}
+%%| fig-align: center
+flowchart TD
+    A["<b>Motivation ✓</b><br/>The house-price problem"] --> B["<b>Notation ✓</b><br/>Matrices, vectors, entries"]
+    B --> C["<b>Multiplication ✓</b><br/>Four views of AB"]
+    C --> D["<b>Operations & Properties</b><br/>Identity, transpose,<br/>trace, norms"]
+    D --> E["..."]
+    style A fill:#555,color:#aaa
+    style B fill:#555,color:#aaa
+    style C fill:#10a37f,color:#fff
+    style D fill:#f59e0b,color:#fff
+```
+
+We now know how to name matrix and vector objects (Section 3) and how to multiply them together (this section). We saw that $\vb{A}\vb{x}$ computes all five house-price predictions at once, and we developed four complementary ways to think about any matrix product.
+
+But we are still missing some essential operations. For instance: if $\vb{A}\vb{x} = \vb{b}$ and we want to "undo" the multiplication to recover $\vb{x}$, we need something called the *inverse*. Before we can define the inverse, we need a few more tools: the identity matrix (the matrix equivalent of the number 1), the transpose (swapping rows and columns), and norms (measuring the "size" of a vector). These are the operations and properties we tackle next.
+
+# Operations and Properties
+
+We can now multiply matrices and vectors together. But multiplication alone is not enough. To eventually solve $\vb{A}\vb{x} = \vb{b}$, we need a richer toolkit: a way to "do nothing" (the identity matrix), a way to swap rows and columns (the transpose), a way to measure the size of a vector (norms), and a way to tell whether a system of equations even *has* a solution (linear independence and rank).
+
+This section introduces these tools one at a time, always connecting them back to what we have already built and what we will need next.
+
+## The Identity Matrix
+
+In ordinary arithmetic, the number 1 has a special property: multiplying anything by 1 leaves it unchanged. Matrices have an analogue: the **identity matrix** $\vb{I} \in \mathbb{R}^{n \times n}$, a square matrix with ones on the diagonal and zeros everywhere else. For example, the $3 \times 3$ identity matrix is
+
+$$
+\vb{I} =
+\begin{bmatrix}
+1 & 0 & 0\\
+0 & 1 & 0\\
+0 & 0 & 1
+\end{bmatrix}.
+$$
+
+In general, for any size $n$:
+
+$$
+I_{ij} =
+\begin{cases}
+1 & \text{if } i = j\\
+0 & \text{if } i \neq j
+\end{cases}.
+$$
+
+Its defining property is that for any matrix $\vb{A} \in \mathbb{R}^{m \times n}$,
+
+$$
+\vb{A}\vb{I} = \vb{A} = \vb{I}\vb{A}.
+$$
+
+Let's verify with a quick example:
+
+$$
+\begin{bmatrix}
+3 & 7\\
+2 & 5
+\end{bmatrix}
+\begin{bmatrix}
+1 & 0\\
+0 & 1
+\end{bmatrix}
+=
+\begin{bmatrix}
+3 & 7\\
+2 & 5
+\end{bmatrix}.
+$$
+
+Multiplying by $\vb{I}$ gave back the original matrix, just as multiplying a number by 1 gives back the original number.
+
+You might wonder: how can the same symbol $\vb{I}$ work on both sides when $\vb{A}$ may not be square? The trick is that $\vb{I}$ adjusts its size to make the multiplication valid. In $\vb{A}\vb{I}$, the identity is $n \times n$ (matching the columns of $\vb{A}$). In $\vb{I}\vb{A}$, it is $m \times m$ (matching the rows of $\vb{A}$). The dimensions are inferred from context.
+
+Why do we care? Because the identity matrix is the gateway to the *inverse*. Later, we will say that $\vb{A}^{-1}$ is the matrix such that $\vb{A}^{-1}\vb{A} = \vb{I}$, and this will let us solve $\vb{A}\vb{x} = \vb{b}$ directly.
+
+A close relative is the **diagonal matrix**, where only the diagonal entries are (potentially) nonzero. We write $\vb{D} = \text{diag}\left(d_1, d_2, \ldots, d_n\right)$, meaning
+
+$$
+D_{ij} =
+\begin{cases}
+d_i & \text{if } i = j\\
+0 & \text{if } i \neq j
+\end{cases}.
+$$
+
+For instance, $\text{diag}\left(3, 7, 2\right)$ is:
+
+$$
+\vb{D} =
+\begin{bmatrix}
+3 & 0 & 0\\
+0 & 7 & 0\\
+0 & 0 & 2
+\end{bmatrix}.
+$$
+
+The identity matrix is just the special case $\vb{I} = \text{diag}\left(1, 1, \ldots, 1\right)$. Diagonal matrices are easy to work with because multiplying by a diagonal matrix simply scales each row (or column) independently. For example:
+
+$$
+\begin{bmatrix}
+3 & 0 & 0\\
+0 & 7 & 0\\
+0 & 0 & 2
+\end{bmatrix}
+\begin{bmatrix}
+x_1\\ x_2\\ x_3
+\end{bmatrix}
+=
+\begin{bmatrix}
+3 x_1\\ 7 x_2\\ 2 x_3
+\end{bmatrix}.
+$$
+
+Each entry of $\vb{x}$ gets scaled by the corresponding diagonal value. No mixing between entries occurs.
+
+## The Transpose
+
+The **transpose** of a matrix $\vb{A} \in \mathbb{R}^{m \times n}$, written $\vb{A}^{\intercal} \in \mathbb{R}^{n \times m}$, is obtained by swapping rows and columns:
+
+$$
+\left(A^{\intercal}\right)_{ij} = A_{ji}.
+$$
+
+The first row of $\vb{A}$ becomes the first column of $\vb{A}^{\intercal}$, the second row becomes the second column, and so on. For a concrete example, using our house-price matrix:
+
+$$
+\vb{A} =
+\begin{bmatrix}
+1 & 2104\\
+1 & 1600\\
+1 & 2400\\
+1 & 1416\\
+1 & 3000
+\end{bmatrix}
+\quad \implies \quad
+\vb{A}^{\intercal} =
+\begin{bmatrix}
+1 & 1 & 1 & 1 & 1\\
+2104 & 1600 & 2400 & 1416 & 3000
+\end{bmatrix}.
+$$
+
+The $5 \times 2$ matrix becomes a $2 \times 5$ matrix. Rows turned into columns.
+
+We have actually been using the transpose all along: whenever we wrote $\vb{x}^{\intercal}$ to represent a row vector, we were transposing the column vector $\vb{x}$.
+
+Three properties of the transpose come up frequently:
+
+$$
+\left(\vb{A}^{\intercal}\right)^{\intercal} = \vb{A}, \qquad
+\left(\vb{A}\vb{B}\right)^{\intercal} = \vb{B}^{\intercal}\vb{A}^{\intercal}, \qquad
+\left(\vb{A} + \vb{B}\right)^{\intercal} = \vb{A}^{\intercal} + \vb{B}^{\intercal}.
+$$
+
+The first says that transposing twice gives you back the original. The third says transpose distributes over addition. The second is the most interesting: when you transpose a product, the **order reverses**. This "reversal" pattern will reappear when we discuss inverses.
+
+## Symmetric Matrices
+
+A square matrix $\vb{A} \in \mathbb{R}^{n \times n}$ is called **symmetric** if it equals its own transpose:
+
+$$
+\vb{A} = \vb{A}^{\intercal}.
+$$
+
+In other words, $a_{ij} = a_{ji}$ for every pair of indices. The matrix is "mirrored" across its diagonal.
+
+Why should you care? Symmetric matrices appear *everywhere* in machine learning. Whenever you compute $\vb{A}^{\intercal}\vb{A}$ (which happens in least squares, covariance matrices, and many other places), the result is always symmetric. To see why: $\left(\vb{A}^{\intercal}\vb{A}\right)^{\intercal} = \vb{A}^{\intercal}\left(\vb{A}^{\intercal}\right)^{\intercal} = \vb{A}^{\intercal}\vb{A}$, so it equals its own transpose.
+
+In our house-price problem, the matrix $\vb{A}^{\intercal}\vb{A}$ will appear when we derive the least squares solution. It is a $2 \times 2$ symmetric matrix:
+
+$$
+\vb{A}^{\intercal}\vb{A} =
+\begin{bmatrix}
+1 & 1 & 1 & 1 & 1\\
+2104 & 1600 & 2400 & 1416 & 3000
+\end{bmatrix}
+\begin{bmatrix}
+1 & 2104\\
+1 & 1600\\
+1 & 2400\\
+1 & 1416\\
+1 & 3000
+\end{bmatrix}
+=
+\begin{bmatrix}
+5 & 10{,}520\\
+10{,}520 & 25{,}939{,}392
+\end{bmatrix}.
+$$
+
+Notice that $a_{12} = a_{21} = 10{,}520$: symmetric, as promised.
+
+An interesting fact: *any* square matrix can be decomposed into a symmetric part and an anti-symmetric part:
+
+$$
+\vb{A} = \underbrace{\frac{1}{2}\left(\vb{A} + \vb{A}^{\intercal}\right)}_{\text{symmetric}} + \underbrace{\frac{1}{2}\left(\vb{A} - \vb{A}^{\intercal}\right)}_{\text{anti-symmetric}},
+$$
+
+where a matrix is **anti-symmetric** if $\vb{A} = -\vb{A}^{\intercal}$ (every entry above the diagonal is the negative of the corresponding entry below, and the diagonal is all zeros). Let's see this decomposition on a concrete example. Take
+
+$$
+\vb{A} =
+\begin{bmatrix}
+2 & 5\\
+3 & 4
+\end{bmatrix}.
+$$
+
+This is *not* symmetric ($a_{12} = 5 \neq 3 = a_{21}$). But we can split it:
+
+$$
+\frac{1}{2}\left(\vb{A} + \vb{A}^{\intercal}\right)
+= \frac{1}{2}\left(
+\begin{bmatrix} 2 & 5 \\ 3 & 4 \end{bmatrix}
++
+\begin{bmatrix} 2 & 3 \\ 5 & 4 \end{bmatrix}
+\right)
+=
+\begin{bmatrix} 2 & 4 \\ 4 & 4 \end{bmatrix},
+$$
+
+$$
+\frac{1}{2}\left(\vb{A} - \vb{A}^{\intercal}\right)
+= \frac{1}{2}\left(
+\begin{bmatrix} 2 & 5 \\ 3 & 4 \end{bmatrix}
+-
+\begin{bmatrix} 2 & 3 \\ 5 & 4 \end{bmatrix}
+\right)
+=
+\begin{bmatrix} 0 & 1 \\ -1 & 0 \end{bmatrix}.
+$$
+
+The first piece is symmetric ($4 = 4$ off-diagonal), the second is anti-symmetric ($1$ and $-1$ off-diagonal, zeros on the diagonal), and their sum recovers the original $\vb{A}$.
+
+We denote the set of all $n \times n$ symmetric matrices as $\mathbb{S}^n$.
+
+## The Trace
+
+The **trace** of a square matrix $\vb{A} \in \mathbb{R}^{n \times n}$ is simply the sum of its diagonal entries:
+
+$$
+\text{tr}\left(\vb{A}\right) = \sum_{i=1}^{n} A_{ii}.
+$$
+
+For example, using the symmetric matrix $\vb{A}^{\intercal}\vb{A}$ we computed earlier:
+
+$$
+\text{tr}\left(
+\begin{bmatrix}
+5 & 10{,}520\\
+10{,}520 & 25{,}939{,}392
+\end{bmatrix}
+\right)
+= 5 + 25{,}939{,}392 = 25{,}939{,}397.
+$$
+
+We just summed the diagonal entries. The off-diagonal entries ($10{,}520$) play no role.
+
+It is one of the simplest things you can compute from a matrix, but it has surprisingly useful properties:
+
+$$
+\text{tr}\left(\vb{A}\right) = \text{tr}\left(\vb{A}^{\intercal}\right), \qquad
+\text{tr}\left(\vb{A} + \vb{B}\right) = \text{tr}\left(\vb{A}\right) + \text{tr}\left(\vb{B}\right), \qquad
+\text{tr}\left(t\vb{A}\right) = t \, \text{tr}\left(\vb{A}\right).
+$$
+
+The most important property is the **cyclic property**: for matrices $\vb{A}$ and $\vb{B}$ such that $\vb{A}\vb{B}$ is square,
+
+$$
+\text{tr}\left(\vb{A}\vb{B}\right) = \text{tr}\left(\vb{B}\vb{A}\right).
+$$ {#eq-trace_cyclic}
+
+This extends to longer products: $\text{tr}\left(\vb{A}\vb{B}\vb{C}\right) = \text{tr}\left(\vb{B}\vb{C}\vb{A}\right) = \text{tr}\left(\vb{C}\vb{A}\vb{B}\right)$. You can "rotate" the matrices cyclically without changing the trace. (But you cannot arbitrarily reorder them: $\text{tr}\left(\vb{A}\vb{B}\vb{C}\right) \neq \text{tr}\left(\vb{A}\vb{C}\vb{B}\right)$ in general.)
+
+::: {.callout-tip collapse="true"}
+## Why does the cyclic property hold?
+The proof is a good exercise in index manipulation. For $\vb{A} \in \mathbb{R}^{m \times n}$ and $\vb{B} \in \mathbb{R}^{n \times m}$:
+
+$$
+\text{tr}\left(\vb{A}\vb{B}\right)
+= \sum_{i=1}^{m} \left(\vb{A}\vb{B}\right)_{ii}
+= \sum_{i=1}^{m} \sum_{j=1}^{n} A_{ij} B_{ji}
+= \sum_{j=1}^{n} \sum_{i=1}^{m} B_{ji} A_{ij}
+= \sum_{j=1}^{n} \left(\vb{B}\vb{A}\right)_{jj}
+= \text{tr}\left(\vb{B}\vb{A}\right).
+$$
+
+The key step is swapping the order of the two sums (which is always valid for finite sums) and rearranging scalar products (since $A_{ij} B_{ji} = B_{ji} A_{ij}$).
+:::
+
+The trace will become especially useful in the matrix calculus section, where it provides compact ways to express derivatives of matrix expressions.
+
+## Norms
+
+How do you measure the "size" or "length" of a vector? In two dimensions, you might use the Pythagorean theorem: a vector $\vb{x} = \begin{bmatrix} 3 \\ 4 \end{bmatrix}$ has length $\sqrt{3^2 + 4^2} = 5$. This idea generalizes to any number of dimensions through the **Euclidean norm** (also called the $\ell_2$ norm):
+
+$$
+\left\lVert \vb{x} \right\rVert_2 = \sqrt{\sum_{i=1}^{n} x_i^2}.
+$$ {#eq-l2_norm}
+
+Notice that $\left\lVert \vb{x} \right\rVert_2^2 = \vb{x}^{\intercal}\vb{x}$, so the squared norm is just the inner product of $\vb{x}$ with itself. This connection between norms and inner products will be central when we define "closeness" for least squares.
+
+The Euclidean norm is the most common, but it is not the only way to measure size. More formally, a **norm** is any function $f : \mathbb{R}^n \to \mathbb{R}$ satisfying four properties:
+
+1. $f\left(\vb{x}\right) \geq 0$ for all $\vb{x}$ (non-negativity).
+2. $f\left(\vb{x}\right) = 0$ if and only if $\vb{x} = \vb{0}$ (definiteness).
+3. $f\left(t\vb{x}\right) = \left\lvert t \right\rvert f\left(\vb{x}\right)$ for any scalar $t$ (homogeneity).
+4. $f\left(\vb{x} + \vb{y}\right) \leq f\left(\vb{x}\right) + f\left(\vb{y}\right)$ (triangle inequality).
+
+Two other norms worth knowing are the $\ell_1$ norm $\left\lVert \vb{x} \right\rVert_1 = \sum_{i=1}^{n} \left\lvert x_i \right\rvert$ (the "taxicab" distance, which sums absolute values) and the $\ell_\infty$ norm $\left\lVert \vb{x} \right\rVert_\infty = \max_i \left\lvert x_i \right\rvert$ (the largest absolute entry). All three are special cases of the $\ell_p$ norm family:
+
+$$
+\left\lVert \vb{x} \right\rVert_p = \left(\sum_{i=1}^{n} \left\lvert x_i \right\rvert^p\right)^{1/p}.
+$$
+
+For matrices, the most common norm is the **Frobenius norm**:
+
+$$
+\left\lVert \vb{A} \right\rVert_F = \sqrt{\sum_{i=1}^{m} \sum_{j=1}^{n} A_{ij}^2} = \sqrt{\text{tr}\left(\vb{A}^{\intercal}\vb{A}\right)}.
+$$
+
+It is essentially the Euclidean norm applied to the matrix as if it were a long vector of all $m \times n$ entries. Notice how the trace appears naturally here.
+
+::: {.callout-note}
+## Why norms matter for us
+In the least squares problem, we want to find $\vb{x}$ that minimizes $\left\lVert \vb{A}\vb{x} - \vb{b} \right\rVert_2^2$: the squared Euclidean norm of the error vector. The norm gives us a precise, single-number measure of "how far off are our predictions from the actual prices?" Without it, we would have no objective way to compare one line to another.
+:::
+
+## Linear Independence and Rank
+
+We are now equipped to ask a fundamental question: **when does the system $\vb{A}\vb{x} = \vb{b}$ have a solution?**
+
+Recall from @sec-matvec_column_view that $\vb{A}\vb{x}$ is a linear combination of the columns of $\vb{A}$. So the equation $\vb{A}\vb{x} = \vb{b}$ asks: "Can we write $\vb{b}$ as a weighted sum of the columns of $\vb{A}$?" The answer depends on whether the columns of $\vb{A}$ are "spread out" enough to reach $\vb{b}$.
+
+### Linear Independence
+
+A set of vectors $\left\{\vb{x}_1, \vb{x}_2, \ldots, \vb{x}_n\right\} \subset \mathbb{R}^m$ is **linearly independent** if no vector in the set can be written as a linear combination of the others. In other words, the only way to make
+
+$$
+\alpha_1 \vb{x}_1 + \alpha_2 \vb{x}_2 + \cdots + \alpha_n \vb{x}_n = \vb{0}
+$$
+
+is to set all the coefficients $\alpha_1, \alpha_2, \ldots, \alpha_n$ to zero. If some nonzero combination of the vectors equals $\vb{0}$, the vectors are **linearly dependent**: at least one of them is "redundant."
+
+Here is a concrete example. Consider three vectors in $\mathbb{R}^3$:
+
+$$
+\vb{x}_1 =
+\begin{bmatrix} 1 \\ 2 \\ 3 \end{bmatrix}, \quad
+\vb{x}_2 =
+\begin{bmatrix} 4 \\ 1 \\ 5 \end{bmatrix}, \quad
+\vb{x}_3 =
+\begin{bmatrix} 2 \\ -3 \\ -1 \end{bmatrix}.
+$$
+
+These are linearly dependent because $\vb{x}_3 = -2\vb{x}_1 + \vb{x}_2$. You can verify: $-2 \times \begin{bmatrix} 1 \\ 2 \\ 3 \end{bmatrix} + \begin{bmatrix} 4 \\ 1 \\ 5 \end{bmatrix} = \begin{bmatrix} 2 \\ -3 \\ -1 \end{bmatrix}$. The third vector adds no new "direction"; it is stuck in the plane spanned by the first two.
+
+::: {#fig-linear_independence}
+{{< video images/linear_independence.mp4 >}}
+
+Linearly independent vectors span a volume; linearly dependent vectors collapse to a lower-dimensional subspace.
+:::
+
+### Rank
+
+The **rank** of a matrix $\vb{A} \in \mathbb{R}^{m \times n}$, written $\text{rank}\left(\vb{A}\right)$, is the maximum number of linearly independent columns in $\vb{A}$. (It turns out this always equals the maximum number of linearly independent *rows*, too, though proving this requires some work.)
+
+Some key properties:
+
+- **Rank is bounded by the smaller dimension.** For $\vb{A} \in \mathbb{R}^{m \times n}$,
+  $$
+  \text{rank}\left(\vb{A}\right) \leq \min\left(m, n\right).
+  $$
+  If equality holds, the matrix is called **full rank**.
+- **Rank is preserved by transpose.**
+  $$
+  \text{rank}\left(\vb{A}\right) = \text{rank}\left(\vb{A}^{\intercal}\right).
+  $$
+- **Rank can only decrease under multiplication.**
+  $$
+  \text{rank}\left(\vb{A}\vb{B}\right) \leq \min\left(\text{rank}\left(\vb{A}\right), \text{rank}\left(\vb{B}\right)\right).
+  $$
+- **Rank is sub-additive.** For $\vb{A}, \vb{B} \in \mathbb{R}^{m \times n}$,
+  $$
+  \text{rank}\left(\vb{A} + \vb{B}\right) \leq \text{rank}\left(\vb{A}\right) + \text{rank}\left(\vb{B}\right).
+  $$
+
+In our house-price example (@eq-house_price_system), $\vb{A} \in \mathbb{R}^{5 \times 2}$ has two columns. As long as the areas of the houses are not all identical (which they are not), the two columns are linearly independent, so $\text{rank}\left(\vb{A}\right) = 2$. The matrix is full rank (because $\min\left(5, 2\right) = 2$). This will turn out to be important: full rank of $\vb{A}$ guarantees that the least squares solution is unique.
+
+### Rank and Solvability
+
+Now we can connect rank to the question of whether $\vb{A}\vb{x} = \vb{b}$ has a solution. Since $\vb{A}\vb{x}$ is a linear combination of the columns of $\vb{A}$, the system has a solution if and only if $\vb{b}$ lies in the **column space** of $\vb{A}$ (the set of all possible linear combinations of the columns).
+
+If $\vb{A}$ has $n$ linearly independent columns and $n = m$ (the matrix is square and full rank), then the columns span all of $\mathbb{R}^m$, and $\vb{A}\vb{x} = \vb{b}$ has a solution for *every* $\vb{b}$.
+
+If $m > n$ (more equations than unknowns, like our house-price problem of @eq-house_price_system), the $n$ columns can span at most an $n$-dimensional subspace of $\mathbb{R}^m$. Most vectors $\vb{b} \in \mathbb{R}^m$ will *not* lie in this subspace, so the system will typically have no exact solution. This is precisely the situation with our five houses and two unknowns.
+
+```{mermaid}
+%%| fig-align: center
+flowchart TD
+    Q["Does Ax = b<br/>have a solution?"]
+    Q --> C1["Is b in the<br/>column space of A?"]
+    C1 -->|"Yes"| S1["Solution exists"]
+    C1 -->|"No"| S2["No exact solution<br/>(need least squares)"]
+    S1 --> C2["Is A square<br/>and full rank?"]
+    C2 -->|"Yes"| U["Unique solution:<br/>x = A⁻¹b"]
+    C2 -->|"No"| M["Infinitely many<br/>solutions"]
+    style S2 fill:#f59e0b,color:#fff
+    style U fill:#10a37f,color:#fff
+```
+
+The amber box ("need least squares") is exactly where our house-price problem sits. The green box ("unique solution") is the ideal case we will unlock in the next section by introducing the matrix inverse.
+
+## Taking Stock
+
+Let's see where we are:
+
+```{mermaid}
+%%| fig-align: center
+flowchart TD
+    A["<b>Motivation ✓</b>"] --> B["<b>Notation ✓</b>"]
+    B --> C["<b>Multiplication ✓</b>"]
+    C --> D["<b>Operations & Properties ✓</b><br/>Identity, transpose, symmetric,<br/>trace, norms, rank"]
+    D --> E["<b>The Inverse</b><br/>Solving Ax = b directly"]
+    E --> F["..."]
+    style A fill:#555,color:#aaa
+    style B fill:#555,color:#aaa
+    style C fill:#555,color:#aaa
+    style D fill:#10a37f,color:#fff
+    style E fill:#f59e0b,color:#fff
+```
+
+We have built a solid foundation: we know how to name, multiply, transpose, and measure matrices and vectors, and we understand when a system of equations has a solution. The natural next step is clear: for the special case where $\vb{A}$ is square and full rank, there is a matrix $\vb{A}^{-1}$ that lets us solve $\vb{A}\vb{x} = \vb{b}$ in one shot. That is the *inverse*, and it is what we turn to next.
+
+# The Inverse, Orthogonal Matrices, and the Determinant
+
+We now know when a system $\vb{A}\vb{x} = \vb{b}$ has a solution: $\vb{b}$ must lie in the column space of $\vb{A}$, and if $\vb{A}$ is square and full rank, the solution is unique. But *how* do we find that solution? This section introduces the **inverse** (the tool that solves $\vb{A}\vb{x} = \vb{b}$ in one shot), **orthogonal matrices** (a special class where inversion is trivially easy), and the **determinant** (a single number that tells you whether the inverse even exists).
+
+## The Inverse of a Square Matrix
+
+For a square matrix $\vb{A} \in \mathbb{R}^{n \times n}$, the **inverse** is the unique matrix $\vb{A}^{-1} \in \mathbb{R}^{n \times n}$ satisfying
+
+$$
+\vb{A}^{-1}\vb{A} = \vb{I} = \vb{A}\vb{A}^{-1}.
+$$ {#eq-inverse_definition}
+
+If such a matrix exists, $\vb{A}$ is called **invertible** (or **nonsingular**). If no such matrix exists, $\vb{A}$ is called **singular** (or non-invertible).
+
+::: {.callout-warning}
+## A common source of confusion
+The terminology can be tricky: "non-singular" means the matrix *is* invertible, while "singular" means it is *not*. The word "singular" here flags that something is wrong (the matrix is degenerate), not that it is unique.
+:::
+
+Let's see a concrete example. Consider
+
+$$
+\vb{A} =
+\begin{bmatrix}
+4 & 7\\
+2 & 6
+\end{bmatrix}.
+$$
+
+Its inverse turns out to be
+
+$$
+\vb{A}^{-1} =
+\begin{bmatrix}
+0.6 & -0.7\\
+-0.2 & 0.4
+\end{bmatrix}.
+$$
+
+We can verify:
+
+$$
+\vb{A}^{-1}\vb{A} = \begin{bmatrix} 0.6 \times 4 + \left(-0.7\right) \times 2 & 0.6 \times 7 + \left(-0.7\right) \times 6 \\ \left(-0.2\right) \times 4 + 0.4 \times 2 & \left(-0.2\right) \times 7 + 0.4 \times 6 \end{bmatrix} = \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix} = \vb{I}.
+$$
+
+### Why the Inverse Matters
+
+If $\vb{A}$ is invertible, then solving $\vb{A}\vb{x} = \vb{b}$ is straightforward: multiply both sides on the left by $\vb{A}^{-1}$:
+
+$$
+\vb{A}\vb{x} = \vb{b}
+\quad \implies \quad
+\vb{A}^{-1}\vb{A}\vb{x} = \vb{A}^{-1}\vb{b}
+\quad \implies \quad
+\vb{I}\vb{x} = \vb{A}^{-1}\vb{b}
+\quad \implies \quad
+\vb{x} = \vb{A}^{-1}\vb{b}.
+$$
+
+That is the entire solution: just multiply $\vb{A}^{-1}$ by $\vb{b}$. Let's try it on the system from the very beginning of this post. Recall that with two houses, we had
+
+$$
+\begin{bmatrix}
+1 & 2104\\
+1 & 1600
+\end{bmatrix}
+\begin{bmatrix}
+w_0\\ w_1
+\end{bmatrix}
+=
+\begin{bmatrix}
+399{,}900\\ 329{,}900
+\end{bmatrix}.
+$$
+
+This is a $2 \times 2$ system, and the matrix is invertible (the two rows are not multiples of each other). So the solution is $\vb{x} = \vb{A}^{-1}\vb{b}$, which gives the same $w_0 \approx 107{,}643$ and $w_1 \approx 138.89$ we found by hand in the introduction.
+
+But what about our five-house problem? There, $\vb{A} \in \mathbb{R}^{5 \times 2}$ is *not square*, so it does not have an inverse. This is exactly the situation we flagged earlier: when the system is overdetermined, we need a different approach (least squares), which we will develop in a later section.
+
+### When Does the Inverse Exist?
+
+A square matrix $\vb{A} \in \mathbb{R}^{n \times n}$ is invertible if and only if it is full rank (i.e., $\text{rank}\left(\vb{A}\right) = n$). Equivalently, its columns must be linearly independent, and its rows must be linearly independent. We will soon see another equivalent condition: the determinant of $\vb{A}$ must be nonzero.
+
+### Properties of the Inverse
+
+For invertible matrices $\vb{A}, \vb{B} \in \mathbb{R}^{n \times n}$:
+
+$$
+\left(\vb{A}^{-1}\right)^{-1} = \vb{A}, \qquad
+\left(\vb{A}\vb{B}\right)^{-1} = \vb{B}^{-1}\vb{A}^{-1}, \qquad
+\left(\vb{A}^{-1}\right)^{\intercal} = \left(\vb{A}^{\intercal}\right)^{-1}.
+$$
+
+The second property is notable: just like with the transpose, inverting a product **reverses the order**. To undo "$\vb{A}$ then $\vb{B}$," you undo $\vb{B}$ first, then undo $\vb{A}$. Think of it like putting on socks and shoes: you put on socks first, then shoes, but to reverse the process, you take off shoes first, then socks.
+
+The third property says that transposing and inverting can be done in either order, and the result is the same. This matrix is often written $\vb{A}^{-\intercal}$ for short.
+
+## Orthogonal Matrices
+
+For most matrices, computing the inverse is expensive. But there is a special class of matrices where inversion is essentially free: **orthogonal matrices**.
+
+Two vectors $\vb{x}, \vb{y} \in \mathbb{R}^n$ are **orthogonal** if their inner product is zero: $\vb{x}^{\intercal}\vb{y} = 0$. Geometrically, they are perpendicular. A vector is **normalized** (or a "unit vector") if $\left\lVert \vb{x} \right\rVert_2 = 1$.
+
+A square matrix $\vb{U} \in \mathbb{R}^{n \times n}$ is **orthogonal** if its columns are mutually orthogonal and each has unit length (i.e., the columns are **orthonormal**). For example:
+
+$$
+\vb{U} =
+\begin{bmatrix}
+\frac{1}{\sqrt{2}} & \frac{1}{\sqrt{2}}\\[4pt]
+\frac{1}{\sqrt{2}} & -\frac{1}{\sqrt{2}}
+\end{bmatrix}.
+$$
+
+You can verify: the first column dotted with the second gives $\frac{1}{\sqrt{2}} \times \frac{1}{\sqrt{2}} + \frac{1}{\sqrt{2}} \times \left(-\frac{1}{\sqrt{2}}\right) = \frac{1}{2} - \frac{1}{2} = 0$ (orthogonal), and each column has norm $\sqrt{\frac{1}{2} + \frac{1}{2}} = 1$ (normalized).
+
+The remarkable property of an orthogonal matrix is that **its inverse is simply its transpose**:
+
+$$
+\vb{U}^{\intercal}\vb{U} = \vb{I} = \vb{U}\vb{U}^{\intercal}.
+$$ {#eq-orthogonal_inverse}
+
+Let's verify on our example:
+
+$$
+\vb{U}^{\intercal}\vb{U} =
+\begin{bmatrix}
+\frac{1}{\sqrt{2}} & \frac{1}{\sqrt{2}}\\[4pt]
+\frac{1}{\sqrt{2}} & -\frac{1}{\sqrt{2}}
+\end{bmatrix}^{\intercal}
+\begin{bmatrix}
+\frac{1}{\sqrt{2}} & \frac{1}{\sqrt{2}}\\[4pt]
+\frac{1}{\sqrt{2}} & -\frac{1}{\sqrt{2}}
+\end{bmatrix}
+=
+\begin{bmatrix}
+1 & 0\\
+0 & 1
+\end{bmatrix}
+= \vb{I}.
+$$
+
+No expensive computation needed; just transpose and you have the inverse. This makes orthogonal matrices extremely convenient in practice.
+
+Another nice property: **orthogonal matrices preserve lengths.** For any vector $\vb{x} \in \mathbb{R}^n$ and orthogonal $\vb{U} \in \mathbb{R}^{n \times n}$:
+
+$$
+\left\lVert \vb{U}\vb{x} \right\rVert_2 = \left\lVert \vb{x} \right\rVert_2.
+$$ {#eq-orthogonal_preserves_norm}
+
+This follows because $\left\lVert \vb{U}\vb{x} \right\rVert_2^2 = \left(\vb{U}\vb{x}\right)^{\intercal}\left(\vb{U}\vb{x}\right) = \vb{x}^{\intercal}\vb{U}^{\intercal}\vb{U}\vb{x} = \vb{x}^{\intercal}\vb{I}\vb{x} = \vb{x}^{\intercal}\vb{x} = \left\lVert \vb{x} \right\rVert_2^2$. Geometrically, multiplying by an orthogonal matrix rotates (and possibly reflects) a vector without stretching or shrinking it. This property will be important when we discuss eigenvalue decompositions later.
+
+::: {.callout-note}
+## Orthogonal vectors vs. orthogonal matrices
+Be careful with the terminology. "Orthogonal vectors" means the vectors are perpendicular ($\vb{x}^{\intercal}\vb{y} = 0$). An "orthogonal matrix" is a square matrix whose columns are *orthonormal* (mutually perpendicular *and* unit length). The two uses of the word "orthogonal" are related but not identical.
+:::
+
+## The Determinant
+
+We now have the inverse as our tool for solving $\vb{A}\vb{x} = \vb{b}$, but we said it only exists when $\vb{A}$ is full rank. How can we quickly check whether a matrix is invertible? The answer is the **determinant**: a single number that encodes whether a square matrix is invertible and, geometrically, how much the matrix "stretches" space.
+
+### Geometric Intuition
+
+Before the formula, let's build intuition. Consider a $2 \times 2$ matrix
+
+$$
+\vb{A} =
+\begin{bmatrix}
+1 & 3\\
+3 & 2
+\end{bmatrix}.
+$$
+
+The two rows of $\vb{A}$ are the vectors $\vb{a}_1^{\intercal} = \begin{bmatrix} 1 & 3 \end{bmatrix}$ and $\vb{a}_2^{\intercal} = \begin{bmatrix} 3 & 2 \end{bmatrix}$. If we draw these as arrows from the origin and form a parallelogram, the **absolute value of the determinant** equals the **area** of that parallelogram.
+
+::: {#fig-determinant_parallelogram}
+{{< video images/determinant_parallelogram.mp4 >}}
+
+The determinant of a $2\times 2$ matrix equals the signed area of the parallelogram formed by its row vectors.
+:::
+
+For this matrix, $\left\lvert\vb{A}\right\rvert = 1 \times 2 - 3 \times 3 = 2 - 9 = -7$. The area of the parallelogram is $\left\lvert -7 \right\rvert = 7$. (The sign tells us about the "orientation" of the parallelogram: positive means the rows form a right-handed frame, negative means left-handed. For practical purposes, the absolute value is what matters geometrically.)
+
+In three dimensions, the rows of a $3 \times 3$ matrix form a **parallelepiped** (a skewed 3D box), and $\left\lvert\det\left(\vb{A}\right)\right\rvert$ equals its volume. In $n$ dimensions, the same idea generalizes: the determinant measures the $n$-dimensional "volume" of the shape formed by the row vectors.
+
+The critical insight: **if the rows are linearly dependent, the parallelogram (or parallelepiped) collapses to a flat shape with zero volume, and the determinant is zero.** This is exactly when the matrix is singular (non-invertible).
+
+### Algebraic Properties
+
+The determinant, written $\left\lvert\vb{A}\right\rvert$ or $\det\left(\vb{A}\right)$, is built from three fundamental properties:
+
+1. $\left\lvert\vb{I}\right\rvert = 1$. (The unit hypercube has volume 1.)
+2. Scaling one row by $t$ scales the determinant by $t$. (Stretching one side of the parallelogram by factor $t$ multiplies the area by $t$.)
+3. Swapping two rows flips the sign of the determinant.
+
+From these three axioms, everything else follows. Some important consequences:
+
+- **Product rule:** $\left\lvert\vb{A}\vb{B}\right\rvert = \left\lvert\vb{A}\right\rvert \left\lvert\vb{B}\right\rvert$.
+- **Transpose rule:** $\left\lvert\vb{A}\right\rvert = \left\lvert\vb{A}^{\intercal}\right\rvert$.
+- **Singularity test:** $\left\lvert\vb{A}\right\rvert = 0$ if and only if $\vb{A}$ is singular.
+- **Inverse rule:** If $\vb{A}$ is invertible, $\left\lvert\vb{A}^{-1}\right\rvert = 1 / \left\lvert\vb{A}\right\rvert$.
+
+### Computing the Determinant
+
+For small matrices, there are explicit formulas:
+
+**$1 \times 1$:**
+
+$$
+\left\lvert\begin{bmatrix} a_{11} \end{bmatrix}\right\rvert = a_{11}.
+$$
+
+**$2 \times 2$:**
+
+$$
+\left\lvert\begin{bmatrix} a_{11} & a_{12} \\ a_{21} & a_{22} \end{bmatrix}\right\rvert = a_{11} a_{22} - a_{12} a_{21}.
+$$ {#eq-det_2x2}
+
+**$3 \times 3$:**
+
+$$
+\left\lvert\begin{bmatrix} a_{11} & a_{12} & a_{13} \\ a_{21} & a_{22} & a_{23} \\ a_{31} & a_{32} & a_{33} \end{bmatrix}\right\rvert
+= a_{11} a_{22} a_{33} + a_{12} a_{23} a_{31} + a_{13} a_{21} a_{32} - a_{11} a_{23} a_{32} - a_{12} a_{21} a_{33} - a_{13} a_{22} a_{31}.
+$$
+
+Let's verify our earlier example using the $2 \times 2$ formula. For $\vb{A} = \begin{bmatrix} 4 & 7 \\ 2 & 6 \end{bmatrix}$:
+
+$$
+\left\lvert\vb{A}\right\rvert = 4 \times 6 - 7 \times 2 = 24 - 14 = 10 \neq 0,
+$$
+
+so $\vb{A}$ is invertible, consistent with us having found $\vb{A}^{-1}$ earlier in this section.
+
+For larger matrices, the determinant is defined recursively using **cofactor expansion**. Define $\vb{A}_{\backslash i, \backslash j}$ as the matrix obtained by deleting row $i$ and column $j$ from $\vb{A}$. Then
+
+$$
+\left\lvert\vb{A}\right\rvert = \sum_{j=1}^{n} \left(-1\right)^{i+j} a_{ij} \left\lvert\vb{A}_{\backslash i, \backslash j}\right\rvert \quad \text{(for any fixed row } i \text{)}.
+$$
+
+This recursion expands an $n \times n$ determinant into a sum of $\left(n-1\right) \times \left(n-1\right)$ determinants, eventually bottoming out at the $1 \times 1$ case. The full expansion has $n!$ terms, which makes it impractical for large matrices. In practice, numerical methods (like LU decomposition) are used instead.
+
+::: {.callout-tip collapse="true"}
+## The adjoint and the explicit inverse formula
+The **classical adjoint** of $\vb{A}$, written $\text{adj}\left(\vb{A}\right)$, is the $n \times n$ matrix whose $\left(i,j\right)$th entry is $\left(-1\right)^{i+j} \left\lvert\vb{A}_{\backslash j, \backslash i}\right\rvert$ (note the swapped indices $j, i$). Using the adjoint, the inverse can be written explicitly as
+
+$$
+\vb{A}^{-1} = \frac{1}{\left\lvert\vb{A}\right\rvert} \text{adj}\left(\vb{A}\right).
+$$
+
+This is elegant but not efficient for computation. For a $2 \times 2$ matrix, it simplifies to a familiar formula:
+
+$$
+\begin{bmatrix} a & b \\ c & d \end{bmatrix}^{-1}
+= \frac{1}{ad - bc}
+\begin{bmatrix} d & -b \\ -c & a \end{bmatrix}.
+$$
+
+Let's verify with our earlier example: $\vb{A} = \begin{bmatrix} 4 & 7 \\ 2 & 6 \end{bmatrix}$, $\left\lvert\vb{A}\right\rvert = 10$, so $\vb{A}^{-1} = \frac{1}{10}\begin{bmatrix} 6 & -7 \\ -2 & 4 \end{bmatrix} = \begin{bmatrix} 0.6 & -0.7 \\ -0.2 & 0.4 \end{bmatrix}$, which matches what we had before.
+:::
+
+### Putting It All Together
+
+We now have a complete picture for the square case: a matrix $\vb{A} \in \mathbb{R}^{n \times n}$ is invertible if and only if any (and hence all) of the following equivalent conditions hold:
+
+```{mermaid}
+%%| fig-align: center
+flowchart TB
+    A["A is full rank<br/>(rank = n)"] --- B["det(A) ≠ 0"]
+    B --- C["A⁻¹ exists"]
+    C --- D["Columns of A are<br/>linearly independent"]
+    D --- E["Ax = b has a<br/>unique solution ∀ b"]
+    E --- A
+```
+
+All five conditions are equivalent: if one holds, they all hold. If one fails, they all fail.
+
+## Taking Stock
+
+```{mermaid}
+%%| fig-align: center
+flowchart TD
+    A["<b>Motivation ✓</b>"] --> B["<b>Notation ✓</b>"]
+    B --> C["<b>Multiplication ✓</b>"]
+    C --> D["<b>Operations ✓</b>"]
+    D --> E["<b>Inverse, Orthogonal,<br/>Determinant ✓</b>"]
+    E --> F["<b>Range & Nullspace</b><br/>What a matrix can reach<br/>and what it kills"]
+    F --> G["..."]
+    style A fill:#555,color:#aaa
+    style B fill:#555,color:#aaa
+    style C fill:#555,color:#aaa
+    style D fill:#555,color:#aaa
+    style E fill:#10a37f,color:#fff
+    style F fill:#f59e0b,color:#fff
+```
+
+We can now solve $\vb{A}\vb{x} = \vb{b}$ when $\vb{A}$ is square and invertible. But our house-price matrix is $5 \times 2$, decidedly not square. To understand what happens in the non-square case, and to set up the least squares solution, we need to understand the *range* and *nullspace* of a matrix: what vectors can a matrix "produce," and what vectors does it send to zero? That is where we go next.
+
+# Range, Nullspace, and Quadratic Forms
+
+We can now solve $\vb{A}\vb{x} = \vb{b}$ when $\vb{A}$ is square and invertible. But our house-price matrix $\vb{A} \in \mathbb{R}^{5 \times 2}$ is not square (@eq-house_price_system), and the price vector $\vb{b}$ does not lie in the column space of $\vb{A}$. To find the best *approximate* solution, we need to understand precisely what vectors $\vb{A}$ can produce, what it cannot, and how to find the closest point in the reachable set. Then, to actually *optimize* and confirm we have a minimum (not a maximum or saddle), we will need to understand the curvature of quadratic expressions. That is what this section is about.
+
+## Span
+
+Before we can talk about the range of a matrix, we need a simpler concept: the **span** of a set of vectors. Given vectors $\left\{\vb{x}_1, \vb{x}_2, \ldots, \vb{x}_n\right\}$, their span is the set of *all* vectors that can be written as a linear combination of them:
+
+$$
+\text{span}\left(\left\{\vb{x}_1, \ldots, \vb{x}_n\right\}\right) = \left\{\vb{v} : \vb{v} = \sum_{i=1}^{n} \alpha_i \vb{x}_i, \; \alpha_i \in \mathbb{R}\right\}.
+$$
+
+In two dimensions, the span of a single nonzero vector is a line through the origin. The span of two linearly independent vectors in $\mathbb{R}^2$ is the entire plane $\mathbb{R}^2$. In general, $n$ linearly independent vectors in $\mathbb{R}^n$ span all of $\mathbb{R}^n$.
+
+For a concrete example, consider the two columns of our house-price matrix (@eq-house_price_system):
+
+$$
+\vb{a}_1 =
+\begin{bmatrix} 1 \\ 1 \\ 1 \\ 1 \\ 1 \end{bmatrix}, \quad
+\vb{a}_2 =
+\begin{bmatrix} 2104 \\ 1600 \\ 2400 \\ 1416 \\ 3000 \end{bmatrix}.
+$$
+
+Their span is a 2-dimensional plane sitting inside 5-dimensional space $\mathbb{R}^5$. Every vector on this plane has the form $w_0 \vb{a}_1 + w_1 \vb{a}_2$ for some choice of $w_0$ and $w_1$. Our price vector $\vb{b} \in \mathbb{R}^5$ almost certainly does *not* lie on this plane (since a perfect linear relationship between area and price is unlikely). That is why we need approximation.
+
+## Range (Column Space)
+
+The **range** (also called the **column space**) of a matrix $\vb{A} \in \mathbb{R}^{m \times n}$ is simply the span of its columns:
+
+$$
+\mathcal{R}\left(\vb{A}\right) = \left\{\vb{v} \in \mathbb{R}^m : \vb{v} = \vb{A}\vb{x}, \; \vb{x} \in \mathbb{R}^n\right\}.
+$$
+
+In words: the range of $\vb{A}$ is the set of all vectors you can produce by multiplying $\vb{A}$ by *some* vector $\vb{x}$. It is everything $\vb{A}$ can "reach."
+
+Now the question "$\vb{A}\vb{x} = \vb{b}$ has a solution" becomes: "Is $\vb{b}$ in the range of $\vb{A}$?" If yes, there exists an $\vb{x}$ that works. If no, we need the closest point in $\mathcal{R}\left(\vb{A}\right)$ to $\vb{b}$.
+
+## Projection
+
+Finding the closest point in the range to $\vb{b}$ is called **projection**. The projection of $\vb{b}$ onto the range of $\vb{A}$ is the vector $\hat{\vb{b}} \in \mathcal{R}\left(\vb{A}\right)$ that minimizes $\left\lVert \vb{b} - \hat{\vb{b}} \right\rVert_2$:
+
+$$
+\hat{\vb{b}} = \text{Proj}\left(\vb{b}; \vb{A}\right) = \underset{\vb{v} \in \mathcal{R}\left(\vb{A}\right)}{\text{argmin}} \left\lVert \vb{b} - \vb{v} \right\rVert_2.
+$$
+
+Under the assumptions that $\vb{A}$ is full rank and $n < m$ (more rows than columns, like our house-price setup), the projection has a clean formula:
+
+$$
+\hat{\vb{b}} = \vb{A}\left(\vb{A}^{\intercal}\vb{A}\right)^{-1}\vb{A}^{\intercal}\vb{b}.
+$$ {#eq-projection_formula}
+
+This formula should look familiar. The vector $\vb{x}$ that achieves $\hat{\vb{b}} = \vb{A}\vb{x}$ is
+
+$$
+\hat{\vb{x}} = \left(\vb{A}^{\intercal}\vb{A}\right)^{-1}\vb{A}^{\intercal}\vb{b},
+$$
+
+which is exactly the **least squares solution** we will derive formally in the matrix calculus section. We are seeing a preview: the best approximate solution to $\vb{A}\vb{x} = \vb{b}$ comes from projecting $\vb{b}$ onto the column space of $\vb{A}$.
+
+For the special case of projecting onto a single vector $\vb{a} \in \mathbb{R}^m$ (a line through the origin), the formula simplifies to:
+
+$$
+\text{Proj}\left(\vb{b}; \vb{a}\right) = \frac{\vb{a}\vb{a}^{\intercal}}{\vb{a}^{\intercal}\vb{a}} \vb{b}.
+$$ {#eq-projection_line}
+
+Let's try a small numerical example. Project $\vb{b} = \begin{bmatrix} 3 \\ 1 \end{bmatrix}$ onto $\vb{a} = \begin{bmatrix} 1 \\ 2 \end{bmatrix}$:
+
+$$
+\text{Proj}\left(\vb{b}; \vb{a}\right) = \frac{\vb{a}\vb{a}^{\intercal}}{\vb{a}^{\intercal}\vb{a}} \vb{b} = \frac{1}{1^2 + 2^2} \begin{bmatrix} 1 \\ 2 \end{bmatrix} \begin{bmatrix} 1 & 2 \end{bmatrix} \begin{bmatrix} 3 \\ 1 \end{bmatrix} = \frac{1}{5} \begin{bmatrix} 1 \\ 2 \end{bmatrix} \left(3 + 2\right) = \begin{bmatrix} 1 \\ 2 \end{bmatrix}.
+$$
+
+The projected point is $\begin{bmatrix} 1 \\ 2 \end{bmatrix}$, which lies on the line through $\vb{a}$, and the error vector $\vb{b} - \hat{\vb{b}} = \begin{bmatrix} 2 \\ -1 \end{bmatrix}$ is perpendicular to $\vb{a}$ (check: $\begin{bmatrix} 1 & 2 \end{bmatrix}\begin{bmatrix} 2 \\ -1 \end{bmatrix} = 2 - 2 = 0$).
+
+::: {#fig-projection_onto_line}
+{{< video images/projection_onto_line.mp4 >}}
+
+Projecting $\vb{b}$ onto the line spanned by $\vb{a}$. The error vector $\vb{b} - \hat{\vb{b}}$ is perpendicular to $\vb{a}$.
+:::
+
+<!-- draw.io suggestion:
+Type: Annotated geometric diagram
+Place: After the projection onto line animation, before the Nullspace section
+Description: A 3D-ish diagram showing a 2D plane (the column space of A) inside a higher-dimensional space. The vector b floats off the plane. A dashed perpendicular line drops from b to its projection b-hat on the plane. The residual vector (b - b-hat) is shown perpendicular to the plane. Labels: "Column space of A (a 2D plane in R^5)", "b (observed prices)", "b-hat = Ax-hat (projected prices)", "b - b-hat (residual, perpendicular to column space)".
+Layout:
+    b •
+    |  (dashed, perpendicular)
+    |
+    b-hat •-------- on the shaded plane (column space)
+    
+Notes: Use dark background (#222) with light-colored elements. Plane in translucent blue/teal. Vectors in bright amber/green.
+Why not Mermaid: Requires spatial 3D-perspective layout with overlapping regions and perpendicularity annotation that Mermaid cannot handle.
+Why not Manim: Could be done in Manim, but a static diagram is sufficient here since the geometry is the key insight, not a process unfolding over time. If you prefer, a Manim animation showing the projection dropping from b to the plane would also work well.
+-->
+
+::: {#fig-linear_regression_as_projection}
+{{< video images/linear_regression_as_projection.mp4 >}}
+
+Projecting $\vb{b}$ onto the column space of $\vb{A}$. The error vector $\vb{b} - \hat{\vb{b}}$ is perpendicular to the column space.
+:::
+
+## Nullspace
+
+The **nullspace** (or **kernel**) of a matrix $\vb{A} \in \mathbb{R}^{m \times n}$ is the set of all vectors that $\vb{A}$ maps to zero:
+
+$$
+\mathcal{N}\left(\vb{A}\right) = \left\{\vb{x} \in \mathbb{R}^n : \vb{A}\vb{x} = \vb{0}\right\}.
+$$
+
+If $\vb{A}$ is full rank with $\text{rank}\left(\vb{A}\right) = n$ (as in our house-price example), the only vector in the nullspace is $\vb{x} = \vb{0}$. This makes sense: the columns are linearly independent, so the only way to combine them to get zero is to use all-zero weights.
+
+If $\vb{A}$ is *not* full rank, the nullspace contains nonzero vectors. This means there are "hidden" directions that $\vb{A}$ completely ignores. For instance, if $\vb{A} = \begin{bmatrix} 1 & 2 \\ 2 & 4 \end{bmatrix}$, then $\vb{x} = \begin{bmatrix} 2 \\ -1 \end{bmatrix}$ is in the nullspace because
+
+$$
+\begin{bmatrix} 1 & 2 \\ 2 & 4 \end{bmatrix} \begin{bmatrix} 2 \\ -1 \end{bmatrix} = \begin{bmatrix} 1 \times 2 + 2 \times \left(-1\right) \\ 2 \times 2 + 4 \times \left(-1\right) \end{bmatrix} = \begin{bmatrix} 0 \\ 0 \end{bmatrix}.
+$$
+
+This matrix has rank 1 (the second row is twice the first), and the nullspace is the entire line of vectors $t\begin{bmatrix} 2 \\ -1 \end{bmatrix}$ for $t \in \mathbb{R}$.
+
+### The Fundamental Relationship
+
+The range and nullspace are connected by a beautiful structural result. For any matrix $\vb{A} \in \mathbb{R}^{m \times n}$:
+
+$$
+\mathcal{R}\left(\vb{A}^{\intercal}\right) \text{ and } \mathcal{N}\left(\vb{A}\right) \text{ are orthogonal complements in } \mathbb{R}^n.
+$$
+
+This means every vector $\vb{x} \in \mathbb{R}^n$ can be uniquely written as the sum of a vector in $\mathcal{R}\left(\vb{A}^{\intercal}\right)$ and a vector in $\mathcal{N}\left(\vb{A}\right)$, and these two pieces are perpendicular to each other. The two subspaces together "fill up" all of $\mathbb{R}^n$ without any overlap (except $\vb{0}$):
+
+$$
+\mathcal{R}\left(\vb{A}^{\intercal}\right) \cap \mathcal{N}\left(\vb{A}\right) = \left\{\vb{0}\right\}.
+$$
+
+```{mermaid}
+%%| fig-align: center
+flowchart LR
+    Rn["ℝⁿ"] --> R["Range(A⊤)<br/>Directions A cares about"]
+    Rn --> N["Null(A)<br/>Directions A ignores"]
+    R ---|"⊥"| N
+```
+
+This decomposition will become important when we discuss eigenvalues: the eigenvectors of a symmetric matrix provide a natural basis that aligns with this range/nullspace split.
+
+## Quadratic Forms and Positive Semidefinite Matrices
+
+We now understand what a matrix can reach (range) and what it ignores (nullspace), and we have a formula for the closest reachable point (projection). But to actually *derive* that formula rigorously, and to confirm that the solution we find is truly a minimum (and not a maximum or saddle point), we need to understand the *curvature* of quadratic expressions. When we expand the least squares objective $\left\lVert \vb{A}\vb{x} - \vb{b} \right\rVert_2^2$, the dominant term turns out to be a **quadratic form** $\vb{x}^{\intercal}\vb{A}^{\intercal}\vb{A}\vb{x}$. Whether this expression curves upward, downward, or forms a saddle determines whether the critical point we find is genuinely the best fit. That is what we tackle now.
+
+### What is a Quadratic Form?
+
+Given a square matrix $\vb{A} \in \mathbb{R}^{n \times n}$ and a vector $\vb{x} \in \mathbb{R}^n$, the expression $\vb{x}^{\intercal}\vb{A}\vb{x}$ is called a **quadratic form**. It takes a vector and returns a single number:
+
+$$
+\vb{x}^{\intercal}\vb{A}\vb{x} = \sum_{i=1}^{n} \sum_{j=1}^{n} A_{ij} x_i x_j.
+$$
+
+Let's compute one. Take $\vb{A} = \begin{bmatrix} 2 & 1 \\ 1 & 3 \end{bmatrix}$ and $\vb{x} = \begin{bmatrix} 1 \\ 2 \end{bmatrix}$:
+
+$$
+\vb{x}^{\intercal}\vb{A}\vb{x} =
+\begin{bmatrix} 1 & 2 \end{bmatrix}
+\begin{bmatrix} 2 & 1 \\ 1 & 3 \end{bmatrix}
+\begin{bmatrix} 1 \\ 2 \end{bmatrix}
+=
+\begin{bmatrix} 1 & 2 \end{bmatrix}
+\begin{bmatrix} 4 \\ 7 \end{bmatrix}
+= 18.
+$$
+
+You might be wondering: why does only the symmetric part of $\vb{A}$ matter? Here is why. For any square matrix $\vb{A}$:
+
+$$
+\vb{x}^{\intercal}\vb{A}\vb{x}
+= \left(\vb{x}^{\intercal}\vb{A}\vb{x}\right)^{\intercal}
+= \vb{x}^{\intercal}\vb{A}^{\intercal}\vb{x}
+= \vb{x}^{\intercal}\left(\frac{1}{2}\vb{A} + \frac{1}{2}\vb{A}^{\intercal}\right)\vb{x}.
+$$
+
+The first equality holds because a scalar equals its own transpose. The matrix $\frac{1}{2}\left(\vb{A} + \vb{A}^{\intercal}\right)$ is always symmetric (as we saw in the previous section), so when analyzing quadratic forms, we can always assume $\vb{A}$ is symmetric without loss of generality.
+
+### Why Quadratic Forms Matter
+
+Quadratic forms appear everywhere in machine learning because **loss functions are often quadratic** (or approximately quadratic near their minimum). In our house-price problem (@eq-house_price_system), the least squares objective is
+
+$$
+\left\lVert \vb{A}\vb{x} - \vb{b} \right\rVert_2^2 = \left(\vb{A}\vb{x} - \vb{b}\right)^{\intercal}\left(\vb{A}\vb{x} - \vb{b}\right) = \vb{x}^{\intercal}\vb{A}^{\intercal}\vb{A}\vb{x} - 2\vb{b}^{\intercal}\vb{A}\vb{x} + \vb{b}^{\intercal}\vb{b}.
+$$
+
+The first term, $\vb{x}^{\intercal}\left(\vb{A}^{\intercal}\vb{A}\right)\vb{x}$, is a quadratic form with the symmetric matrix $\vb{A}^{\intercal}\vb{A}$. The shape of this quadratic form (whether it curves upward, downward, or is a saddle) determines whether the loss function has a minimum.
+
+### Positive Definiteness
+
+This brings us to the key classification of symmetric matrices based on the sign of their quadratic form:
+
+- **Positive definite (PD):** $\vb{x}^{\intercal}\vb{A}\vb{x} > 0$ for all $\vb{x} \neq \vb{0}$. Written $\vb{A} \succ 0$.
+- **Positive semidefinite (PSD):** $\vb{x}^{\intercal}\vb{A}\vb{x} \geq 0$ for all $\vb{x}$. Written $\vb{A} \succeq 0$.
+- **Negative definite (ND):** $\vb{x}^{\intercal}\vb{A}\vb{x} < 0$ for all $\vb{x} \neq \vb{0}$. Written $\vb{A} \prec 0$.
+- **Negative semidefinite (NSD):** $\vb{x}^{\intercal}\vb{A}\vb{x} \leq 0$ for all $\vb{x}$. Written $\vb{A} \preceq 0$.
+- **Indefinite:** Neither PSD nor NSD. There exist vectors $\vb{x}_1$ and $\vb{x}_2$ such that $\vb{x}_1^{\intercal}\vb{A}\vb{x}_1 > 0$ and $\vb{x}_2^{\intercal}\vb{A}\vb{x}_2 < 0$.
+
+It should be clear that if $\vb{A}$ is positive definite, then $-\vb{A}$ is negative definite, and vice versa. Likewise for the semidefinite cases. If $\vb{A}$ is indefinite, then so is $-\vb{A}$.
+
+Let's see concrete examples. For $\vb{A} = \begin{bmatrix} 2 & 1 \\ 1 & 3 \end{bmatrix}$ (our example above), we can check several vectors:
+
+$$
+\begin{bmatrix} 1 \\ 0 \end{bmatrix}^{\intercal} \begin{bmatrix} 2 & 1 \\ 1 & 3 \end{bmatrix} \begin{bmatrix} 1 \\ 0 \end{bmatrix} = 2 > 0, \qquad
+\begin{bmatrix} 0 \\ 1 \end{bmatrix}^{\intercal} \begin{bmatrix} 2 & 1 \\ 1 & 3 \end{bmatrix} \begin{bmatrix} 0 \\ 1 \end{bmatrix} = 3 > 0, \qquad
+\begin{bmatrix} 1 \\ -1 \end{bmatrix}^{\intercal} \begin{bmatrix} 2 & 1 \\ 1 & 3 \end{bmatrix} \begin{bmatrix} 1 \\ -1 \end{bmatrix} = 3 > 0.
+$$
+
+Every vector gives a positive value. In fact, this matrix is positive definite (we will be able to verify this easily once we have eigenvalues).
+
+For an indefinite example, take $\vb{A} = \begin{bmatrix} 1 & 0 \\ 0 & -1 \end{bmatrix}$:
+
+$$
+\begin{bmatrix} 1 \\ 0 \end{bmatrix}^{\intercal} \begin{bmatrix} 1 & 0 \\ 0 & -1 \end{bmatrix} \begin{bmatrix} 1 \\ 0 \end{bmatrix} = 1 > 0, \qquad
+\begin{bmatrix} 0 \\ 1 \end{bmatrix}^{\intercal} \begin{bmatrix} 1 & 0 \\ 0 & -1 \end{bmatrix} \begin{bmatrix} 0 \\ 1 \end{bmatrix} = -1 < 0.
+$$
+
+Some directions give positive values, others give negative. This matrix is indefinite.
+
+### Geometric Intuition
+
+To visualize these definitions, we can plot the surface $f\left(\vb{x}\right) = \vb{x}^{\intercal}\vb{A}\vb{x}$ in three dimensions. The two horizontal axes represent the components of $\vb{x}$ (that is, $x_1$ and $x_2$), and the vertical axis represents the value of the quadratic form $\vb{x}^{\intercal}\vb{A}\vb{x}$. For a positive definite matrix, this surface is a bowl (curving upward in every direction from the origin). For a negative definite matrix, it is an upside-down bowl. For an indefinite matrix, the surface is a saddle: it curves upward in some directions and downward in others.
+
+::: {#fig-quadratic_form_surfaces}
+{{< video images/quadratic_form_surfaces.mp4 >}}
+
+Quadratic form surfaces: a bowl (PD), an inverted bowl (ND), and a saddle (indefinite).
+:::
+
+### Why PD/ND Matrices are Invertible
+
+An important consequence: **positive definite and negative definite matrices are always full rank, and therefore invertible.** Here is the argument. Suppose $\vb{A}$ is PD but not full rank. Then there exists a nonzero vector $\vb{x}$ in the nullspace of $\vb{A}$ (since the nullspace is nontrivial when the rank is less than $n$). But then $\vb{x}^{\intercal}\vb{A}\vb{x} = \vb{x}^{\intercal}\vb{0} = 0$, contradicting the fact that $\vb{x}^{\intercal}\vb{A}\vb{x} > 0$ for all nonzero $\vb{x}$. So a PD matrix must be full rank.
+
+### The Gram Matrix
+
+One type of PSD matrix appears constantly in practice. For any matrix $\vb{A} \in \mathbb{R}^{m \times n}$ (not necessarily symmetric or square), the product $\vb{G} = \vb{A}^{\intercal}\vb{A}$ is always positive semidefinite. To see why:
+
+$$
+\vb{x}^{\intercal}\left(\vb{A}^{\intercal}\vb{A}\right)\vb{x} = \left(\vb{A}\vb{x}\right)^{\intercal}\left(\vb{A}\vb{x}\right) = \left\lVert \vb{A}\vb{x} \right\rVert_2^2 \geq 0.
+$$
+
+The squared norm is always nonnegative. If $\vb{A}$ has full column rank (i.e., $m \geq n$ and $\text{rank}\left(\vb{A}\right) = n$), then $\vb{A}\vb{x} = \vb{0}$ only when $\vb{x} = \vb{0}$, so the inequality is strict for $\vb{x} \neq \vb{0}$, making $\vb{A}^{\intercal}\vb{A}$ positive *definite*.
+
+This is exactly the situation in our house-price problem. $\vb{A} \in \mathbb{R}^{5 \times 2}$ has full column rank, so $\vb{A}^{\intercal}\vb{A} \in \mathbb{R}^{2 \times 2}$ is positive definite. That guarantees $\vb{A}^{\intercal}\vb{A}$ is invertible, which is why the least squares formula $\vb{x} = \left(\vb{A}^{\intercal}\vb{A}\right)^{-1}\vb{A}^{\intercal}\vb{b}$ is well-defined. Keep this fact in mind; we will need it soon.
+
+## Taking Stock
+
+```{mermaid}
+%%| fig-align: center
+flowchart TD
+    A["<b>Motivation ✓</b>"] --> B["<b>Notation ✓</b>"]
+    B --> C["<b>Multiplication ✓</b>"]
+    C --> D["<b>Operations ✓</b>"]
+    D --> E["<b>Inverse, Orthogonal,<br/>Determinant ✓</b>"]
+    E --> F["<b>Range, Nullspace,<br/>Quadratic Forms ✓</b>"]
+    F --> G["<b>Eigenvalues</b><br/>The natural axes<br/>of a matrix"]
+    G --> H["..."]
+    style A fill:#555,color:#aaa
+    style B fill:#555,color:#aaa
+    style C fill:#555,color:#aaa
+    style D fill:#555,color:#aaa
+    style E fill:#555,color:#aaa
+    style F fill:#10a37f,color:#fff
+    style G fill:#f59e0b,color:#fff
+```
+
+We now have almost all the ingredients we need. We understand what a matrix can reach (range), what it ignores (nullspace), how to find the closest reachable point (projection), and how to classify the "curvature" of quadratic expressions (definiteness). The one remaining structural concept is **eigenvalues and eigenvectors**: the "natural axes" of a matrix that reveal its deepest structure. They will simplify quadratic forms, explain definiteness in terms of a simple sign check, and connect to the optimization problems at the heart of machine learning. That is where we go next.
+
+# Eigenvalues and Eigenvectors
+
+We have built a rich toolkit: multiplication, inverses, norms, projections, quadratic forms. But there is one more structural concept that ties everything together and unlocks the deepest insights into what a matrix "does." That concept is **eigenvalues and eigenvectors**.
+
+The central idea is simple: for most vectors $\vb{x}$, the product $\vb{A}\vb{x}$ points in a completely different direction than $\vb{x}$. But for certain special vectors, $\vb{A}$ merely *stretches* (or shrinks) them without changing their direction. These special vectors are the eigenvectors, and the stretching factors are the eigenvalues. Finding them reveals the "natural axes" of the matrix, the directions along which its behavior is simplest.
+
+## Definition
+
+Given a square matrix $\vb{A} \in \mathbb{R}^{n \times n}$, we say that $\lambda \in \mathbb{C}$ is an **eigenvalue** of $\vb{A}$ and $\vb{x} \in \mathbb{C}^n$ is a corresponding **eigenvector** if
+
+$$
+\vb{A}\vb{x} = \lambda\vb{x}, \quad \vb{x} \neq \vb{0}.
+$$ {#eq-eigenvalue_definition}
+
+In words: applying $\vb{A}$ to $\vb{x}$ gives back the *same* vector $\vb{x}$, just scaled by $\lambda$.
+
+(You might wonder why $\lambda$ and $\vb{x}$ are in $\mathbb{C}$ (the complex numbers) rather than $\mathbb{R}$. For general matrices, eigenvalues can be complex even if the matrix entries are real. However, for the symmetric real matrices that dominate machine learning, all eigenvalues are guaranteed to be real. We will return to this shortly.)
+
+Note also that if $\vb{x}$ is an eigenvector, then so is any scalar multiple $c\vb{x}$ (for $c \neq 0$), since $\vb{A}\left(c\vb{x}\right) = c\vb{A}\vb{x} = c\lambda\vb{x} = \lambda\left(c\vb{x}\right)$. For this reason, when we talk about "the" eigenvector associated with $\lambda$, we usually assume the eigenvector is normalized to have unit length.
+
+Let's find the eigenvalues and eigenvectors of a concrete matrix. Take
+
+$$
+\vb{A} =
+\begin{bmatrix}
+2 & 1\\
+1 & 2
+\end{bmatrix}.
+$$
+
+We need to find $\lambda$ and $\vb{x} \neq \vb{0}$ such that $\vb{A}\vb{x} = \lambda\vb{x}$. Rewriting: $\left(\lambda\vb{I} - \vb{A}\right)\vb{x} = \vb{0}$. For a nonzero $\vb{x}$ to exist, the matrix $\left(\lambda\vb{I} - \vb{A}\right)$ must be singular, meaning
+
+$$
+\left\lvert\lambda\vb{I} - \vb{A}\right\rvert = 0.
+$$
+
+Let's compute this:
+
+$$
+\left\lvert
+\begin{bmatrix}
+\lambda - 2 & -1\\
+-1 & \lambda - 2
+\end{bmatrix}
+\right\rvert
+= \left(\lambda - 2\right)^2 - 1 = \lambda^2 - 4\lambda + 3 = \left(\lambda - 3\right)\left(\lambda - 1\right) = 0.
+$$
+
+So $\lambda_1 = 3$ and $\lambda_2 = 1$. These are the two eigenvalues.
+
+To find the eigenvector for $\lambda_1 = 3$, we solve $\left(3\vb{I} - \vb{A}\right)\vb{x} = \vb{0}$:
+
+$$
+\begin{bmatrix}
+1 & -1\\
+-1 & 1
+\end{bmatrix}
+\begin{bmatrix}
+x_1\\ x_2
+\end{bmatrix}
+= \begin{bmatrix} 0 \\ 0 \end{bmatrix}
+\quad \implies \quad
+x_1 = x_2.
+$$
+
+So $\vb{u}_1 = \frac{1}{\sqrt{2}}\begin{bmatrix} 1 \\ 1 \end{bmatrix}$ (normalized to unit length).
+
+For $\lambda_2 = 1$, we solve $\left(\vb{I} - \vb{A}\right)\vb{x} = \vb{0}$:
+
+$$
+\begin{bmatrix}
+-1 & -1\\
+-1 & -1
+\end{bmatrix}
+\begin{bmatrix}
+x_1\\ x_2
+\end{bmatrix}
+= \begin{bmatrix} 0 \\ 0 \end{bmatrix}
+\quad \implies \quad
+x_1 = -x_2.
+$$
+
+So $\vb{u}_2 = \frac{1}{\sqrt{2}}\begin{bmatrix} 1 \\ -1 \end{bmatrix}$.
+
+Let's verify: $\vb{A}\vb{u}_1 = \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix} \frac{1}{\sqrt{2}}\begin{bmatrix} 1 \\ 1 \end{bmatrix} = \frac{1}{\sqrt{2}}\begin{bmatrix} 3 \\ 3 \end{bmatrix} = 3 \cdot \frac{1}{\sqrt{2}}\begin{bmatrix} 1 \\ 1 \end{bmatrix} = 3\vb{u}_1$. The eigenvector $\vb{u}_1$ got scaled by 3, without changing direction.
+
+::: {#fig-eigenvector_stretch}
+{{< video images/eigenvector_stretch.mp4 >}}
+
+Multiplying by A scales the eigenvectors without changing their direction, while a general vector both rotates and scales.
+:::
+
+Notice two things about our eigenvectors: they are both real (not complex), and they are orthogonal to each other ($\vb{u}_1^{\intercal}\vb{u}_2 = \frac{1}{2}\left(1 \times 1 + 1 \times \left(-1\right)\right) = 0$). This is not a coincidence. Our matrix $\vb{A}$ is symmetric, and symmetric matrices have very special eigenstructure.
+
+## The Characteristic Polynomial
+
+The expression $\left\lvert\lambda\vb{I} - \vb{A}\right\rvert = 0$ that we solved above is called the **characteristic polynomial** of $\vb{A}$. For an $n \times n$ matrix, it is a polynomial of degree $n$ in $\lambda$, so it has exactly $n$ roots (counting multiplicities, and allowing complex values). These $n$ roots are the eigenvalues $\lambda_1, \lambda_2, \ldots, \lambda_n$.
+
+We should note: while the characteristic polynomial gives us a *conceptual* way to find eigenvalues, it is *not* how eigenvalues are computed in practice. Finding the roots of a high-degree polynomial is numerically difficult. Instead, practical algorithms (like the QR algorithm) use iterative methods. The characteristic polynomial is a theoretical tool, not a computational one.
+
+## Properties of Eigenvalues
+
+For a matrix $\vb{A} \in \mathbb{R}^{n \times n}$ with eigenvalues $\lambda_1, \ldots, \lambda_n$:
+
+- **The trace equals the sum of eigenvalues:**
+  $$ 
+  \text{tr}\left(\vb{A}\right) = \sum_{i=1}^{n} \lambda_i.
+  $$
+  For our example: $\text{tr}\left(\vb{A}\right) = 2 + 2 = 4 = 3 + 1 = \lambda_1 + \lambda_2$. Check.
+- **The determinant equals the product of eigenvalues:**
+  $$ 
+  \left\lvert\vb{A}\right\rvert = \prod_{i=1}^{n} \lambda_i.
+  $$
+  For our example: $\left\lvert\vb{A}\right\rvert = 2 \times 2 - 1 \times 1 = 3 = 3 \times 1 = \lambda_1 \times \lambda_2$. Check.
+- **The rank equals the number of nonzero eigenvalues.**
+- **Inverse eigenvalues:** If $\vb{A}$ is invertible with eigenvalue $\lambda$ and eigenvector $\vb{x}$, then $\vb{A}^{-1}$ has eigenvalue $1/\lambda$ with the same eigenvector $\vb{x}$. (Proof: multiply $\vb{A}\vb{x} = \lambda\vb{x}$ on both sides by $\vb{A}^{-1}$.)
+- **Diagonal matrices:** The eigenvalues of $\vb{D} = \text{diag}\left(d_1, \ldots, d_n\right)$ are simply $d_1, \ldots, d_n$, with the standard basis vectors $\vb{e}_1, \ldots, \vb{e}_n$ as eigenvectors. This makes diagonal matrices the simplest case, and as we are about to see, every symmetric matrix can be "made diagonal" in the right basis.
+
+## Eigenvalues of Symmetric Matrices {#sec-symmetric_eigenvalues}
+
+When $\vb{A}$ is a symmetric real matrix, the eigenstructure becomes remarkably clean:
+
+1. **All eigenvalues are real.** No complex numbers to worry about.
+2. **There exists a set of eigenvectors $\vb{u}_1, \ldots, \vb{u}_n$ that are orthonormal** (unit length and mutually perpendicular).
+
+We saw both properties in our $2 \times 2$ example above. These properties hold for *every* symmetric real matrix, regardless of size.
+
+## Diagonalization
+
+The orthonormal eigenvectors of a symmetric matrix lead to one of the most powerful results in linear algebra: **diagonalization**.
+
+Collect the eigenvectors as columns of a matrix $\vb{U}$, and the eigenvalues on the diagonal of $\boldsymbol{\Lambda}$:
+
+$$
+\vb{U} =
+\begin{bmatrix}
+\uparrow & \uparrow & \cdots & \uparrow\\
+\vb{u}_1 & \vb{u}_2 & \cdots & \vb{u}_n\\
+\downarrow & \downarrow & \cdots & \downarrow
+\end{bmatrix}, \quad
+\boldsymbol{\Lambda} = \text{diag}\left(\lambda_1, \lambda_2, \ldots, \lambda_n\right).
+$$
+
+Since the eigenvectors are orthonormal, $\vb{U}$ is an orthogonal matrix ($\vb{U}^{\intercal}\vb{U} = \vb{I}$). The eigenvalue equations $\vb{A}\vb{u}_i = \lambda_i\vb{u}_i$ for all $i$ can be written compactly as $\vb{A}\vb{U} = \vb{U}\boldsymbol{\Lambda}$, which gives us
+
+$$
+\vb{A} = \vb{U}\boldsymbol{\Lambda}\vb{U}^{\intercal}.
+$$ {#eq-diagonalization}
+
+This is the **eigendecomposition** (or diagonalization) of $\vb{A}$. It says that any symmetric matrix can be decomposed into a rotation ($\vb{U}^{\intercal}$), a scaling ($\boldsymbol{\Lambda}$), and a rotation back ($\vb{U}$).
+
+For our running example:
+
+$$
+\begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}
+=
+\underbrace{
+\frac{1}{\sqrt{2}}
+\begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}
+}_{\vb{U}}
+\underbrace{
+\begin{bmatrix} 3 & 0 \\ 0 & 1 \end{bmatrix}
+}_{\boldsymbol{\Lambda}}
+\underbrace{
+\frac{1}{\sqrt{2}}
+\begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}
+}_{\vb{U}^{\intercal}}.
+$$
+
+You can verify this by multiplying the three matrices on the right.
+
+Let's pause and appreciate what we just achieved. We started with a symmetric matrix $\vb{A}$ and decomposed it as $\vb{U}\boldsymbol{\Lambda}\vb{U}^{\intercal}$. This means that in the right coordinate system (defined by the eigenvectors), $\vb{A}$ is just a diagonal matrix. Everything simplifies. Let's see how.
+
+### Change of Basis
+
+Diagonalization has a beautiful interpretation in terms of **change of basis**. Any orthonormal matrix $\vb{U}$ defines a new coordinate system for $\mathbb{R}^n$. A vector $\vb{x}$ can be expressed in the eigenvector basis as $\hat{\vb{x}} = \vb{U}^{\intercal}\vb{x}$, where $\hat{x}_i$ tells us "how much of $\vb{x}$ lies along eigenvector $\vb{u}_i$."
+
+In this new basis, multiplying by $\vb{A}$ becomes trivially simple. If $\vb{z} = \vb{A}\vb{x}$, then the representation of $\vb{z}$ in the eigenvector basis is
+
+$$
+\hat{\vb{z}} = \vb{U}^{\intercal}\vb{z} = \vb{U}^{\intercal}\vb{A}\vb{x} = \vb{U}^{\intercal}\vb{U}\boldsymbol{\Lambda}\vb{U}^{\intercal}\vb{x} = \boldsymbol{\Lambda}\hat{\vb{x}} =
+\begin{bmatrix}
+\lambda_1 \hat{x}_1\\
+\lambda_2 \hat{x}_2\\
+\vdots\\
+\lambda_n \hat{x}_n
+\end{bmatrix}.
+$$
+
+In the eigenvector basis, $\vb{A}$ acts like a diagonal matrix: it just scales each coordinate by the corresponding eigenvalue. No mixing between coordinates. This is the power of diagonalization.
+
+### Simplifying Powers
+
+This perspective also simplifies repeated multiplication. If $\vb{q} = \vb{A}\vb{A}\vb{A}\vb{x} = \vb{A}^3\vb{x}$, the representation in the eigenvector basis is
+
+$$
+\hat{\vb{q}} = \boldsymbol{\Lambda}^3\hat{\vb{x}} =
+\begin{bmatrix}
+\lambda_1^3 \hat{x}_1\\
+\lambda_2^3 \hat{x}_2\\
+\vdots\\
+\lambda_n^3 \hat{x}_n
+\end{bmatrix}.
+$$
+
+Each coordinate just gets cubed eigenvalue scaling. Computing $\vb{A}^k$ directly would involve multiplying $n \times n$ matrices $k$ times, but in the eigenvector basis it is a trivial coordinate-wise operation.
+
+### Simplifying Quadratic Forms
+
+The quadratic form also becomes much simpler in the eigenvector basis:
+
+$$
+\vb{x}^{\intercal}\vb{A}\vb{x} = \vb{x}^{\intercal}\vb{U}\boldsymbol{\Lambda}\vb{U}^{\intercal}\vb{x} = \hat{\vb{x}}^{\intercal}\boldsymbol{\Lambda}\hat{\vb{x}} = \sum_{i=1}^{n} \lambda_i \hat{x}_i^2.
+$$ {#eq-quadratic_form_diagonalized}
+
+Compare this to the original form $\vb{x}^{\intercal}\vb{A}\vb{x} = \sum_{i=1}^{n}\sum_{j=1}^{n} A_{ij} x_i x_j$, which has $n^2$ terms. The diagonalized version has only $n$ terms, one per eigenvalue. This is a dramatic simplification.
+
+### Eigenvalues Determine Definiteness
+
+Equation @eq-quadratic_form_diagonalized immediately tells us the definiteness of a symmetric matrix from its eigenvalues:
+
+1. **All $\lambda_i > 0$:** Then $\vb{x}^{\intercal}\vb{A}\vb{x} = \sum_i \lambda_i \hat{x}_i^2 > 0$ for any $\hat{\vb{x}} \neq \vb{0}$, so $\vb{A}$ is **positive definite**.
+2. **All $\lambda_i \geq 0$:** $\vb{A}$ is **positive semidefinite**.
+3. **All $\lambda_i < 0$:** $\vb{A}$ is **negative definite**.
+4. **All $\lambda_i \leq 0$:** $\vb{A}$ is **negative semidefinite**.
+5. **Some $\lambda_i > 0$ and some $\lambda_j < 0$:** $\vb{A}$ is **indefinite**.
+
+Let's verify with our example. $\vb{A} = \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}$ has eigenvalues $\lambda_1 = 3 > 0$ and $\lambda_2 = 1 > 0$, so it is positive definite. This matches what we found by checking specific vectors in the previous section.
+
+For the indefinite example $\vb{A} = \begin{bmatrix} 1 & 0 \\ 0 & -1 \end{bmatrix}$, the eigenvalues are $1 > 0$ and $-1 < 0$ (it is already diagonal!), confirming it is indefinite.
+
+## Eigenvalues and Optimization
+
+Diagonalization also solves an important optimization problem. For a symmetric $\vb{A} \in \mathbb{S}^n$ with eigenvalues $\lambda_1 \geq \lambda_2 \geq \cdots \geq \lambda_n$, consider
+
+$$
+\max_{\vb{x} \in \mathbb{R}^n} \vb{x}^{\intercal}\vb{A}\vb{x} \quad \text{subject to } \left\lVert\vb{x}\right\rVert_2^2 = 1.
+$$
+
+Using @eq-quadratic_form_diagonalized and the fact that $\left\lVert\vb{x}\right\rVert_2 = \left\lVert\hat{\vb{x}}\right\rVert_2$ (since orthogonal matrices preserve norms, @eq-orthogonal_preserves_norm), this becomes
+
+$$
+\max_{\hat{\vb{x}} \in \mathbb{R}^n} \sum_{i=1}^{n} \lambda_i \hat{x}_i^2 \quad \text{subject to } \sum_{i=1}^{n} \hat{x}_i^2 = 1.
+$$
+
+Since $\lambda_1$ is the largest eigenvalue:
+
+$$
+\sum_{i=1}^{n} \lambda_i \hat{x}_i^2 \leq \lambda_1 \sum_{i=1}^{n} \hat{x}_i^2 = \lambda_1.
+$$
+
+Equality holds when $\hat{\vb{x}} = \begin{bmatrix} 1 \\ 0 \\ \vdots \\ 0 \end{bmatrix}$, which corresponds to $\vb{x} = \vb{u}_1$ (the eigenvector for the largest eigenvalue). So:
+
+**The maximum of $\vb{x}^{\intercal}\vb{A}\vb{x}$ on the unit sphere is $\lambda_1$, achieved at the corresponding eigenvector $\vb{u}_1$.**
+
+This result is at the heart of **Principal Component Analysis (PCA)**: the direction of maximum variance in data is the eigenvector corresponding to the largest eigenvalue of the covariance matrix. We will revisit this connection in the final section.
+
+## Taking Stock
+
+```{mermaid}
+%%| fig-align: center
+flowchart TD
+    A["<b>Motivation ✓</b>"] --> B["<b>Notation ✓</b>"]
+    B --> C["<b>Multiplication ✓</b>"]
+    C --> D["<b>Operations ✓</b>"]
+    D --> E["<b>Inverse, Orthogonal,<br/>Determinant ✓</b>"]
+    E --> F["<b>Range, Nullspace,<br/>Quadratic Forms ✓</b>"]
+    F --> G["<b>Eigenvalues ✓</b><br/>Natural axes, diagonalization,<br/>definiteness from signs"]
+    G --> H["<b>Matrix Calculus</b><br/>Gradients and Hessians"]
+    H --> I["..."]
+    style A fill:#555,color:#aaa
+    style B fill:#555,color:#aaa
+    style C fill:#555,color:#aaa
+    style D fill:#555,color:#aaa
+    style E fill:#555,color:#aaa
+    style F fill:#555,color:#aaa
+    style G fill:#10a37f,color:#fff
+    style H fill:#f59e0b,color:#fff
+```
+
+We now have the complete structural picture. We know what matrices are (notation), how to combine them (multiplication), what properties they have (transpose, determinant, rank), what they can reach (range), how they curve (quadratic forms, definiteness), and what their natural axes are (eigenvalues). The one remaining tool we need is **matrix calculus**: how to take derivatives of functions that involve matrices and vectors. With that in hand, we will finally derive the least squares solution to our house-price problem and complete the story.
+
+# Matrix Calculus
+
+We have all the structural tools: multiplication, inverses, eigenvalues, quadratic forms. The one thing we still lack is a way to *optimize* matrix expressions, to find the vector $\vb{x}$ that minimizes or maximizes a function of matrices. For that, we need to take derivatives. This section extends the familiar ideas of calculus (derivatives, second derivatives) to functions of vectors and matrices.
+
+The good news: the underlying calculus is nothing more than partial derivatives. The notation, however, can look intimidating. We will take it slowly, anchoring every new idea in the scalar analogues you already know.
+
+## The Gradient
+
+Suppose $f : \mathbb{R}^n \to \mathbb{R}$ is a function that takes a vector $\vb{x} \in \mathbb{R}^n$ and returns a scalar. The **gradient** of $f$ with respect to $\vb{x}$ is the vector of all partial derivatives:
+
+$$
+\nabla_{\vb{x}} f\left(\vb{x}\right) =
+\begin{bmatrix}
+\pdv{f\left(\vb{x}\right)}{x_1}\\[6pt]
+\pdv{f\left(\vb{x}\right)}{x_2}\\[6pt]
+\vdots\\[6pt]
+\pdv{f\left(\vb{x}\right)}{x_n}
+\end{bmatrix} \in \mathbb{R}^n.
+$$ {#eq-gradient_definition}
+
+The gradient is the natural extension of the derivative to multiple dimensions. It points in the direction of steepest increase of $f$, and its magnitude tells you how steep that increase is.
+
+A crucial observation: **the gradient has the same shape as $\vb{x}$**. If $\vb{x}$ is an $n$-dimensional vector, the gradient is also an $n$-dimensional vector. More generally, if we were differentiating with respect to a matrix $\vb{A} \in \mathbb{R}^{m \times n}$, the gradient $\nabla_{\vb{A}} f\left(\vb{A}\right)$ would be an $m \times n$ matrix. The shape always matches.
+
+The gradient inherits the basic properties you would expect from derivatives:
+
+$$
+\nabla_{\vb{x}}\left(f\left(\vb{x}\right) + g\left(\vb{x}\right)\right) = \nabla_{\vb{x}} f\left(\vb{x}\right) + \nabla_{\vb{x}} g\left(\vb{x}\right), \qquad
+\nabla_{\vb{x}}\left(t \, f\left(\vb{x}\right)\right) = t \, \nabla_{\vb{x}} f\left(\vb{x}\right).
+$$
+
+::: {.callout-warning}
+## The gradient is only defined for scalar-valued functions
+We can only take the gradient of a function that returns a *number*, not a vector or matrix. For example, $\nabla_{\vb{x}}\left(\vb{b}^{\intercal}\vb{x}\right)$ is well-defined because $\vb{b}^{\intercal}\vb{x}$ is a scalar. But $\nabla_{\vb{x}}\left(\vb{A}\vb{x}\right)$ is *not* defined, because $\vb{A}\vb{x}$ is a vector.
+:::
+
+### A Note on Notation
+
+There is a potential ambiguity with gradient notation that is worth flagging. Consider $f\left(\vb{z}\right) = \vb{z}^{\intercal}\vb{z}$, so $\nabla_{\vb{z}} f\left(\vb{z}\right) = 2\vb{z}$. What does $\nabla f\left(\vb{A}\vb{x}\right)$ mean?
+
+It could mean: evaluate the gradient of $f$ at the point $\vb{A}\vb{x}$, giving $2\vb{A}\vb{x} \in \mathbb{R}^m$.
+
+Or it could mean: treat $f\left(\vb{A}\vb{x}\right)$ as a function of $\vb{x}$ and differentiate with respect to $\vb{x}$, giving a result in $\mathbb{R}^n$.
+
+These are different. To avoid confusion, we always write the variable we are differentiating with respect to as a subscript: $\nabla_{\vb{z}} f\left(\vb{A}\vb{x}\right)$ for the first case, $\nabla_{\vb{x}} f\left(\vb{A}\vb{x}\right)$ for the second.
+
+## The Hessian
+
+The **Hessian** is the matrix of second partial derivatives. For $f : \mathbb{R}^n \to \mathbb{R}$:
+
+$$
+\nabla_{\vb{x}}^2 f\left(\vb{x}\right) \in \mathbb{R}^{n \times n}, \qquad
+\left(\nabla_{\vb{x}}^2 f\left(\vb{x}\right)\right)_{ij} = \frac{\partial^2 f\left(\vb{x}\right)}{\partial x_i \partial x_j}.
+$$ {#eq-hessian_definition}
+
+The Hessian is the analogue of the second derivative. It captures the *curvature* of $f$: whether the function curves upward (positive definite Hessian), downward (negative definite), or is a saddle (indefinite). The Hessian is always symmetric, since $\frac{\partial^2 f}{\partial x_i \partial x_j} = \frac{\partial^2 f}{\partial x_j \partial x_i}$.
+
+## Key Gradient and Hessian Results
+
+Let's compute the gradients and Hessians for the two types of expressions that appear in least squares.
+
+### Gradient of a Linear Function
+
+For $f\left(\vb{x}\right) = \vb{b}^{\intercal}\vb{x} = \sum_{i=1}^{n} b_i x_i$:
+
+$$
+\pdv{f}{x_k} = b_k \quad \implies \quad \nabla_{\vb{x}} \vb{b}^{\intercal}\vb{x} = \vb{b}.
+$$ {#eq-gradient_linear}
+
+This is the vector analogue of the scalar fact $\pdv{x}\left(ax\right) = a$.
+
+### Gradient and Hessian of a Quadratic Function
+
+For $f\left(\vb{x}\right) = \vb{x}^{\intercal}\vb{A}\vb{x}$ with symmetric $\vb{A}$:
+
+$$
+\nabla_{\vb{x}} \vb{x}^{\intercal}\vb{A}\vb{x} = 2\vb{A}\vb{x}.
+$$ {#eq-gradient_quadratic}
+
+This is the vector analogue of $\pdv{x}\left(ax^2\right) = 2ax$.
+
+::: {.callout-tip collapse="true"}
+## Derivation of the quadratic gradient
+We need $\pdv{f}{x_k}$ where $f\left(\vb{x}\right) = \sum_{i}\sum_{j} A_{ij} x_i x_j$. Separating terms that involve $x_k$:
+
+$$
+\pdv{f}{x_k} = \sum_{i \neq k} A_{ik} x_i + \sum_{j \neq k} A_{kj} x_j + 2A_{kk}x_k = \sum_{i=1}^{n} A_{ik} x_i + \sum_{j=1}^{n} A_{kj} x_j = 2\sum_{i=1}^{n} A_{ki} x_i,
+$$
+
+where the last equality uses symmetry ($A_{ik} = A_{ki}$). The $k$th entry of the gradient is the inner product of the $k$th row of $\vb{A}$ with $\vb{x}$, scaled by 2. In matrix form: $\nabla_{\vb{x}} \vb{x}^{\intercal}\vb{A}\vb{x} = 2\vb{A}\vb{x}$.
+:::
+
+The Hessian of the quadratic is:
+
+$$
+\nabla_{\vb{x}}^2 \vb{x}^{\intercal}\vb{A}\vb{x} = 2\vb{A}.
+$$ {#eq-hessian_quadratic}
+
+This is the vector analogue of $\pdv[2]{x}\left(ax^2\right) = 2a$. The Hessian of a quadratic form is *constant* (it does not depend on $\vb{x}$), just as the second derivative of $ax^2$ is the constant $2a$.
+
+### Summary of Key Results
+
+::: {.tbl tbl-colwidths="auto"}
+| Scalar analogue | Vector version |
+|:-:|:-:|
+| $\pdv{x}\left(ax\right) = a$ | $\nabla_{\vb{x}} \vb{b}^{\intercal}\vb{x} = \vb{b}$ |
+| $\pdv{x}\left(ax^2\right) = 2ax$ | $\nabla_{\vb{x}} \vb{x}^{\intercal}\vb{A}\vb{x} = 2\vb{A}\vb{x}$ |
+| $\pdv[2]{x}\left(ax^2\right) = 2a$ | $\nabla_{\vb{x}}^2 \vb{x}^{\intercal}\vb{A}\vb{x} = 2\vb{A}$ |
+
+: Scalar calculus and its vector analogues. {#tbl-calculus_analogues style="width:70%; margin:auto;"}
+:::
+
+The pattern is clear: the vector results mirror the scalar results, with scalars replaced by vectors and matrices. If you remember the scalar versions, the vector versions follow the same logic.
+
+## Gradients of the Determinant
+
+Before we move to least squares, there is one more gradient result that comes up in machine learning (for example, in maximum likelihood estimation for multivariate Gaussian distributions). For a square invertible matrix $\vb{A} \in \mathbb{R}^{n \times n}$, we can differentiate the determinant with respect to $\vb{A}$ itself.
+
+Recall from the cofactor expansion that
+
+$$
+\left\lvert\vb{A}\right\rvert = \sum_{i=1}^{n} \left(-1\right)^{i+j} a_{ij} \left\lvert\vb{A}_{\backslash i, \backslash j}\right\rvert \quad \text{(for any fixed } j \text{)}.
+$$
+
+Since $\left\lvert\vb{A}_{\backslash k, \backslash \ell}\right\rvert$ does not depend on $A_{k\ell}$, we can take the partial derivative directly:
+
+$$
+\pdv{\left\lvert\vb{A}\right\rvert}{A_{k\ell}} = \left(-1\right)^{k+\ell} \left\lvert\vb{A}_{\backslash k, \backslash \ell}\right\rvert = \left(\text{adj}\left(\vb{A}\right)\right)_{\ell k}.
+$$
+
+Using the adjoint formula $\vb{A}^{-1} = \frac{1}{\left\lvert\vb{A}\right\rvert} \text{adj}\left(\vb{A}\right)$, this gives us:
+
+$$
+\nabla_{\vb{A}} \left\lvert\vb{A}\right\rvert = \left\lvert\vb{A}\right\rvert \vb{A}^{-\intercal}.
+$$ {#eq-gradient_determinant}
+
+Now consider the function $f\left(\vb{A}\right) = \log \left\lvert\vb{A}\right\rvert$, which is well-defined when $\vb{A}$ is positive definite (so that $\left\lvert\vb{A}\right\rvert > 0$). Applying the ordinary chain rule:
+
+$$
+\pdv{\log \left\lvert\vb{A}\right\rvert}{A_{ij}} = \frac{1}{\left\lvert\vb{A}\right\rvert} \pdv{\left\lvert\vb{A}\right\rvert}{A_{ij}},
+$$
+
+which gives us:
+
+$$
+\nabla_{\vb{A}} \log \left\lvert\vb{A}\right\rvert = \vb{A}^{-1}.
+$$ {#eq-gradient_log_determinant}
+
+(We can drop the transpose because $\vb{A}$ is symmetric in the positive definite case.) Notice the beautiful parallel with scalar calculus: $\pdv{x} \log x = 1/x$, and $\nabla_{\vb{A}} \log \left\lvert\vb{A}\right\rvert = \vb{A}^{-1}$. The matrix inverse plays the role of the reciprocal.
+
+We are now ready for the payoff.
+
+# Least Squares
+
+We finally return to the question that started this entire journey. Recall our house-price problem from the introduction: we have the system $\vb{A}\vb{x} = \vb{b}$ (@eq-house_price_system) with $\vb{A} \in \mathbb{R}^{5 \times 2}$ and $\vb{b} \in \mathbb{R}^5$, and there is no exact solution because $\vb{b}$ does not lie in the column space of $\vb{A}$.
+
+Instead, we want the vector $\vb{x}$ that makes $\vb{A}\vb{x}$ *as close as possible* to $\vb{b}$. "As close as possible" means minimizing the squared Euclidean norm of the error:
+
+$$
+\min_{\vb{x} \in \mathbb{R}^n} \left\lVert\vb{A}\vb{x} - \vb{b}\right\rVert_2^2.
+$$ {#eq-least_squares_objective}
+
+::: {.callout-note collapse="true"}
+## Why squared error and not absolute error?
+You might wonder why we minimize the *squared* distances rather than the absolute distances ($\ell_1$ norm). There are several reasons. First, the squared error is differentiable everywhere, which means we can set the gradient to zero and solve; the absolute error has a kink at zero that makes calculus harder. Second, squaring penalizes large errors more heavily than small ones, which is often desirable. Third, if you model the errors as coming from a Gaussian (normal) distribution, minimizing the squared error is equivalent to maximizing the likelihood of the data. For these reasons, the squared error is the default choice in most of machine learning.
+:::
+
+The algebra below is short (just a few lines), and the payoff is the exact formula for the best-fit line. Here is the plan: we will expand the squared error into terms we recognize (a quadratic form, a linear term, and a constant), take the gradient using our matrix calculus results, set it to zero, and solve. Every tool we have built will contribute.
+
+Let's expand using $\left\lVert\vb{v}\right\rVert_2^2 = \vb{v}^{\intercal}\vb{v}$:
+
+$$
+\left\lVert\vb{A}\vb{x} - \vb{b}\right\rVert_2^2
+= \left(\vb{A}\vb{x} - \vb{b}\right)^{\intercal}\left(\vb{A}\vb{x} - \vb{b}\right)
+= \vb{x}^{\intercal}\vb{A}^{\intercal}\vb{A}\vb{x} - 2\vb{b}^{\intercal}\vb{A}\vb{x} + \vb{b}^{\intercal}\vb{b}.
+$$
+
+This is a quadratic function of $\vb{x}$! The first term is a quadratic form with the matrix $\vb{A}^{\intercal}\vb{A}$, the second is linear in $\vb{x}$, and the third is a constant.
+
+Now we apply the gradient results from the previous section. Taking the gradient with respect to $\vb{x}$ and using @eq-gradient_quadratic and @eq-gradient_linear:
+
+$$
+\nabla_{\vb{x}} \left(\vb{x}^{\intercal}\vb{A}^{\intercal}\vb{A}\vb{x} - 2\vb{b}^{\intercal}\vb{A}\vb{x} + \vb{b}^{\intercal}\vb{b}\right)
+= 2\vb{A}^{\intercal}\vb{A}\vb{x} - 2\vb{A}^{\intercal}\vb{b}.
+$$
+
+Setting the gradient to zero:
+
+$$
+2\vb{A}^{\intercal}\vb{A}\vb{x} - 2\vb{A}^{\intercal}\vb{b} = \vb{0}
+\quad \implies \quad
+\vb{A}^{\intercal}\vb{A}\vb{x} = \vb{A}^{\intercal}\vb{b}.
+$$
+
+This is called the **normal equation**. Recall from the quadratic forms section that $\vb{A}^{\intercal}\vb{A}$ is positive definite when $\vb{A}$ has full column rank (which our house-price matrix does), so $\vb{A}^{\intercal}\vb{A}$ is invertible. Solving for $\vb{x}$:
+
+$$
+\hat{\vb{x}} = \left(\vb{A}^{\intercal}\vb{A}\right)^{-1}\vb{A}^{\intercal}\vb{b}.
+$$ {#eq-least_squares_solution}
+
+Moreover, since the Hessian of the objective is $2\vb{A}^{\intercal}\vb{A}$ (@eq-hessian_quadratic), which is positive definite, the critical point we found is indeed a **minimum** (not a maximum or saddle). The bowl curves upward in every direction, so there is a unique bottom.
+
+This is the **least squares solution**. Let's pause and appreciate what we have done. Every tool we built throughout this post contributed to this moment:
+
+```{mermaid}
+%%| fig-align: center
+flowchart TD
+    N["<b>Notation</b><br/>Write system as Ax = b"] --> M["<b>Multiplication</b><br/>Ax computes all predictions"]
+    M --> T["<b>Transpose</b><br/>Form A⊤A and A⊤b"]
+    T --> R["<b>Rank</b><br/>A has full column rank"]
+    R --> I["<b>Inverse</b><br/>(A⊤A)⁻¹ exists"]
+    I --> PSD["<b>PSD / Gram matrix</b><br/>A⊤A is positive definite"]
+    PSD --> MC["<b>Matrix Calculus</b><br/>Set gradient to zero"]
+    MC --> H["<b>Hessian</b><br/>2A⊤A ≻ 0 confirms minimum"]
+    H --> LS["<b>Least Squares Solution</b><br/>x̂ = (A⊤A)⁻¹A⊤b"]
+    style LS fill:#f59e0b,color:#fff
+```
+
+## Solving the House-Price Problem
+
+Let's finally compute the answer for our five-house problem. We have:
+
+$$
+\vb{A} =
+\begin{bmatrix}
+1 & 2104\\
+1 & 1600\\
+1 & 2400\\
+1 & 1416\\
+1 & 3000
+\end{bmatrix}, \quad
+\vb{b} =
+\begin{bmatrix}
+399{,}900\\
+329{,}900\\
+369{,}000\\
+232{,}000\\
+539{,}900
+\end{bmatrix}.
+$$
+
+```{python}
+#| label: fig-least_squares_fit
+#| fig-cap: "The least squares line (green) minimizes the total squared error across all five data points. Compare with @fig-five_houses_no_exact_fit, where the two-house line missed badly."
+#| fig-align: center
+#| code-fold: true
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+plt.style.use('dark_background')
+
+# Data
+areas = np.array([2104, 1600, 2400, 1416, 3000])
+prices = np.array([399_900, 329_900, 369_000, 232_000, 539_900])
+
+# Build A matrix
+A = np.column_stack([np.ones(len(areas)), areas])
+
+# Least squares solution: x = (A^T A)^{-1} A^T b
+ATA = A.T @ A
+ATb = A.T @ prices
+x_hat = np.linalg.solve(ATA, ATb)
+w0, w1 = x_hat
+
+# Old line from 2-house fit
+w1_old = 70_000 / 504
+w0_old = 399_900 - w1_old * 2104
+
+x_line = np.linspace(1200, 3200, 200)
+y_ls = w0 + w1 * x_line
+y_old = w0_old + w1_old * x_line
+
+fig, ax = plt.subplots(figsize=(8, 5))
+
+# Residuals for least squares line
+for a, p in zip(areas, prices):
+    predicted = w0 + w1 * a
+    ax.plot([a, a], [predicted, p], color='#ef4444', linewidth=1.2, linestyle='--', alpha=0.7)
+
+ax.scatter(areas, prices, color='#f59e0b', s=100, zorder=5, edgecolors='white', linewidths=0.8)
+ax.plot(x_line, y_old, color='#818cf8', linewidth=1.5, linestyle=':', label='2-house fit', alpha=0.9)
+ax.plot(x_line, y_ls, color='#10a37f', linewidth=2.5, label=f'Least squares: $y = {w0:,.0f} + {w1:.1f}x$')
+
+for i, (a, p) in enumerate(zip(areas, prices)):
+    ax.annotate(f'House {i+1}', (a, p), fontsize=9, color='white',
+                textcoords="offset points", xytext=(8, 5))
+
+ax.set_xlabel('Area (sq ft)', fontsize=12)
+ax.set_ylabel('Price ($)', fontsize=12)
+ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f'{x:,.0f}'))
+ax.legend(fontsize=11, loc='upper left')
+ax.set_xlim(1200, 3200)
+ax.set_ylim(180_000, 580_000)
+
+plt.tight_layout()
+plt.show()
+```
+
+The green line is the least squares fit: the line that minimizes the total squared distance to all five data points. The dashed purple line is the old two-house fit from the introduction. The least squares line does a much better job of balancing the errors across all five houses.
+
+The weights are $w_0 \approx$ `{python} f"{w0:,.0f}"` (base price) and $w_1 \approx$ `{python} f"{w1:.1f}"` (price per square foot). These are the best possible values for a linear model given this data. To predict the price of a new 2,000 sq ft house, we simply compute $w_0 + w_1 \times 2000$, which gives approximately \$`{python} f"{w0 + w1 * 2000:,.0f}"`.
+
+## Connection to Projection
+
+Notice that @eq-least_squares_solution is the same as the projection formula @eq-projection_formula that we saw earlier. This is not a coincidence. The least squares solution $\hat{\vb{x}}$ is precisely the vector such that $\vb{A}\hat{\vb{x}}$ is the **projection** of $\vb{b}$ onto the column space of $\vb{A}$.
+
+The geometric picture is this: the vector of predicted prices $\vb{A}\hat{\vb{x}}$ is the point in the column space of $\vb{A}$ that is closest to the vector of actual prices $\vb{b}$. The residual vector $\vb{b} - \vb{A}\hat{\vb{x}}$ (the prediction errors) is **perpendicular** to every column of $\vb{A}$. This perpendicularity condition is exactly what the normal equation $\vb{A}^{\intercal}\left(\vb{b} - \vb{A}\hat{\vb{x}}\right) = \vb{0}$ says: transposing $\vb{A}$ and multiplying by the residual gives zero, which means the residual has zero inner product with each column of $\vb{A}$.
+
+This is satisfying: the calculus route (set the gradient to zero) and the geometric route (find the closest point by perpendicular projection) lead to exactly the same formula. The two perspectives reinforce each other.
+
+# Eigenvalues as Optimization
+
+There is one more payoff from our journey. In the eigenvalues section, we showed that
+
+$$
+\max_{\vb{x} \in \mathbb{R}^n} \vb{x}^{\intercal}\vb{A}\vb{x} \quad \text{subject to } \left\lVert\vb{x}\right\rVert_2^2 = 1
+$$
+
+has the optimal value $\lambda_1$ (the largest eigenvalue), achieved at the eigenvector $\vb{u}_1$.
+
+We can also derive this using matrix calculus. The **Lagrangian** for this constrained optimization problem is
+
+$$
+L\left(\vb{x}, \lambda\right) = \vb{x}^{\intercal}\vb{A}\vb{x} - \lambda\left(\vb{x}^{\intercal}\vb{x} - 1\right).
+$$
+
+Taking the gradient and setting it to zero:
+
+$$
+\nabla_{\vb{x}} L = 2\vb{A}\vb{x} - 2\lambda\vb{x} = \vb{0}
+\quad \implies \quad
+\vb{A}\vb{x} = \lambda\vb{x}.
+$$
+
+This is exactly the eigenvalue equation! The only points where the gradient of the Lagrangian vanishes are the eigenvectors of $\vb{A}$, with $\lambda$ being the corresponding eigenvalue. Among all eigenvectors (which all satisfy the constraint $\left\lVert\vb{x}\right\rVert_2 = 1$), the one that maximizes $\vb{x}^{\intercal}\vb{A}\vb{x} = \lambda$ is the eigenvector with the *largest* eigenvalue.
+
+## Connection to PCA
+
+This result is the mathematical foundation of **Principal Component Analysis (PCA)**. The idea is as follows. Given a dataset of $n$ observations in $d$ dimensions, we center the data (subtract the mean) and form the **covariance matrix** $\vb{S} = \frac{1}{n-1}\vb{X}^{\intercal}\vb{X}$, where $\vb{X}$ is the centered data matrix. The covariance matrix is symmetric and positive semidefinite (it is a Gram matrix, just like $\vb{A}^{\intercal}\vb{A}$).
+
+The question PCA asks is: "In which direction does the data vary the most?" Mathematically, this is exactly the constrained optimization problem above, with $\vb{A} = \vb{S}$. The answer: the direction of maximum variance is the eigenvector of $\vb{S}$ corresponding to its largest eigenvalue. This eigenvector is the **first principal component**.
+
+The second principal component is the eigenvector for the second-largest eigenvalue (it captures the most remaining variance, subject to being orthogonal to the first component), and so on. Each eigenvector captures the most important remaining direction in the data, after accounting for the directions already found.
+
+Let's see this concretely on our house-price data. We have two variables (area and price), so we can visualize the principal components directly.
+
+```{python}
+#| label: fig-pca_house_prices
+#| fig-cap: "PCA on the (centered and standardized) house-price data. The first principal component (green arrow) points in the direction of maximum variance: larger area tends to go with higher price. The second principal component (amber arrow) is perpendicular, capturing the remaining variation."
+#| fig-align: center
+#| code-fold: true
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+plt.style.use('dark_background')
+
+areas = np.array([2104, 1600, 2400, 1416, 3000], dtype=float)
+prices = np.array([399_900, 329_900, 369_000, 232_000, 539_900], dtype=float)
+
+# Center and standardize
+X = np.column_stack([areas, prices])
+X_centered = X - X.mean(axis=0)
+X_std = X_centered / X_centered.std(axis=0)
+
+# Covariance matrix
+S = np.cov(X_std, rowvar=False)
+
+# Eigendecomposition
+eigenvalues, eigenvectors = np.linalg.eigh(S)
+# Sort by descending eigenvalue
+idx = np.argsort(eigenvalues)[::-1]
+eigenvalues = eigenvalues[idx]
+eigenvectors = eigenvectors[:, idx]
+
+fig, ax = plt.subplots(figsize=(7, 7))
+ax.scatter(X_std[:, 0], X_std[:, 1], color='#818cf8', s=100, zorder=5,
+           edgecolors='white', linewidths=0.8, label='Houses (standardized)')
+
+# Plot principal components as arrows from origin
+scale = 2.0
+for i, (ev, color, label) in enumerate(zip(
+    [eigenvectors[:, 0], eigenvectors[:, 1]],
+    ['#10a37f', '#f59e0b'],
+    [f'PC1 (λ₁ = {eigenvalues[0]:.2f})', f'PC2 (λ₂ = {eigenvalues[1]:.2f})']
+)):
+    ax.annotate('', xy=ev * scale, xytext=(0, 0),
+                arrowprops=dict(arrowstyle='->', color=color, lw=2.5))
+    ax.text(ev[0] * scale * 1.15, ev[1] * scale * 1.15, label,
+            color=color, fontsize=11, ha='center')
+
+ax.set_xlabel('Standardized Area', fontsize=12)
+ax.set_ylabel('Standardized Price', fontsize=12)
+ax.set_aspect('equal')
+ax.legend(fontsize=10, loc='lower right')
+ax.set_xlim(-2.5, 2.5)
+ax.set_ylim(-2.5, 2.5)
+ax.axhline(0, color='gray', linewidth=0.5, alpha=0.3)
+ax.axvline(0, color='gray', linewidth=0.5, alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+```
+
+The green arrow (PC1) points along the dominant trend: as area increases, so does price. The amber arrow (PC2) captures the remaining variation, perpendicular to the first. In a higher-dimensional dataset with many features, PCA would find the handful of eigenvector directions that capture most of the variance, allowing you to reduce the dimensionality of the data while preserving the most important structure.
+
+# Conclusion
+
+Let's return to where we started. We were a real estate agent with five house sales, trying to find the best straight line to predict prices from areas. That simple question led us through an entire landscape of linear algebra:
+
+```{mermaid}
+%%| fig-align: center
+flowchart TD
+    A["<b>Motivation ✓</b><br/>5 houses, no perfect line"] --> B["<b>Notation ✓</b><br/>Matrices, vectors, Ax = b"]
+    B --> C["<b>Multiplication ✓</b><br/>Four views of AB"]
+    C --> D["<b>Operations ✓</b><br/>Transpose, norms, rank"]
+    D --> E["<b>Inverse & Determinant ✓</b><br/>When and how to solve Ax = b"]
+    E --> F["<b>Range & Quadratic Forms ✓</b><br/>Column space, projection, PSD"]
+    F --> G["<b>Eigenvalues ✓</b><br/>Natural axes, diagonalization"]
+    G --> H["<b>Matrix Calculus ✓</b><br/>Gradients, Hessians, det gradient"]
+    H --> I["<b>Least Squares ✓</b><br/>x̂ = (A⊤A)⁻¹A⊤b"]
+    I --> J["<b>Eigenvalue Optimization ✓</b><br/>PCA and max variance"]
+    style A fill:#10a37f,color:#fff
+    style I fill:#f59e0b,color:#fff
+    style J fill:#f59e0b,color:#fff
+```
+
+We started with a concrete problem (green) and built every tool, step by step, until we could solve it (amber). The least squares formula $\hat{\vb{x}} = \left(\vb{A}^{\intercal}\vb{A}\right)^{-1}\vb{A}^{\intercal}\vb{b}$ gave us the best-fit line: a base price of roughly \\$`{python} f"{w0:,.0f}"` plus about \\$`{python} f"{w1:.0f}"` per square foot. Along the way, we discovered that the same machinery powers far more than house-price prediction: eigenvalues reveal the most important directions in data (PCA), quadratic forms determine whether optimization problems have clean solutions, and the interplay of range, nullspace, and projection connects geometry to algebra.
+
+Linear algebra is not just a prerequisite to check off before studying machine learning. It *is* the language of machine learning. Every model you train, every dataset you transform, every optimization you run is, at its core, a linear algebra operation. The concepts in this post will reappear, in various guises, throughout your journey.
+
+For further reading, @Strang2023IntroductionLinearAlgebra provides a gentle and geometrically rich treatment of the topics we covered, and the original CS229 notes by @kolter2020linalg serve as an excellent compact reference for quick lookups.
