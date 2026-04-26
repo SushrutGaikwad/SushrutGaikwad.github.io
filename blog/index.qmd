@@ -5,6 +5,7 @@ listing:
   type: default
   sort: date desc
   categories: true
+  page-size: 5
   fields: [
     title,
     date,
