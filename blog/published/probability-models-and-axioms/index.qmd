@@ -604,50 +604,59 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import numpy as np
 
-plt.style.use('dark_background')
+plt.style.use("dark_background")
 
 fig, ax = plt.subplots(1, 1, figsize=(5, 5))
 
 # Draw the unit square
-square = patches.Rectangle((0, 0), 1, 1, linewidth=1.5, edgecolor='#e6e6e6', facecolor='#333333')
+square = patches.Rectangle(
+    (0, 0), 1, 1, linewidth=1.5, edgecolor="#e6e6e6", facecolor="#333333"
+)
 ax.add_patch(square)
 
 # Shade the triangle X + Y <= 1/2
 triangle = patches.Polygon(
     [[0, 0], [0.5, 0], [0, 0.5]],
     closed=True,
-    facecolor='#10a37f',
-    edgecolor='#10a37f',
+    facecolor="#10a37f",
+    edgecolor="#10a37f",
     alpha=0.7,
-    linewidth=2
+    linewidth=2,
 )
 ax.add_patch(triangle)
 
 # Draw the line X + Y = 1/2
-ax.plot([0.5, 0], [0, 0.5], color='#10a37f', linewidth=2)
+ax.plot([0.5, 0], [0, 0.5], color="#10a37f", linewidth=2)
 
 # Labels
-ax.set_xlabel('$x$', fontsize=14, color='#e6e6e6')
-ax.set_ylabel('$y$', fontsize=14, color='#e6e6e6')
+ax.set_xlabel("$x$", fontsize=14, color="#e6e6e6")
+ax.set_ylabel("$y$", fontsize=14, color="#e6e6e6")
 ax.set_xlim(-0.1, 1.15)
 ax.set_ylim(-0.1, 1.15)
-ax.set_aspect('equal')
+ax.set_aspect("equal")
 
 # Annotate
-ax.text(0.12, 0.12, '$X + Y \\leq \\frac{1}{2}$', fontsize=13, color='white', fontweight='bold')
-ax.text(0.55, 0.02, '$\\frac{1}{2}$', fontsize=12, color='#10a37f')
-ax.text(-0.07, 0.5, '$\\frac{1}{2}$', fontsize=12, color='#10a37f')
+ax.text(
+    0.12,
+    0.08,
+    "$X + Y \\leq \\frac{1}{2}$",
+    fontsize=13,
+    color="white",
+    fontweight="bold",
+)
+ax.text(0.55, 0.02, "$\\frac{1}{2}$", fontsize=12, color="#10a37f")
+ax.text(-0.07, 0.5, "$\\frac{1}{2}$", fontsize=12, color="#10a37f")
 
 # Tick styling
-ax.tick_params(colors='#e6e6e6')
+ax.tick_params(colors="#e6e6e6")
 ax.set_xticks([0, 0.5, 1])
 ax.set_yticks([0, 0.5, 1])
 
 for spine in ax.spines.values():
-    spine.set_color('#555555')
+    spine.set_color("#555555")
 
-fig.patch.set_facecolor('#222222')
-ax.set_facecolor('#222222')
+fig.patch.set_facecolor("#222222")
+ax.set_facecolor("#222222")
 
 plt.tight_layout()
 plt.show()
