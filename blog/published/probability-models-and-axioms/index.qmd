@@ -3,9 +3,9 @@ title: "Probability Models and Axioms"
 draft: false
 author: "Sushrut"
 date: 2026-03-25
-description: "Building the foundation of probability theory from scratch: sample spaces, events, and the three axioms that govern all of probability."
-categories: [Probability, Mathematics]
-tags: [Probability, Axioms, Sample Space, Blog]
+description: "Building the foundations of probability from scratch: sample spaces, events, probability axioms, and the discrete and continuous uniform laws."
+categories: [Probability]
+tags: [Probability, Statistics, Foundations]
 format:
   html:
     link-citations: true
@@ -22,712 +22,449 @@ execute:
   fig-format: svg
 ---
 
-This post is the first in a series covering the core ideas from MIT's *Probabilistic Systems Analysis and Applied Probability* course [@probabilistic-systems-analysis-applied-probability-playlist] and its newer counterpart, *Introduction to Probability* [@intro-to-probability-spring-2018-playlist]. The primary textbook for this series is @bertsekas2008introduction, and we will occasionally reference @blitzstein2019introduction for complementary perspectives. This first post covers the material from Sections 1.1 and 1.2 of @bertsekas2008introduction.
+This is the first post in a series on probability and statistics, following the MIT OCW course *6.041 Probabilistic Systems Analysis and Applied Probability* [@probabilistic-systems-analysis-applied-probability-playlist] and its newer version *RES.6-012 Introduction to Probability* [@intro-to-probability-spring-2018-playlist]. The primary textbook for this series is @bertsekas2008introduction, and we will occasionally draw on @blitzstein2019introduction for supplementary perspectives. This post covers the material from Lecture 1 and Sections 1.1 and 1.2 of @bertsekas2008introduction.
 
-# Why Probability?
+# Introduction: Why Do We Need Probability?
 
-Imagine you are about to leave the house. You glance at the sky: it is overcast, but not dark. Should you carry an umbrella?
+Imagine you and a friend are trying to decide where to eat tonight. You have four restaurants in mind: a Thai place, a pizza joint, a sushi bar, and a burger spot. Neither of you can decide, so you grab a four-sided die (yes, they exist; think of a tetrahedron) and agree to let the roll decide.
 
-You do not know whether it will rain. Nobody does, not with certainty. But you do have *beliefs* about how likely rain is. Maybe you checked the forecast and saw a 30% chance. Maybe you just noticed the clouds and thought "probably not, but maybe." Either way, you are doing something interesting: you are *reasoning about uncertainty*. You are assigning some notion of "likelihood" to different possible futures and using that to make a decision.
+You roll the die. Before it lands, a simple question pops into your head: *what are the chances I end up eating sushi tonight?*
 
-This kind of reasoning is not limited to weather. An engineer designing a communication system must account for random noise. A data scientist building a model must account for variability in the data. A doctor interpreting a test result must weigh the probability that the patient actually has the disease. A poker player deciding whether to fold must estimate the likelihood of various hands.
+This is a question about uncertainty. You do not know what the die will show, but you are not completely in the dark either. You know it must land on one of four faces. You know (assuming a fair die) that no face is more likely than another. And from those two pieces of knowledge alone, you can reason your way to an answer.
 
-The situations differ wildly, but the underlying challenge is the same: how do we think about uncertainty in a precise, systematic way? Probability theory gives us exactly this. It provides a mathematical framework for describing what *could* happen, how likely each possibility is, and how to reason logically from those likelihoods to useful conclusions.
+That, in a nutshell, is what probability theory gives us: a *systematic framework for reasoning about uncertainty*. The situations we care about might be far more complex than a dinner decision (think noise in a communication channel, fluctuations in a stock price, randomness in clinical trial outcomes), but the basic concepts and tools are always the same [@bertsekas2008introduction, Chapter 1]. As Prof. Tsitsiklis puts it in the opening lecture: you may see books titled "Probability for Engineers" or "Probability for Scientists," but what is inside them is exactly the same models, the same equations, the same ideas [@probabilistic-systems-analysis-applied-probability-playlist].
 
-In this post, we build that framework from the ground up. By the end, you will know the three ingredients of any probabilistic model and the three axioms that every probability assignment must satisfy. These axioms are simple, almost obvious, but they are the foundation on which the entire edifice of probability and statistics rests.
+So, what does it take to set up this framework? By the end of this post, you will know the answer. It comes down to three ingredients: a **sample space** (what *can* happen), **events** (the questions we ask about what happened), and a **probability law** (how likely each event is). Let us see how these three pieces fit together.
 
-# The Road Ahead
+# Our Roadmap
 
-Before we dive in, here is a map of the journey we are about to take.
+Here is the journey we are about to take.
 
 ```{mermaid}
 %%| fig-align: center
 flowchart TD
-    A["<b>Motivation</b><br/>Why do we need a framework<br/>for uncertainty?"]
-    B["<b>Sample Space</b><br/>What can possibly happen?"]
-    C["<b>Events</b><br/>What do we care about?"]
-    D["<b>Probability Axioms</b><br/>The three rules of the game"]
-    E["<b>Discrete Uniform Law</b><br/>Tetrahedral die example"]
-    F["<b>Continuous Uniform Law</b><br/>Darts on a square"]
-    G["<b>Countable Additivity</b><br/>When three axioms<br/>are not quite enough"]
-    H["<b>Wrap-Up</b><br/>The complete recipe"]
-
-    A --> B --> C --> D --> E --> F --> G --> H
+    A["Motivation:<br/>Why probability?"] --> B["The Sample Space:<br/>Listing all possibilities"]
+    B --> C["Events:<br/>The questions we ask"]
+    C --> D["Probability Axioms:<br/>Rules of the game"]
+    D --> E["Discrete Uniform Law:<br/>Counting outcomes"]
+    E --> F["Continuous Uniform Law:<br/>Probability as area"]
+    F --> G["Countable Additivity:<br/>Infinite sample spaces"]
+    G --> H["Wrap-Up:<br/>The three ingredients"]
 
     style A fill:#10a37f,color:#fff
 ```
 
-We start with the most basic question: if we are going to describe an uncertain situation, what is the first thing we need to write down?
+We will start by defining the sample space and understanding what makes a good one. Then we will introduce events and the set operations that let us combine them. With those concepts in hand, we will state the probability axioms (the "rules of the game") and see what we can derive from them. Finally, we will put everything to work on concrete examples, both discrete and continuous, before closing with a glimpse at the subtlety that arises when sample spaces become infinite.
 
-# The Sample Space
+# The Sample Space: Listing All Possibilities
 
-## Starting with a Simple Experiment
+## What Is a Sample Space?
 
-Let us begin with something concrete. You have a coin. You flip it once. What are all the possible things that could happen?
+Every probability problem begins with an **experiment**: something happens, and the result is uncertain. It could be flipping a coin, rolling a die, measuring a patient's blood pressure, or throwing a dart at a board. The first step in building a probabilistic model is to write down a complete list of everything that *could* happen.
 
-Only two: **Heads** or **Tails**. That is it. There is no third possibility (we are ignoring the coin landing on its edge, which is a modeling choice we will discuss shortly). We can write this as a set:
+This list is called the **sample space**, and we denote it by $\Omega$ (the Greek capital letter omega). Formally, the sample space is a *set* whose elements are all the possible **outcomes** of the experiment.
 
-$$
-\Omega = \left\{\text{Heads}, \text{Tails}\right\}.
-$$
-
-This set, $\Omega$ (the Greek capital letter "omega"), is called the **sample space** of the experiment. It is the collection of all possible outcomes. Every probabilistic model starts here: before we can talk about how likely anything is, we first need to be completely clear about what *can* happen.
-
-## Two Requirements
-
-The sample space must satisfy two properties:
-
-1. **Mutually exclusive:**
-    - At the end of the experiment, exactly one outcome occurs. If the coin lands Heads, it did not land Tails. The outcomes cannot overlap.
-2. **Collectively exhaustive:**
-    - The list covers *every* possibility. No matter what happens when you flip the coin, the result is somewhere in $\Omega$. You have not forgotten anything.
-
-These two requirements together mean that when the experiment is done, you can point to exactly one element of $\Omega$ and say: "this is what happened."
-
-## The Art of Choosing the Right Sample Space
-
-Here is a subtlety that is easy to overlook. Consider the same coin flip, but now imagine someone proposes the following sample space:
+For our restaurant die roll, the sample space is simply:
 
 $$
-\Omega' = \left\{\text{Heads}, \text{Tails and raining outside}, \text{Tails and not raining outside}\right\}.
+\Omega = \left\{\text{Thai}, \text{Pizza}, \text{Sushi}, \text{Burger}\right\}.
 $$
 
-Is this a valid sample space? Technically, yes. The three outcomes are mutually exclusive and collectively exhaustive. But is it *useful*? Almost certainly not. Unless you have some superstitious belief that the weather affects your coin, including "raining outside" in your model adds complexity without adding insight.
+There are exactly two requirements that every sample space must satisfy [@bertsekas2008introduction, Section 1.1]:
 
-This illustrates a broader point that applies to all of science and engineering: when you build a model of a real situation, you choose which details to include and which to leave out. A good sample space captures the features that matter for your problem and ignores the rest. There is no single "correct" sample space for a given experiment; there is only a *useful* one. As @bertsekas2008introduction put it, choosing the right level of granularity for the sample space is partly an art.
+1. **Mutually exclusive.** At the end of the experiment, exactly one outcome occurs. If the die lands on "Thai," it has not also landed on "Pizza." Two different outcomes cannot happen simultaneously.
+2. **Collectively exhaustive.** The list covers every possibility. No matter what happens, the result is somewhere in $\Omega$. You have not forgotten any outcome.
 
-## A Richer Example: Two Rolls of a Tetrahedral Die
+In short, when the experiment is over, you should be able to point to *exactly one* element of $\Omega$ and say, "This is what happened."
 
-Coin flips are a fine starting point, but let us work with something that gives us more to explore. Imagine a four-sided die (a tetrahedron). When you roll it, the result is 1, 2, 3, or 4. Now consider the experiment of rolling this die **twice**.
+## The Art of Choosing Granularity
 
-A crucial point: we treat both rolls together as a single experiment, not as two separate experiments. The outcome of this single experiment is an ordered pair $\left(x, y\right)$, where $x$ is the result of the first roll and $y$ is the result of the second roll.
-
-For example, $\left(2, 3\right)$ means "the first roll was 2 and the second roll was 3." This is a different outcome from $\left(3, 2\right)$, where the first roll was 3 and the second roll was 2. Even though the same two numbers appeared, the order matters.
-
-The full sample space is the set of all such pairs:
+Here is a subtlety that is easy to overlook. Consider a simpler experiment: flipping a single coin. The natural sample space is $\Omega = \left\{\text{Heads}, \text{Tails}\right\}$. But what if you are superstitious, and you believe that rain affects your coin? Then you *could* write down:
 
 $$
-\Omega = \left\{\left(i, j\right) : i \in \left\{1, 2, 3, 4\right\},\; j \in \left\{1, 2, 3, 4\right\}\right\}.
+\Omega = \left\{\text{Heads}, \text{Tails and raining}, \text{Tails and not raining}\right\}.
 $$
 
-This gives us $4 \times 4 = 16$ possible outcomes. We can visualize them as a grid.
+This is a perfectly valid sample space. It is mutually exclusive and collectively exhaustive. But is it *useful*? Probably not, unless you genuinely believe rain influences coin flips. The lesson is that setting up a sample space involves an element of **modeling judgment**. You choose which details to include and which to leave out. As @bertsekas2008introduction [Section 1.1] puts it, the sample space should be at the "right" granularity for the problem at hand.
 
-```{dot}
-//| label: fig-tetrahedral_die_sample_space
-//| fig-cap: "The sample space for two rolls of a tetrahedral die. Each cell represents one outcome $(x, y)$."
-graph sample_space {
-    bgcolor="transparent"
-    node [fontcolor="#e6e6e6", style=filled, color="#555555", fillcolor="#333333", fontname="Helvetica", shape=plaintext]
-    edge [color="#e6e6e6", fontcolor="#e6e6e6"]
-    graph [fontcolor="#e6e6e6", fontname="Helvetica"]
+This is not unique to probability. In any scientific model, you keep the details that matter and discard the ones that do not. The coin-and-rain example is silly, but the principle shows up everywhere: an engineer modeling a communication channel must decide which sources of noise to include and which to ignore. The art lies in finding the right level of detail.
 
-    grid [label=<
-        <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="10" COLOR="#777777">
-            <TR>
-                <TD BGCOLOR="transparent" BORDER="0" WIDTH="50"><FONT COLOR="#aaaaaa"><B>Y \ X</B></FONT></TD>
-                <TD BGCOLOR="transparent" BORDER="0" WIDTH="50"><FONT COLOR="#10a37f"><B>1</B></FONT></TD>
-                <TD BGCOLOR="transparent" BORDER="0" WIDTH="50"><FONT COLOR="#10a37f"><B>2</B></FONT></TD>
-                <TD BGCOLOR="transparent" BORDER="0" WIDTH="50"><FONT COLOR="#10a37f"><B>3</B></FONT></TD>
-                <TD BGCOLOR="transparent" BORDER="0" WIDTH="50"><FONT COLOR="#10a37f"><B>4</B></FONT></TD>
-            </TR>
-            <TR>
-                <TD BGCOLOR="transparent" BORDER="0"><FONT COLOR="#10a37f"><B>4</B></FONT></TD>
-                <TD BGCOLOR="#333333"><FONT COLOR="#e6e6e6">(1,4)</FONT></TD>
-                <TD BGCOLOR="#333333"><FONT COLOR="#e6e6e6">(2,4)</FONT></TD>
-                <TD BGCOLOR="#333333"><FONT COLOR="#e6e6e6">(3,4)</FONT></TD>
-                <TD BGCOLOR="#333333"><FONT COLOR="#e6e6e6">(4,4)</FONT></TD>
-            </TR>
-            <TR>
-                <TD BGCOLOR="transparent" BORDER="0"><FONT COLOR="#10a37f"><B>3</B></FONT></TD>
-                <TD BGCOLOR="#333333"><FONT COLOR="#e6e6e6">(1,3)</FONT></TD>
-                <TD BGCOLOR="#333333"><FONT COLOR="#e6e6e6">(2,3)</FONT></TD>
-                <TD BGCOLOR="#333333"><FONT COLOR="#e6e6e6">(3,3)</FONT></TD>
-                <TD BGCOLOR="#333333"><FONT COLOR="#e6e6e6">(4,3)</FONT></TD>
-            </TR>
-            <TR>
-                <TD BGCOLOR="transparent" BORDER="0"><FONT COLOR="#10a37f"><B>2</B></FONT></TD>
-                <TD BGCOLOR="#333333"><FONT COLOR="#e6e6e6">(1,2)</FONT></TD>
-                <TD BGCOLOR="#333333"><FONT COLOR="#e6e6e6">(2,2)</FONT></TD>
-                <TD BGCOLOR="#333333"><FONT COLOR="#e6e6e6">(3,2)</FONT></TD>
-                <TD BGCOLOR="#333333"><FONT COLOR="#e6e6e6">(4,2)</FONT></TD>
-            </TR>
-            <TR>
-                <TD BGCOLOR="transparent" BORDER="0"><FONT COLOR="#10a37f"><B>1</B></FONT></TD>
-                <TD BGCOLOR="#333333"><FONT COLOR="#e6e6e6">(1,1)</FONT></TD>
-                <TD BGCOLOR="#333333"><FONT COLOR="#e6e6e6">(2,1)</FONT></TD>
-                <TD BGCOLOR="#333333"><FONT COLOR="#e6e6e6">(3,1)</FONT></TD>
-                <TD BGCOLOR="#333333"><FONT COLOR="#e6e6e6">(4,1)</FONT></TD>
-            </TR>
-        </TABLE>
-    >]
-}
-```
+## Discrete Example: Two Rolls of a Tetrahedral Die
 
-Let $X$ denote the result of the first roll (the column) and $Y$ denote the result of the second roll (the row). Each cell in @fig-tetrahedral_die_sample_space is one outcome, and there are 16 cells in total.
+Now let us look at a richer example, the one that will carry us through most of this post. Instead of a six-sided die, we use a **tetrahedral die** (four faces, numbered 1 through 4). We roll it **twice**, and we treat this as a single experiment whose outcome is the pair of results from both rolls.
 
-## The Sequential (Tree) Description
+A crucial point: even though the experiment has two stages (first roll, second roll), we think of it as *one* experiment. The outcome is not just the first roll or the second roll; it is the pair. For example, if the first roll gives 2 and the second gives 3, the outcome is the ordered pair $\left(2, 3\right)$. And this is *different* from the outcome $\left(3, 2\right)$, where the 3 came first.
 
-There is another way to describe this same sample space that is especially useful when the experiment unfolds in stages. Since our experiment has two stages (first roll, then second roll), we can draw a **tree** that traces out all the possible ways the experiment can evolve.
+### The Grid Description
 
-```{mermaid}
-%%| fig-align: center
-flowchart LR
-    R["Start"] --> A1["1"]
-    R --> A2["2"]
-    R --> A3["3"]
-    R --> A4["4"]
+Since each roll has 4 possible results and the rolls are independent, there are $4 \times 4 = 16$ possible outcomes. We can lay them out on a grid, with the first roll ($X$) on the horizontal axis and the second roll ($Y$) on the vertical axis.
 
-    A1 --> B11["(1,1)"]
-    A1 --> B12["(1,2)"]
-    A1 --> B13["(1,3)"]
-    A1 --> B14["(1,4)"]
+![Sample space for two rolls of a tetrahedral die.](images/tetrahedral_die_grid.png){#fig-tetrahedral_die_grid fig-align="center" width=70%}
 
-    A2 --> B21["(2,1)"]
-    A2 --> B22["(2,2)"]
-    A2 --> B23["(2,3)"]
-    A2 --> B24["(2,4)"]
+Each cell in this grid represents exactly one outcome, and together the 16 cells make up the entire sample space $\Omega$. This satisfies our two requirements: the outcomes are mutually exclusive (if the result is $\left(2, 3\right)$, it is not $\left(1, 4\right)$), and they are collectively exhaustive (every possible pair of rolls is accounted for).
 
-    A3 --> B31["(3,1)"]
-    A3 --> B32["(3,2)"]
-    A3 --> B33["(3,3)"]
-    A3 --> B34["(3,4)"]
+### The Tree Description
 
-    A4 --> B41["(4,1)"]
-    A4 --> B42["(4,2)"]
-    A4 --> B43["(4,3)"]
-    A4 --> B44["(4,4)"]
-```
+There is another way to describe the same sample space that is especially useful for experiments that unfold in stages. We can draw a **tree** (sometimes called a sequential description), where each branch represents a choice at a particular stage.
 
-The first level of the tree represents the four possible results of the first roll. From each of those, four branches lead to the possible results of the second roll. Each **leaf** (endpoint) of the tree corresponds to exactly one outcome in our sample space. There are $4 \times 4 = 16$ leaves, matching the 16 cells in the grid.
+![Sequential (tree) description of two rolls of a tetrahedral die.](images/sequential_tree.png){#fig-sequential_tree fig-align="center" width=100%}
 
-A quick note on language: when we talk about the result of a single roll, we call it a **result** or a **stage result**. We reserve the word **outcome** for the complete description of what happened in the entire experiment. So $\left(2, 3\right)$ is the outcome; 2 is the result of the first stage, and 3 is the result of the second stage.
+The first level of branches represents the result of the first roll. From each first-level branch, four more branches sprout, representing the result of the second roll. Each **leaf** (endpoint) of the tree corresponds to exactly one outcome. There are 16 leaves, matching the 16 cells in our grid.
 
-## Finite vs. Infinite Sample Spaces
+A small note on language: we reserve the word "outcome" for the *overall* result of the experiment (the pair $\left(2, 3\right)$, for instance). The number 2 is the "result" of the first stage; the number 3 is the "result" of the second stage. They combine into one outcome.
 
-The tetrahedral die example has a *finite* sample space: there are exactly 16 outcomes. But not every experiment is this tidy. Consider the following scenario.
+The grid and the tree are two views of the same sample space. The grid is compact and makes it easy to identify subsets visually. The tree makes the sequential structure of the experiment explicit. Both are useful; which one you reach for depends on the question at hand.
 
-You are throwing a dart at a square dartboard whose sides go from 0 to 1. You are guaranteed to hit the board (you are very good at darts), but exactly *where* the dart lands is uncertain. A typical outcome is a pair of coordinates $\left(x, y\right)$ where $x$ and $y$ are real numbers between 0 and 1. The sample space is:
+## Continuous Example: The Dart on a Unit Square
+
+Not every sample space is finite. Here is an experiment with infinitely many outcomes: you throw a dart at a square target with side length 1. You are a perfect shot, so the dart always lands somewhere inside the square, but *where* exactly is random.
+
+The outcome of this experiment is the point $\left(x, y\right)$ where the dart lands, and both $x$ and $y$ are real numbers between 0 and 1. The sample space is:
 
 $$
-\Omega = \left\{\left(x, y\right) : 0 \leq x \leq 1,\; 0 \leq y \leq 1\right\}.
+\Omega = \left\{\left(x, y\right) \mid 0 \leq x \leq 1,\ 0 \leq y \leq 1\right\}.
 $$
 
-This is the unit square, and it contains *infinitely* many points. In fact, it contains uncountably many points. This is an example of a **continuous** sample space, and it will require us to think about probability slightly differently than in the discrete case. We will come back to this example after we have established the rules.
+![Continuous sample space: the unit square.](images/unit_square_sample_space.png){#fig-unit_square_sample_space fig-align="center" width=50%}
 
-Let us take stock. We now know the first ingredient of any probabilistic model: the sample space $\Omega$. It is a set that lists all the possible outcomes of an experiment, and it must be mutually exclusive and collectively exhaustive. We have seen that sample spaces can be finite (like the die) or infinite (like the dartboard). But knowing *what* can happen is only half the story. The next question is: how likely is each possibility?
+This is an infinite (uncountably infinite, in fact) sample space. Every single point in the square is a possible outcome. We will return to this example later when we discuss continuous probability laws, but for now, the important thing is that the concept of a sample space is flexible enough to handle both finite and infinite cases.
 
-```{mermaid}
-%%| fig-align: center
-flowchart TD
-    A["<b>Motivation</b><br/>Why do we need a framework<br/>for uncertainty?"]
-    B["<b>Sample Space</b><br/>What can possibly happen?"]
-    C["<b>Events</b><br/>What do we care about?"]
-    D["<b>Probability Axioms</b><br/>The three rules of the game"]
-    E["<b>Discrete Uniform Law</b><br/>Tetrahedral die example"]
-    F["<b>Continuous Uniform Law</b><br/>Darts on a square"]
-    G["<b>Countable Additivity</b><br/>When three axioms<br/>are not quite enough"]
-    H["<b>Wrap-Up</b><br/>The complete recipe"]
+You might be wondering: if the sample space is infinite, how do we assign probabilities? After all, there are infinitely many points. The answer involves assigning probabilities not to individual points, but to *subsets* of the sample space. That brings us to our next topic.
 
-    A --> B --> C --> D --> E --> F --> G --> H
+# Events: The Questions We Ask
 
-    style A fill:#555555,color:#aaaaaa
-    style B fill:#555555,color:#aaaaaa
-    style C fill:#10a37f,color:#fff
-```
+## What Is an Event?
 
-# Events: The Objects That Get Probabilities
+Once we have a sample space, the natural next step is to ask questions about the outcome. Questions like: "Did the first roll come up 1?" or "Is the sum of the two rolls odd?" or "Did the dart land in the upper-left quarter of the board?"
 
-## Why Not Assign Probabilities to Individual Outcomes?
-
-Your first instinct might be: just assign a probability to every single outcome. For the tetrahedral die, that works fine. We have 16 outcomes, and we can assign a number to each one.
-
-But remember the dartboard. Consider a specific point, say $\left(0.5, 0.3\right)$. What should the probability of hitting *exactly* that point be? Intuitively, it should be zero. A single point has no area, and with infinitely many points on the board, the chance of hitting any particular one with infinite precision is zero.
-
-If every individual outcome has zero probability, then telling someone "the probability of each outcome is zero" is not very informative. It does not help us distinguish between, say, the upper half of the board and a tiny corner. We need a richer language.
-
-## Events to the Rescue
-
-The solution is to assign probabilities not to individual outcomes, but to **subsets** of the sample space. In probability, these subsets are called **events**.
-
-An event is simply a collection of outcomes. For example, in the tetrahedral die experiment (whose sample space is given in @fig-tetrahedral_die_sample_space):
-
-- "The first roll is 1" is the event $\left\{\left(1,1\right), \left(1,2\right), \left(1,3\right), \left(1,4\right)\right\}$.
-- "The sum of the two rolls is odd" is the event containing all outcomes $\left(x, y\right)$ where $x + y$ is an odd number.
-- "The minimum of the two rolls is 2" is the event containing all outcomes where $\min\left(x, y\right) = 2$.
-
-In the dartboard experiment:
-
-- "The dart lands in the upper half" is the event $\left\{\left(x, y\right) : y > 0.5\right\}$.
-- "The sum of the coordinates is at most $1/2$" is the event $\left\{\left(x, y\right) : x + y \leq 1/2\right\}$, which is a triangular region.
-
-We say that an event $A$ **occurred** if the actual outcome of the experiment is an element of $A$. If the outcome falls outside $A$, then $A$ **did not occur**. This language turns out to be very natural: "Did the event 'the first roll is 1' occur? Yes, because the outcome was $\left(1, 3\right)$, and that is in the set."
-
-Now we are ready for the main question: if we are going to assign probabilities to events, what rules should those probabilities follow?
-
-# The Probability Axioms
-
-## The Ground Rules
-
-A **probability law** is a function that takes an event (a subset of $\Omega$) and returns a number, which we interpret as the "likelihood" that the event occurs. But not just any function will do. The function must obey three rules, called the **axioms of probability**. These axioms, first formalized by Andrey Kolmogorov in 1933 [@kolmogoroff1933grundbegriffe], are the ground rules that any legitimate probability assignment must satisfy.
+Each such question carves out a **subset** of the sample space, consisting of all the outcomes for which the answer is "yes." In probability, we call these subsets **events**.
 
 ::: {.callout-note}
-## The Three Axioms of Probability
-
-Let $\Omega$ be a sample space and let $\mathrm{P}$ be a probability law defined on events (subsets of $\Omega$). Then:
-
-1. **(Nonnegativity)** For every event $A$,
-
-  $$
-  \mathrm{P}\left(A\right) \geq 0.
-  $$
-
-2. **(Normalization)** The probability of the entire sample space is
-
-  $$
-  \mathrm{P}\left(\Omega\right) = 1.
-  $$
-
-3. **(Additivity)** If two events $A$ and $B$ are **disjoint** (meaning $A \cap B = \varnothing$; they share no outcomes), then
-
-  $$
-  \mathrm{P}\left(A \cup B\right) = \mathrm{P}\left(A\right) + \mathrm{P}\left(B\right).
-  $$
+An **event** is a subset of the sample space $\Omega$. We say that event $A$ **occurred** if the actual outcome of the experiment is an element of $A$. If the outcome falls outside $A$, we say event $A$ **did not occur**.
 :::
 
-Let us unpack each one.
+Let us make this concrete with our tetrahedral die example. Consider the event "the first roll is 1." This corresponds to the subset:
 
-- **Axiom 1 (Nonnegativity)** says that probabilities cannot be negative. A probability of zero means "this event is essentially impossible." A probability of 0.5 means "this event is moderately likely." But $-0.3$ as a probability? That has no meaning. Probabilities are always at least zero.
-- **Axiom 2 (Normalization)** says that *something* must happen. Since the sample space $\Omega$ contains all possible outcomes, the event "the outcome is somewhere in $\Omega$" is certain. We represent certainty with the number 1.
-- **Axiom 3 (Additivity)** is the most interesting one. It says: if two events cannot both happen at the same time (they are disjoint), then the probability of *either one* happening is the sum of their individual probabilities.
+$$
+A = \left\{\left(1, 1\right), \left(1, 2\right), \left(1, 3\right), \left(1, 4\right)\right\}.
+$$
+
+On our 4x4 grid, this is the entire first column. If the experiment's outcome happens to be $\left(1, 3\right)$, then event $A$ occurred. If the outcome is $\left(2, 4\right)$, then event $A$ did not occur.
+
+![The event $\left\{X = 1\right\}$ highlighted on the sample space.](images/event_X_equals_1.png){#fig-event_X_equals_1 fig-align="center" width=70%}
+
+## Combining Events: Set Operations
+
+Because events are sets, we can combine them using the standard set operations. These operations let us build complex events out of simpler ones.
+
+**Intersection** ($A \cap B$): The event that *both* $A$ and $B$ occur. This is the set of outcomes that belong to both $A$ and $B$. In everyday language, $A \cap B$ is "$A$ *and* $B$."
+
+**Union** ($A \cup B$): The event that $A$ or $B$ (or both) occur. This is the set of outcomes that belong to at least one of $A$ or $B$. In everyday language, $A \cup B$ is "$A$ *or* $B$."
+
+**Complement** ($A^{\mathsf{c}}$): The event that $A$ does *not* occur. This is the set of outcomes in $\Omega$ that are not in $A$.
+
+![Set operations: intersection ($A \cap B$), union ($A \cup B$), and complement ($A^{\mathsf{c}}$).](images/set_operations.png){#fig-set_operations fig-align="center" width=100%}
+
+Two events are called **disjoint** (or **mutually exclusive**) if they have no outcomes in common, i.e., $A \cap B = \varnothing$ (the empty set). If $A$ is "the first roll is 1" and $B$ is "the first roll is 2," then $A$ and $B$ are disjoint because no outcome can have the first roll be both 1 and 2 simultaneously.
+
+We now have the vocabulary to describe any question about our experiment. The next step is to assign numbers (probabilities) to these events in a way that makes sense. That is where the axioms come in.
+
+# The Probability Axioms: Rules of the Game
+
+## Why Axioms?
+
+We want to assign a probability $\mathrm{P}\left(A\right)$ to every event $A$, representing how likely that event is to occur. But we cannot just assign any numbers we please. The assignments need to be *internally consistent*. For example, if event $A$ is a subset of event $B$ (every outcome in $A$ is also in $B$), then surely $\mathrm{P}\left(A\right)$ should be no larger than $\mathrm{P}\left(B\right)$.
+
+Rather than listing every desirable property individually, mathematicians have distilled the requirements down to a small set of **axioms**: ground rules that every legitimate probability assignment must obey. Everything else can be *derived* from these axioms. There are only three of them.
 
 ## The Cream Cheese Analogy
 
-Here is an intuitive way to think about what the axioms are saying, adapted from the lecture by Prof. Tsitsiklis [@intro-to-probability-spring-2018-playlist]. Imagine you have exactly one pound of cream cheese, and you spread it over the sample space $\Omega$. The total amount of cream cheese is 1 (that is Axiom 2). No region has a negative amount of cream cheese (Axiom 1). And if you have two non-overlapping regions $A$ and $B$, the total cream cheese on $A \cup B$ is obviously the cream cheese on $A$ plus the cream cheese on $B$ (Axiom 3).
+Before we state the axioms formally, here is a helpful mental image (borrowed from the lecture [@probabilistic-systems-analysis-applied-probability-playlist]). Think of probability as **cream cheese spread on bread**. The sample space $\Omega$ is the slice of bread. You have exactly one pound of cream cheese (total probability = 1), and you spread it across the bread. The probability of an event $A$ is the amount of cream cheese sitting on top of the region $A$.
 
-Probabilities behave just like cream cheese, or like mass, or like area. They are spread across the sample space, they add up to 1, and when you combine non-overlapping pieces, the total is the sum of the parts.
+This analogy immediately makes three things intuitive:
 
-## A First Consequence: Probabilities Are at Most 1
+1. The amount of cream cheese on any region is never negative. (You cannot have negative cream cheese.)
+2. The total cream cheese on the entire slice is exactly one pound. (You used all of it, no more, no less.)
+3. If two regions do not overlap, the total cream cheese on both regions combined is the sum of the cream cheese on each. (Cream cheese does not teleport.)
 
-You might have noticed that the axioms say probabilities are at least 0, but they do not explicitly say that probabilities are at most 1. Do we need a fourth axiom for that? No. It follows from the three axioms we already have. Here is the argument.
+Those three intuitions are precisely the three axioms.
 
-Take any event $A$. Its **complement**, $A^{\mathsf{c}}$, is the set of all outcomes *not* in $A$. Together, $A$ and $A^{\mathsf{c}}$ cover the entire sample space, and they share no outcomes. So:
+## The Three Axioms
+
+Let $\Omega$ be a sample space, and let $\mathrm{P}\left(A\right)$ denote the probability assigned to an event $A \subseteq \Omega$. The axioms of probability are [@bertsekas2008introduction, Section 1.2]:
+
+**Axiom 1 (Nonnegativity).** For every event $A$,
 
 $$
-\begin{align*}
-\mathrm{P}\left(\Omega\right) &= \mathrm{P}\left(A \cup A^{\mathsf{c}}\right) && \text{(because } A \cup A^{\mathsf{c}} = \Omega\text{)}\\
-1 &= \mathrm{P}\left(A\right) + \mathrm{P}\left(A^{\mathsf{c}}\right) && \text{(Axioms 2 and 3)}\\
-\mathrm{P}\left(A\right) &= 1 - \mathrm{P}\left(A^{\mathsf{c}}\right).
-\end{align*}
+\mathrm{P}\left(A\right) \geq 0.
+$$ {#eq-axiom_nonnegativity}
+
+**Axiom 2 (Normalization).** The probability of the entire sample space is 1:
+
+$$
+\mathrm{P}\left(\Omega\right) = 1.
+$$ {#eq-axiom_normalization}
+
+**Axiom 3 (Additivity).** If $A$ and $B$ are disjoint events ($A \cap B = \varnothing$), then:
+
+$$
+\mathrm{P}\left(A \cup B\right) = \mathrm{P}\left(A\right) + \mathrm{P}\left(B\right).
+$$ {#eq-axiom_additivity}
+
+That is it. Three rules. Every single result in probability theory, from Bayes' theorem to the law of large numbers, ultimately traces back to these three axioms. Let us see what we can squeeze out of them.
+
+## A First Consequence: Probabilities Never Exceed 1
+
+You might have noticed that the axioms say probabilities are non-negative (@eq-axiom_nonnegativity) and that the total is 1 (@eq-axiom_normalization), but they do not *explicitly* say that no individual probability can exceed 1. Is that a gap? No. We can *derive* it from the three axioms. Here is the argument, and it is a neat one because it uses all three.
+
+Start with the second axiom:
+
+$$
+1 = \mathrm{P}\left(\Omega\right).
 $$
 
-Since $\mathrm{P}\left(A^{\mathsf{c}}\right) \geq 0$ by Axiom 1, we conclude that $\mathrm{P}\left(A\right) \leq 1$.
+Now, the sample space $\Omega$ can be split into any event $A$ and its complement $A^{\mathsf{c}}$. These two sets are disjoint (an outcome is either in $A$ or not), and together they cover all of $\Omega$:
 
-This is a small but satisfying result. It shows that the axioms are not just a list of rules; they *interact* with each other in useful ways. We used all three axioms in just four lines to derive something we wanted to be true. This is the power of working from axioms: you state a few clean assumptions, and then you *prove* everything else.
+$$
+\Omega = A \cup A^{\mathsf{c}}.
+$$
+
+By the additivity axiom (@eq-axiom_additivity), since $A$ and $A^{\mathsf{c}}$ are disjoint:
+
+$$
+\mathrm{P}\left(\Omega\right) = \mathrm{P}\left(A\right) + \mathrm{P}\left(A^{\mathsf{c}}\right).
+$$
+
+Substituting $\mathrm{P}\left(\Omega\right) = 1$:
+
+$$
+\mathrm{P}\left(A\right) = 1 - \mathrm{P}\left(A^{\mathsf{c}}\right).
+$$ {#eq-complement_rule}
+
+By the nonnegativity axiom, $\mathrm{P}\left(A^{\mathsf{c}}\right) \geq 0$, so:
+
+$$
+\mathrm{P}\left(A\right) \leq 1.
+$$
+
+This is a small but satisfying result. It tells us that the axioms are not missing anything: the bound $\mathrm{P}\left(A\right) \leq 1$ is a logical consequence, not an extra assumption. Notice how the proof used all three axioms: normalization to set the total to 1, the complement decomposition plus additivity to split it, and nonnegativity to bound the result.
+
+As a bonus, @eq-complement_rule (the **complement rule**) is itself a useful tool: if it is easier to compute the probability that something does *not* happen, you can subtract from 1 to get the probability that it does.
 
 ## Extending Additivity to More Than Two Events
 
-Axiom 3 talks about two disjoint events. What if we have three? Suppose $A$, $B$, and $C$ are pairwise disjoint (no two of them share an outcome). Then:
+The additivity axiom (@eq-axiom_additivity) is stated for two disjoint events. But what about three? Or ten? We can extend it by applying the axiom repeatedly.
+
+Suppose $A$, $B$, and $C$ are pairwise disjoint (no two of them share an outcome). Then:
 
 $$
 \begin{align*}
-\mathrm{P}\left(A \cup B \cup C\right) &= \mathrm{P}\left(\left(A \cup B\right) \cup C\right) && \text{(rewrite the union)}\\
-&= \mathrm{P}\left(A \cup B\right) + \mathrm{P}\left(C\right) && \text{(Axiom 3, since } (A \cup B) \cap C = \varnothing\text{)}\\
-&= \mathrm{P}\left(A\right) + \mathrm{P}\left(B\right) + \mathrm{P}\left(C\right). && \text{(Axiom 3 again)}
+\mathrm{P}\left(A \cup B \cup C\right) &= \mathrm{P}\left(\left(A \cup B\right) \cup C\right) \\
+&= \mathrm{P}\left(A \cup B\right) + \mathrm{P}\left(C\right) \\
+&= \mathrm{P}\left(A\right) + \mathrm{P}\left(B\right) + \mathrm{P}\left(C\right).
 \end{align*}
 $$
 
-By repeating this argument, we can extend additivity to any finite number of disjoint events. If $A_1, A_2, \dots, A_n$ are pairwise disjoint, then:
+The trick is to group $A \cup B$ as a single set, note that it is disjoint from $C$, apply the axiom, and then apply it again to split $A \cup B$. You can repeat this as many times as you like. For any *finite* collection of pairwise disjoint events $A_1, A_2, \dots, A_n$:
 
 $$
 \mathrm{P}\left(A_1 \cup A_2 \cup \cdots \cup A_n\right) = \mathrm{P}\left(A_1\right) + \mathrm{P}\left(A_2\right) + \cdots + \mathrm{P}\left(A_n\right).
 $$ {#eq-finite_additivity}
 
-An important special case: suppose we have a finite set of outcomes $\left\{s_1, s_2, \dots, s_k\right\}$. Each single outcome $\left\{s_i\right\}$ is an event by itself, and these single-outcome events are pairwise disjoint. So by @eq-finite_additivity:
+An important special case: if the sample space is finite and we have an event consisting of individual outcomes $s_1, s_2, \dots, s_k$, then:
 
 $$
 \mathrm{P}\left(\left\{s_1, s_2, \dots, s_k\right\}\right) = \mathrm{P}\left(s_1\right) + \mathrm{P}\left(s_2\right) + \cdots + \mathrm{P}\left(s_k\right).
-$$ {#eq-finite_set_probability}
+$$
 
-In other words, the probability of a finite collection of outcomes is the sum of their individual probabilities. This is extremely useful, as we will see next.
+(Here we abuse notation slightly and write $\mathrm{P}\left(s_i\right)$ instead of the more formal $\mathrm{P}\left(\left\{s_i\right\}\right)$.)
 
-We now have the rules of the game. Let us put them to work.
+This is exactly how we will compute probabilities in the next section: find the event we care about, identify the individual outcomes it contains, and add up their probabilities.
+
+## Where We Stand
+
+Let us take a breath and see where we are on our roadmap.
 
 ```{mermaid}
 %%| fig-align: center
 flowchart TD
-    A["<b>Motivation</b><br/>Why do we need a framework<br/>for uncertainty?"]
-    B["<b>Sample Space</b><br/>What can possibly happen?"]
-    C["<b>Events</b><br/>What do we care about?"]
-    D["<b>Probability Axioms</b><br/>The three rules of the game"]
-    E["<b>Discrete Uniform Law</b><br/>Tetrahedral die example"]
-    F["<b>Continuous Uniform Law</b><br/>Darts on a square"]
-    G["<b>Countable Additivity</b><br/>When three axioms<br/>are not quite enough"]
-    H["<b>Wrap-Up</b><br/>The complete recipe"]
+    A["Motivation:<br/>Why probability?"] --> B["The Sample Space:<br/>Listing all possibilities"]
+    B --> C["Events:<br/>The questions we ask"]
+    C --> D["Probability Axioms:<br/>Rules of the game"]
+    D --> E["Discrete Uniform Law:<br/>Counting outcomes"]
+    E --> F["Continuous Uniform Law:<br/>Probability as area"]
+    F --> G["Countable Additivity:<br/>Infinite sample spaces"]
+    G --> H["Wrap-Up:<br/>The three ingredients"]
 
-    A --> B --> C --> D --> E --> F --> G --> H
-
-    style A fill:#555555,color:#aaaaaa
-    style B fill:#555555,color:#aaaaaa
-    style C fill:#555555,color:#aaaaaa
-    style D fill:#555555,color:#aaaaaa
-    style E fill:#10a37f,color:#fff
+    style A fill:#555,color:#aaa
+    style B fill:#555,color:#aaa
+    style C fill:#555,color:#aaa
+    style D fill:#10a37f,color:#fff
 ```
 
-# The Discrete Uniform Law
+So far, we have set up the sample space (the list of all possible outcomes), defined events (the subsets we care about), and stated the probability axioms (the rules that every probability assignment must follow). We have also derived two useful consequences: the complement rule and finite additivity.
 
-## Setting Up the Probability Law
+But we have not yet actually *computed* any probabilities. That is about to change. The axioms give us the rules; now we need a specific probability law to plug in. The simplest one is the discrete uniform law, where all outcomes are equally likely. That is exactly what we will tackle next.
 
-Let us return to our tetrahedral die experiment. We have the sample space: 16 outcomes arranged in the grid of @fig-tetrahedral_die_sample_space. Now we need to assign a probability law.
+# Putting the Axioms to Work: The Discrete Uniform Law
 
-We will make the simplest possible assumption: **all outcomes are equally likely**. This is a modeling choice, not a mathematical necessity. It reflects a belief that the die is fair and that neither roll influences the other. Under this assumption, each outcome has the same probability $p$. Since there are 16 outcomes and they must sum to 1 (by Axiom 2 and @eq-finite_set_probability):
+## All Outcomes Equally Likely
 
-$$
-\begin{align*}
-\underbrace{p + p + \cdots + p}_{16 \text{ times}} &= 1,\\
-16p &= 1,\\
-p &= \frac{1}{16}.
-\end{align*}
-$$
+Let us return to our tetrahedral die example. We roll the die twice, giving us 16 possible outcomes. For a fair die, there is no reason to believe any outcome is more likely than any other. So we assign each outcome the same probability.
 
-So every cell in the grid has probability $1/16$. This particular probability law is called the **discrete uniform law**. More generally, if a sample space has $N$ equally likely outcomes, then each outcome has probability $1/N$, and the probability of any event $A$ is:
+Since there are 16 outcomes and their probabilities must add up to 1 (by the normalization axiom), each outcome gets probability $\frac{1}{16}$.
+
+This is an instance of the **discrete uniform law** [@bertsekas2008introduction, Section 1.2]: when the sample space has $N$ equally likely outcomes, and the event $A$ contains $n$ of them, the probability of $A$ is:
 
 $$
-\mathrm{P}\left(A\right) = \frac{\text{number of outcomes in } A}{N}.
+\mathrm{P}\left(A\right) = \frac{n}{N} = \frac{\text{number of outcomes in } A}{\text{total number of outcomes in } \Omega}.
 $$ {#eq-discrete_uniform_law}
 
-Under the discrete uniform law, computing probabilities reduces to **counting**: count the outcomes that belong to the event, then divide by the total number of outcomes. This sounds simple, and for small examples it is. But counting can become surprisingly tricky for larger problems. In fact, we will devote an entire future post to systematic counting techniques (combinatorics).
+Under the discrete uniform law, computing probabilities reduces to **counting**. How many outcomes are in my event of interest? How many are in the full sample space? Divide and you are done.
 
-## Four Probability Questions
+(You might be wondering: counting sounds easy, so why would we need more than half a sentence about it? For simple examples, counting *is* easy. But some counting problems are devilishly tricky, and a few weeks into a probability course, you may find yourself spending an entire lecture on systematic counting techniques. For now, we will stick to cases where the counting is straightforward.)
 
-Let us use @eq-discrete_uniform_law to answer four questions about the two-roll experiment, using $X$ for the first roll and $Y$ for the second roll.
+## Worked Examples on the 4x4 Grid
 
-### Question 1: $\mathrm{P}\left(\left(X, Y\right) \text{ is } \left(1,1\right) \text{ or } \left(1,2\right)\right)$
+Let us compute some probabilities on our tetrahedral die sample space. For each example, the strategy is the same: (1) identify the event on the grid, (2) count the outcomes in it, and (3) divide by 16.
 
-The event consists of two outcomes: $\left(1,1\right)$ and $\left(1,2\right)$. By @eq-finite_set_probability:
+### Example 1: $\mathrm{P}\left(\left(X, Y\right) \text{ is } \left(1,1\right) \text{ or } \left(1,2\right)\right)$
+
+The event consists of exactly two outcomes: $\left(1, 1\right)$ and $\left(1, 2\right)$. By @eq-finite_additivity:
 
 $$
 \mathrm{P}\left(\left\{\left(1,1\right), \left(1,2\right)\right\}\right) = \mathrm{P}\left(1,1\right) + \mathrm{P}\left(1,2\right) = \frac{1}{16} + \frac{1}{16} = \frac{2}{16} = \frac{1}{8}.
 $$
 
-### Question 2: $\mathrm{P}\left(X = 1\right)$
+### Example 2: $\mathrm{P}\left(X = 1\right)$
 
-The event "the first roll is 1" corresponds to the set $\left\{\left(1,1\right), \left(1,2\right), \left(1,3\right), \left(1,4\right)\right\}$. Visually, this is the entire first column of the grid. There are 4 outcomes, so:
+The event $\left\{X = 1\right\}$ is the set of all outcomes where the first roll is 1: $\left\{\left(1,1\right), \left(1,2\right), \left(1,3\right), \left(1,4\right)\right\}$. That is 4 outcomes, so:
 
 $$
 \mathrm{P}\left(X = 1\right) = \frac{4}{16} = \frac{1}{4}.
 $$
 
-### Question 3: $\mathrm{P}\left(X + Y \text{ is odd}\right)$
+On the grid, this is the entire first column (see @fig-event_X_equals_1).
 
-The sum $X + Y$ is odd when one roll is even and the other is odd. Let us find these outcomes in the grid.
+### Example 3: $\mathrm{P}\left(X + Y \text{ is odd}\right)$
 
-```{dot}
-//| label: fig-x_plus_y_odd
-//| fig-cap: "Outcomes where $X + Y$ is odd are highlighted in green."
-graph x_plus_y_odd {
-    bgcolor="transparent"
-    node [fontcolor="#e6e6e6", style=filled, color="#555555", fillcolor="#333333", fontname="Helvetica", shape=plaintext]
-    edge [color="#e6e6e6", fontcolor="#e6e6e6"]
-    graph [fontcolor="#e6e6e6", fontname="Helvetica"]
+Which outcomes make $X + Y$ odd? The sum of two integers is odd precisely when one is even and the other is odd. On our grid, the outcomes where $X + Y$ is odd form a checkerboard pattern.
 
-    grid [label=<
-        <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="10" COLOR="#777777">
-            <TR>
-                <TD BGCOLOR="transparent" BORDER="0" WIDTH="50"><FONT COLOR="#aaaaaa"><B>Y \ X</B></FONT></TD>
-                <TD BGCOLOR="transparent" BORDER="0" WIDTH="50"><FONT COLOR="#10a37f"><B>1</B></FONT></TD>
-                <TD BGCOLOR="transparent" BORDER="0" WIDTH="50"><FONT COLOR="#10a37f"><B>2</B></FONT></TD>
-                <TD BGCOLOR="transparent" BORDER="0" WIDTH="50"><FONT COLOR="#10a37f"><B>3</B></FONT></TD>
-                <TD BGCOLOR="transparent" BORDER="0" WIDTH="50"><FONT COLOR="#10a37f"><B>4</B></FONT></TD>
-            </TR>
-            <TR>
-                <TD BGCOLOR="transparent" BORDER="0"><FONT COLOR="#10a37f"><B>4</B></FONT></TD>
-                <TD BGCOLOR="#1a5c3a"><FONT COLOR="#e6e6e6">(1,4)</FONT></TD>
-                <TD BGCOLOR="#333333"><FONT COLOR="#666666">(2,4)</FONT></TD>
-                <TD BGCOLOR="#1a5c3a"><FONT COLOR="#e6e6e6">(3,4)</FONT></TD>
-                <TD BGCOLOR="#333333"><FONT COLOR="#666666">(4,4)</FONT></TD>
-            </TR>
-            <TR>
-                <TD BGCOLOR="transparent" BORDER="0"><FONT COLOR="#10a37f"><B>3</B></FONT></TD>
-                <TD BGCOLOR="#333333"><FONT COLOR="#666666">(1,3)</FONT></TD>
-                <TD BGCOLOR="#1a5c3a"><FONT COLOR="#e6e6e6">(2,3)</FONT></TD>
-                <TD BGCOLOR="#333333"><FONT COLOR="#666666">(3,3)</FONT></TD>
-                <TD BGCOLOR="#1a5c3a"><FONT COLOR="#e6e6e6">(4,3)</FONT></TD>
-            </TR>
-            <TR>
-                <TD BGCOLOR="transparent" BORDER="0"><FONT COLOR="#10a37f"><B>2</B></FONT></TD>
-                <TD BGCOLOR="#1a5c3a"><FONT COLOR="#e6e6e6">(1,2)</FONT></TD>
-                <TD BGCOLOR="#333333"><FONT COLOR="#666666">(2,2)</FONT></TD>
-                <TD BGCOLOR="#1a5c3a"><FONT COLOR="#e6e6e6">(3,2)</FONT></TD>
-                <TD BGCOLOR="#333333"><FONT COLOR="#666666">(4,2)</FONT></TD>
-            </TR>
-            <TR>
-                <TD BGCOLOR="transparent" BORDER="0"><FONT COLOR="#10a37f"><B>1</B></FONT></TD>
-                <TD BGCOLOR="#333333"><FONT COLOR="#666666">(1,1)</FONT></TD>
-                <TD BGCOLOR="#1a5c3a"><FONT COLOR="#e6e6e6">(2,1)</FONT></TD>
-                <TD BGCOLOR="#333333"><FONT COLOR="#666666">(3,1)</FONT></TD>
-                <TD BGCOLOR="#1a5c3a"><FONT COLOR="#e6e6e6">(4,1)</FONT></TD>
-            </TR>
-        </TABLE>
-    >]
-}
-```
+![The event $\left\{X + Y \text{ is odd}\right\}$ highlighted on the sample space.](images/event_X_plus_Y_odd.png){#fig-event_X_plus_Y_odd fig-align="center" width=70%}
 
-As we can see in @fig-x_plus_y_odd, the highlighted outcomes form a checkerboard pattern. There are 8 such outcomes, so:
+Counting the highlighted cells, we find 8 outcomes. So:
 
 $$
 \mathrm{P}\left(X + Y \text{ is odd}\right) = \frac{8}{16} = \frac{1}{2}.
 $$
 
-This makes intuitive sense: exactly half the outcomes give an odd sum.
+### Example 4: $\mathrm{P}\left(\min\left(X, Y\right) = 2\right)$
 
-### Question 4: $\mathrm{P}\left(\min\left(X, Y\right) = 2\right)$
+This one is trickier. We need the outcomes where the *smaller* of the two rolls is exactly 2. Let us think about this carefully.
 
-This one requires a bit more care. The event "$\min\left(X, Y\right) = 2$" means that the smaller of the two rolls is exactly 2. This can happen in several ways: both rolls are 2, or one roll is 2 and the other is larger than 2. Crucially, neither roll can be 1 (otherwise the minimum would be 1, not 2).
+The minimum is 2 if and only if both of the following hold: (a) at least one of $X$ or $Y$ equals 2, and (b) neither $X$ nor $Y$ is less than 2 (i.e., neither is 1). So we need both rolls to be at least 2, and at least one of them to be exactly 2.
 
-```{dot}
-//| label: fig-min_xy_2
-//| fig-cap: "Outcomes where $\\min(X, Y) = 2$ are highlighted in green."
-graph min_xy_2 {
-    bgcolor="transparent"
-    node [fontcolor="#e6e6e6", style=filled, color="#555555", fillcolor="#333333", fontname="Helvetica", shape=plaintext]
-    edge [color="#e6e6e6", fontcolor="#e6e6e6"]
-    graph [fontcolor="#e6e6e6", fontname="Helvetica"]
+On the grid, this means we are looking at the sub-grid where $X \geq 2$ and $Y \geq 2$ (a 3x3 block), but only the outcomes on the "border" where $X = 2$ or $Y = 2$. Those are:
 
-    grid [label=<
-        <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="10" COLOR="#777777">
-            <TR>
-                <TD BGCOLOR="transparent" BORDER="0" WIDTH="50"><FONT COLOR="#aaaaaa"><B>Y \ X</B></FONT></TD>
-                <TD BGCOLOR="transparent" BORDER="0" WIDTH="50"><FONT COLOR="#10a37f"><B>1</B></FONT></TD>
-                <TD BGCOLOR="transparent" BORDER="0" WIDTH="50"><FONT COLOR="#10a37f"><B>2</B></FONT></TD>
-                <TD BGCOLOR="transparent" BORDER="0" WIDTH="50"><FONT COLOR="#10a37f"><B>3</B></FONT></TD>
-                <TD BGCOLOR="transparent" BORDER="0" WIDTH="50"><FONT COLOR="#10a37f"><B>4</B></FONT></TD>
-            </TR>
-            <TR>
-                <TD BGCOLOR="transparent" BORDER="0"><FONT COLOR="#10a37f"><B>4</B></FONT></TD>
-                <TD BGCOLOR="#333333"><FONT COLOR="#666666">(1,4)</FONT></TD>
-                <TD BGCOLOR="#1a5c3a"><FONT COLOR="#e6e6e6">(2,4)</FONT></TD>
-                <TD BGCOLOR="#333333"><FONT COLOR="#666666">(3,4)</FONT></TD>
-                <TD BGCOLOR="#333333"><FONT COLOR="#666666">(4,4)</FONT></TD>
-            </TR>
-            <TR>
-                <TD BGCOLOR="transparent" BORDER="0"><FONT COLOR="#10a37f"><B>3</B></FONT></TD>
-                <TD BGCOLOR="#333333"><FONT COLOR="#666666">(1,3)</FONT></TD>
-                <TD BGCOLOR="#1a5c3a"><FONT COLOR="#e6e6e6">(2,3)</FONT></TD>
-                <TD BGCOLOR="#333333"><FONT COLOR="#666666">(3,3)</FONT></TD>
-                <TD BGCOLOR="#333333"><FONT COLOR="#666666">(4,3)</FONT></TD>
-            </TR>
-            <TR>
-                <TD BGCOLOR="transparent" BORDER="0"><FONT COLOR="#10a37f"><B>2</B></FONT></TD>
-                <TD BGCOLOR="#333333"><FONT COLOR="#666666">(1,2)</FONT></TD>
-                <TD BGCOLOR="#1a5c3a"><FONT COLOR="#e6e6e6">(2,2)</FONT></TD>
-                <TD BGCOLOR="#1a5c3a"><FONT COLOR="#e6e6e6">(3,2)</FONT></TD>
-                <TD BGCOLOR="#1a5c3a"><FONT COLOR="#e6e6e6">(4,2)</FONT></TD>
-            </TR>
-            <TR>
-                <TD BGCOLOR="transparent" BORDER="0"><FONT COLOR="#10a37f"><B>1</B></FONT></TD>
-                <TD BGCOLOR="#333333"><FONT COLOR="#666666">(1,1)</FONT></TD>
-                <TD BGCOLOR="#333333"><FONT COLOR="#666666">(2,1)</FONT></TD>
-                <TD BGCOLOR="#333333"><FONT COLOR="#666666">(3,1)</FONT></TD>
-                <TD BGCOLOR="#333333"><FONT COLOR="#666666">(4,1)</FONT></TD>
-            </TR>
-        </TABLE>
-    >]
-}
-```
+$$
+\left\{\left(2,2\right), \left(2,3\right), \left(2,4\right), \left(3,2\right), \left(4,2\right)\right\}.
+$$
 
-Counting the highlighted cells in @fig-min_xy_2, we find 5 outcomes: $\left(2,2\right)$, $\left(2,3\right)$, $\left(2,4\right)$, $\left(3,2\right)$, and $\left(4,2\right)$. So:
+![The event $\left\{\min\left(X, Y\right) = 2\right\}$ highlighted on the sample space.](images/event_min_equals_2.png){#fig-event_min_equals_2 fig-align="center" width=70%}
+
+That is 5 outcomes, so:
 
 $$
 \mathrm{P}\left(\min\left(X, Y\right) = 2\right) = \frac{5}{16}.
 $$
 
-## The General Procedure
+Notice the value of working with a picture. The event $\left\{\min\left(X, Y\right) = 2\right\}$ is hard to reason about in your head, but once you see it on the grid, identifying the relevant outcomes becomes straightforward.
 
-Notice the procedure we followed in every question above:
+## The General Pattern
 
-1. Start with the sample space (the grid).
-2. Identify the event of interest by locating the outcomes that belong to it.
-3. Count them and divide by the total number of outcomes.
+Every example followed the same three-step procedure:
 
-This three-step process is the same procedure you would follow in *any* probability problem, discrete or continuous. The only thing that changes is step 3: instead of counting and dividing, you might need to compute an area, an integral, or something else. But the logic is always the same: describe the sample space, pin down the event, then use the probability law to compute.
+1. **Set up** the sample space and the probability law.
+2. **Identify** the event of interest on a diagram.
+3. **Count** (or calculate) the probability using the law.
 
-Now let us see what happens when the sample space is continuous.
+This procedure applies to any probability model, not just the discrete uniform law. The calculations might be harder (you might need calculus instead of counting), but the *logic* is always the same. That is the beauty of having a clean framework.
 
-```{mermaid}
-%%| fig-align: center
-flowchart TD
-    A["<b>Motivation</b><br/>Why do we need a framework<br/>for uncertainty?"]
-    B["<b>Sample Space</b><br/>What can possibly happen?"]
-    C["<b>Events</b><br/>What do we care about?"]
-    D["<b>Probability Axioms</b><br/>The three rules of the game"]
-    E["<b>Discrete Uniform Law</b><br/>Tetrahedral die example"]
-    F["<b>Continuous Uniform Law</b><br/>Darts on a square"]
-    G["<b>Countable Additivity</b><br/>When three axioms<br/>are not quite enough"]
-    H["<b>Wrap-Up</b><br/>The complete recipe"]
+We have now seen how the discrete uniform law works. But what about continuous sample spaces, where outcomes are not discrete points but real numbers? Can we still assign probabilities by counting? No, we cannot, because there are infinitely (uncountably) many outcomes. We need a different approach.
 
-    A --> B --> C --> D --> E --> F --> G --> H
+# The Continuous Uniform Law: Probability as Area
 
-    style A fill:#555555,color:#aaaaaa
-    style B fill:#555555,color:#aaaaaa
-    style C fill:#555555,color:#aaaaaa
-    style D fill:#555555,color:#aaaaaa
-    style E fill:#555555,color:#aaaaaa
-    style F fill:#10a37f,color:#fff
-```
+Let us return to the dart-on-a-unit-square experiment (@fig-unit_square_sample_space). The sample space is the set of all points $\left(x, y\right)$ with $0 \leq x \leq 1$ and $0 \leq y \leq 1$. How should we assign probabilities?
 
-# The Continuous Uniform Law
+If we have no reason to believe any region of the square is more likely to be hit than any other region of the same size, then a natural choice is the **continuous uniform law**: the probability of an event equals the **area** of the corresponding region. Two regions with equal area have equal probability. A region with twice the area has twice the probability.
 
-## Probability as Area
+Formally, for any event $A \subseteq \Omega$:
 
-Let us return to the dartboard. The sample space is the unit square $\Omega = \left\{\left(x, y\right) : 0 \leq x \leq 1,\; 0 \leq y \leq 1\right\}$. We need a probability law.
+$$
+\mathrm{P}\left(A\right) = \text{Area of } A.
+$$
 
-The simplest choice, analogous to "all outcomes are equally likely" in the discrete case, is the **continuous uniform law**: the probability of any region equals its area. If two subsets of the square have the same area, they have the same probability. A region with twice the area has twice the probability. And the area of the entire square is 1, which matches Axiom 2.
+This is consistent with our axioms. The area of the entire square is 1 (normalization). Areas are non-negative (nonnegativity). And if two regions do not overlap, the total area is the sum of the individual areas (additivity).
 
-You can verify that this law satisfies all three axioms: areas are nonnegative (Axiom 1), the area of the whole square is 1 (Axiom 2), and the area of the union of two non-overlapping regions is the sum of their individual areas (Axiom 3).
+## A Single Point Has Probability Zero
 
-## Two Questions
+Here is an immediate (and initially surprising) consequence. What is the probability that the dart lands on *exactly* the point $\left(0.5, 0.3\right)$?
 
-**Question 1:** What is $\mathrm{P}\left(\left(X, Y\right) = \left(0.5, 0.3\right)\right)$?
+A single point has zero area. Therefore:
 
-A single point has zero area. So this probability is 0. This is perfectly consistent with the axioms (nothing says probabilities cannot be zero), and it matches our earlier intuition: with infinitely many possible points, hitting any one of them exactly has probability zero.
+$$
+\mathrm{P}\left(\left(X, Y\right) = \left(0.5, 0.3\right)\right) = 0.
+$$
 
-**Question 2:** What is $\mathrm{P}\left(X + Y \leq 1/2\right)$?
+This is true for *any* single point in the square. The probability of hitting any one specific point to infinite precision is zero. This might feel strange ("How can something that is possible have probability zero?"), but it is a fundamental feature of continuous probability. An event with probability zero is not the same as an impossible event. It simply means that, in a precise mathematical sense, the "weight" of a single point is negligible compared to the continuum of all possible points.
 
-The event $X + Y \leq 1/2$ is the set of all points $\left(x, y\right)$ in the unit square that lie below (and on) the line $x + y = 1/2$. This line crosses the $x$-axis at $x = 1/2$ and the $y$-axis at $y = 1/2$, forming a right triangle in the corner of the square.
+(You might be wondering: if every single point has probability zero, and the square is made up of points, how does the total add up to 1? This is a deep question that connects to measure theory. The short answer is that you cannot add up uncountably many zeros to reconstruct the area. Probabilities in continuous spaces are assigned to *regions*, not to individual points. For this course, the practical takeaway is: in continuous models, always think in terms of regions and their areas, not individual outcomes.)
 
-```{python}
-#| label: fig-continuous_uniform_triangle
-#| fig-cap: "The shaded triangle represents the event $X + Y \\leq 1/2$ inside the unit square."
-#| fig-align: center
+## Worked Example: $\mathrm{P}\left(X + Y \leq \frac{1}{2}\right)$
 
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-import numpy as np
+Suppose we want to find the probability that the sum of the two coordinates is at most $\frac{1}{2}$. The event of interest is:
 
-plt.style.use("dark_background")
+$$
+A = \left\{\left(x, y\right) \mid x + y \leq \frac{1}{2}\right\}.
+$$
 
-fig, ax = plt.subplots(1, 1, figsize=(5, 5))
+On the unit square, the line $x + y = \frac{1}{2}$ intercepts the $x$-axis at $\frac{1}{2}$ and the $y$-axis at $\frac{1}{2}$. The region below this line (within the square) is a right triangle with legs of length $\frac{1}{2}$.
 
-# Draw the unit square
-square = patches.Rectangle(
-    (0, 0), 1, 1, linewidth=1.5, edgecolor="#e6e6e6", facecolor="#333333"
-)
-ax.add_patch(square)
+![The event $\left\{X + Y \leq \frac{1}{2}\right\}$ on the unit square.](images/unit_square_triangle.png){#fig-unit_square_triangle fig-align="center" width=50%}
 
-# Shade the triangle X + Y <= 1/2
-triangle = patches.Polygon(
-    [[0, 0], [0.5, 0], [0, 0.5]],
-    closed=True,
-    facecolor="#10a37f",
-    edgecolor="#10a37f",
-    alpha=0.7,
-    linewidth=2,
-)
-ax.add_patch(triangle)
-
-# Draw the line X + Y = 1/2
-ax.plot([0.5, 0], [0, 0.5], color="#10a37f", linewidth=2)
-
-# Labels
-ax.set_xlabel("$x$", fontsize=14, color="#e6e6e6")
-ax.set_ylabel("$y$", fontsize=14, color="#e6e6e6")
-ax.set_xlim(-0.1, 1.15)
-ax.set_ylim(-0.1, 1.15)
-ax.set_aspect("equal")
-
-# Annotate
-ax.text(
-    0.12,
-    0.08,
-    "$X + Y \\leq \\frac{1}{2}$",
-    fontsize=13,
-    color="white",
-    fontweight="bold",
-)
-ax.text(0.55, 0.02, "$\\frac{1}{2}$", fontsize=12, color="#10a37f")
-ax.text(-0.07, 0.5, "$\\frac{1}{2}$", fontsize=12, color="#10a37f")
-
-# Tick styling
-ax.tick_params(colors="#e6e6e6")
-ax.set_xticks([0, 0.5, 1])
-ax.set_yticks([0, 0.5, 1])
-
-for spine in ax.spines.values():
-    spine.set_color("#555555")
-
-fig.patch.set_facecolor("#222222")
-ax.set_facecolor("#222222")
-
-plt.tight_layout()
-plt.show()
-```
-
-The probability equals the area of this triangle (see @fig-continuous_uniform_triangle):
+The area of this triangle is:
 
 $$
 \mathrm{P}\left(X + Y \leq \frac{1}{2}\right) = \frac{1}{2} \times \frac{1}{2} \times \frac{1}{2} = \frac{1}{8}.
 $$
 
-The procedure is identical to the discrete case in spirit: describe the sample space (the unit square), identify the event (the triangle), and compute the probability (the area). The only difference is that "counting" has been replaced by "calculating area." For more complex regions, this area calculation might require integration, but the underlying logic does not change.
+Once again, the procedure is the same: identify the event on a picture, then compute its probability using the probability law (which, in this case, is area).
 
-## A Quick Recap
+The calculations in this example were simple (the area of a triangle), but the same approach works for more complex regions. You might need to evaluate an integral instead of using a geometric formula, but the conceptual steps are identical.
 
-Let us pause and see how far we have come. We started by asking: how do we reason about uncertainty? The answer is a **probabilistic model**, which consists of three ingredients:
+# Beyond Finite: Countable Additivity
 
-1. A **sample space** $\Omega$: the set of all possible outcomes.
-2. A collection of **events**: subsets of $\Omega$ that we assign probabilities to.
-3. A **probability law** $\mathrm{P}$: a function from events to numbers in $\left[0, 1\right]$, satisfying the three axioms (nonnegativity, normalization, additivity).
+We have seen the axioms in action on finite sample spaces and continuous sample spaces. But there is a case we have not yet addressed: **countably infinite** sample spaces. This is where a subtle gap in our axioms reveals itself.
 
-We have seen this recipe in action for both discrete settings (the tetrahedral die, where probability = counting) and continuous settings (the dartboard, where probability = area). In both cases, the procedure is the same: set up the model, identify the event, and compute.
+## The Coin-Flipping Experiment
 
-But there is one more subtlety we have not addressed. The additivity axiom, as stated, handles two disjoint events. We showed it extends to any *finite* number of disjoint events. But what happens when we need to handle *infinitely* many?
-
-```{mermaid}
-%%| fig-align: center
-flowchart TD
-    A["<b>Motivation</b><br/>Why do we need a framework<br/>for uncertainty?"]
-    B["<b>Sample Space</b><br/>What can possibly happen?"]
-    C["<b>Events</b><br/>What do we care about?"]
-    D["<b>Probability Axioms</b><br/>The three rules of the game"]
-    E["<b>Discrete Uniform Law</b><br/>Tetrahedral die example"]
-    F["<b>Continuous Uniform Law</b><br/>Darts on a square"]
-    G["<b>Countable Additivity</b><br/>When three axioms<br/>are not quite enough"]
-    H["<b>Wrap-Up</b><br/>The complete recipe"]
-
-    A --> B --> C --> D --> E --> F --> G --> H
-
-    style A fill:#555555,color:#aaaaaa
-    style B fill:#555555,color:#aaaaaa
-    style C fill:#555555,color:#aaaaaa
-    style D fill:#555555,color:#aaaaaa
-    style E fill:#555555,color:#aaaaaa
-    style F fill:#555555,color:#aaaaaa
-    style G fill:#10a37f,color:#fff
-```
-
-# Countable Additivity
-
-## A Problem That Finite Additivity Cannot Solve
-
-Consider the following experiment: you keep flipping a fair coin repeatedly until you get Heads for the first time. The outcome of this experiment is the number of the flip on which Heads first appears. It could be 1 (Heads on the first flip), or 2 (Tails then Heads), or 37, or a million. There is no upper bound.
-
-The sample space is the set of all positive integers:
+Consider the following experiment: you flip a fair coin repeatedly until you get heads for the first time. The outcome is the number of flips it took. It might take 1 flip, or 2, or 10, or a million. There is no upper bound, so the sample space is:
 
 $$
 \Omega = \left\{1, 2, 3, \dots\right\}.
 $$
 
-Suppose someone tells us that the probability of needing exactly $n$ flips is:
+Suppose someone tells us (and we will derive *why* in a later post) that the probability of needing exactly $n$ flips is:
 
 $$
 \mathrm{P}\left(n\right) = 2^{-n}, \quad n = 1, 2, 3, \dots
 $$
 
-(We will derive this formula later in the series when we study independence. For now, just accept it as given.)
+So $\mathrm{P}\left(1\right) = \frac{1}{2}$, $\mathrm{P}\left(2\right) = \frac{1}{4}$, $\mathrm{P}\left(3\right) = \frac{1}{8}$, and so on, with the probabilities getting smaller and smaller but never reaching zero.
 
 ```{python}
 #| label: fig-geometric_probabilities
-#| fig-cap: "The probability $\\mathrm{P}(n) = 2^{-n}$ decreases geometrically. Even outcomes are highlighted in green."
+#| fig-cap: "Probability distribution: $\\mathrm{P}(n) = 2^{-n}$. Even outcomes are highlighted in orange."
 #| fig-align: center
 
 import matplotlib.pyplot as plt
@@ -735,38 +472,33 @@ import numpy as np
 
 plt.style.use('dark_background')
 
-fig, ax = plt.subplots(1, 1, figsize=(8, 4))
+n_values = np.arange(1, 11)
+probabilities = 2.0 ** (-n_values)
 
-n_values = np.arange(1, 9)
-probs = 2.0 ** (-n_values)
+colors = ['#f59e0b' if n % 2 == 0 else '#10a37f' for n in n_values]
 
-colors = ['#10a37f' if n % 2 == 0 else '#555555' for n in n_values]
+fig, ax = plt.subplots(figsize=(8, 4))
+bars = ax.bar(n_values, probabilities, color=colors, edgecolor='white', linewidth=0.5)
 
-ax.bar(n_values, probs, color=colors, edgecolor='#777777', linewidth=0.8, width=0.6)
-
-for i, (n, p) in enumerate(zip(n_values, probs)):
-    ax.text(n, p + 0.01, f'$2^{{-{n}}}$', ha='center', va='bottom', fontsize=10, color='#e6e6e6')
-
-ax.set_xlabel('$n$ (flip number)', fontsize=13, color='#e6e6e6')
-ax.set_ylabel('$\\mathrm{P}(n)$', fontsize=13, color='#e6e6e6')
+ax.set_xlabel('$n$ (number of flips)', fontsize=12, color='#e6e6e6')
+ax.set_ylabel('$P(n) = 2^{-n}$', fontsize=12, color='#e6e6e6')
 ax.set_xticks(n_values)
-ax.set_ylim(0, 0.6)
-
-# Add "..." to indicate continuation
-ax.text(9.2, 0.01, '...', fontsize=16, color='#e6e6e6', ha='center')
-
+ax.set_xticklabels(n_values, color='#e6e6e6')
 ax.tick_params(colors='#e6e6e6')
+
+ax.text(8.5, 0.35, 'Even outcomes', color='#f59e0b', fontsize=10, fontweight='bold')
+ax.text(8.5, 0.30, 'Odd outcomes', color='#10a37f', fontsize=10, fontweight='bold')
+
 for spine in ax.spines.values():
     spine.set_color('#555555')
-
-fig.patch.set_facecolor('#222222')
-ax.set_facecolor('#222222')
 
 plt.tight_layout()
 plt.show()
 ```
 
-Now suppose we are asked: what is the probability that the outcome is an even number?
+Now, here is the question: what is the probability that the outcome is an **even** number?
+
+## Why Finite Additivity Is Not Enough
 
 Any reasonable person would write:
 
@@ -774,77 +506,54 @@ $$
 \mathrm{P}\left(\left\{2, 4, 6, \dots\right\}\right) = \mathrm{P}\left(2\right) + \mathrm{P}\left(4\right) + \mathrm{P}\left(6\right) + \cdots = \frac{1}{2^2} + \frac{1}{2^4} + \frac{1}{2^6} + \cdots
 $$
 
-This is a geometric series with first term $a = 1/4$ and common ratio $r = 1/4$. Its sum is:
+This is a geometric series with first term $\frac{1}{4}$ and common ratio $\frac{1}{4}$, so it sums to:
 
 $$
-\frac{a}{1 - r} = \frac{1/4}{1 - 1/4} = \frac{1/4}{3/4} = \frac{1}{3}.
-$$ {#eq-countable_additivity_example}
+\mathrm{P}\left(\text{outcome is even}\right) = \frac{1/4}{1 - 1/4} = \frac{1}{3}.
+$$
 
-The answer is $1/3$, as shown in @eq-countable_additivity_example. This makes intuitive sense: because the coin is weighted toward landing Heads early (the probability drops off geometrically), it is more likely that the experiment ends on an odd flip than an even one.
+But wait. Look at the step where we wrote the probability of the infinite union as the infinite sum of individual probabilities. Our additivity axiom (@eq-axiom_additivity) only guarantees this for *two* disjoint events. We extended it to *finitely many* disjoint events (@eq-finite_additivity), but the event $\left\{2, 4, 6, \dots\right\}$ is the union of *infinitely many* disjoint single-outcome events.
 
-But wait. Look at the step where we wrote the probability of an infinite set as the sum of the probabilities of its individual elements. We used @eq-finite_set_probability, which we derived for *finite* collections. Can we really extend it to an infinite sum?
+To justify this calculation, we need a stronger version of the additivity axiom.
 
 ## The Countable Additivity Axiom
 
-The answer is: not from the three axioms we have stated so far. Finite additivity tells us about the union of 2, or 10, or 10,000 disjoint events. It says nothing about an *infinite* union. To justify the step we just took, we need to *strengthen* Axiom 3.
+We replace our third axiom with a more powerful version [@bertsekas2008introduction, Section 1.2]:
 
-::: {.callout-important}
-## The Countable Additivity Axiom (Strengthened Axiom 3)
-
-If $A_1, A_2, A_3, \dots$ is a **sequence** of disjoint events (i.e., they can be listed as first, second, third, ..., and no two share an outcome), then:
+**Axiom 3 (Countable Additivity).** If $A_1, A_2, A_3, \dots$ is a *sequence* of disjoint events (meaning $A_i \cap A_j = \varnothing$ for all $i \neq j$), then:
 
 $$
 \mathrm{P}\left(A_1 \cup A_2 \cup A_3 \cup \cdots\right) = \mathrm{P}\left(A_1\right) + \mathrm{P}\left(A_2\right) + \mathrm{P}\left(A_3\right) + \cdots
 $$ {#eq-countable_additivity}
-:::
 
-This is the **countable additivity** axiom. The word "countable" means that the events can be arranged in a sequence (first, second, third, ...), i.e., they can be put in correspondence with the natural numbers. Note that this axiom is strictly stronger than finite additivity: it implies finite additivity (just set $A_3, A_4, \dots$ to the empty set $\varnothing$), but not the other way around.
+The key word is "sequence": the events can be arranged as first, second, third, and so on (a countable collection). This axiom is strictly stronger than finite additivity; it permits us to add up infinitely many probabilities, which is exactly what we needed for the coin-flipping example.
 
-With this strengthened axiom, our calculation of $\mathrm{P}\left(\text{outcome is even}\right) = 1/3$ is fully justified. We took the event $\left\{2, 4, 6, \dots\right\}$, decomposed it into a countable sequence of disjoint single-element events $\left\{2\right\}, \left\{4\right\}, \left\{6\right\}, \dots$, and applied @eq-countable_additivity to write the probability as an infinite sum.
+(You might be wondering: does this mean we can always add up probabilities for any infinite collection of disjoint events? Only if the collection is *countable*, meaning the events can be listed as a sequence. For uncountable collections (like the individual points in the unit square), countable additivity does not apply. This is why, in the continuous case, we cannot reconstruct the probability of a region by adding up the probabilities of its individual points.)
 
-::: {.callout-tip}
-## A Note on "Weird Sets"
+With countable additivity in hand, our calculation of $\mathrm{P}\left(\text{outcome is even}\right) = \frac{1}{3}$ is fully justified.
 
-You might wonder: can we assign probabilities to *every* subset of $\Omega$? For finite or countably infinite sample spaces, the answer is yes. But for uncountable sample spaces like the unit square, it turns out that there exist some pathological subsets (constructed using the Axiom of Choice in set theory) that cannot be assigned probabilities in a way that is consistent with the axioms. These sets never arise in practice, and you will only encounter them if you study the measure-theoretic foundations of probability at the graduate level. For our purposes, we can safely ignore them. Every set we will ever work with in this series will have a well-defined probability.
-:::
+# Wrapping Up: The Three Ingredients
 
-# Wrapping Up: The Complete Recipe
-
-Let us return to where we started. You are standing at the door, wondering about the umbrella. We can now frame this as a probabilistic model.
-
-1. **Sample space.** The possible outcomes might be $\Omega = \left\{\text{Rain}, \text{No Rain}\right\}$ for a simple model, or something more granular like $\Omega = \left\{\text{Heavy Rain}, \text{Light Rain}, \text{Drizzle}, \text{No Rain}\right\}$ if you care about the intensity.
-2. **Events.** The event "I get wet" might correspond to $\left\{\text{Heavy Rain}, \text{Light Rain}, \text{Drizzle}\right\}$.
-3. **Probability law.** Based on the weather forecast, past experience, or a meteorological model, you assign probabilities: maybe $\mathrm{P}\left(\text{Heavy Rain}\right) = 0.05$, $\mathrm{P}\left(\text{Light Rain}\right) = 0.15$, $\mathrm{P}\left(\text{Drizzle}\right) = 0.10$, $\mathrm{P}\left(\text{No Rain}\right) = 0.70$. These probabilities are nonnegative, they sum to 1, and they respect additivity. Then $\mathrm{P}\left(\text{I get wet}\right) = 0.05 + 0.15 + 0.10 = 0.30$.
-
-That is the whole recipe. Every probabilistic model, from the simplest coin flip to the most complex machine learning system, is built on these three ingredients and these three axioms (with countable additivity replacing finite additivity).
-
-Here is a summary of the axioms in their final form:
-
-::: {.callout-note}
-## The Axioms of Probability (Complete Version)
-
-Given a sample space $\Omega$ and a probability law $\mathrm{P}$:
-
-1. **(Nonnegativity)** $\mathrm{P}\left(A\right) \geq 0$ for every event $A$.
-2. **(Normalization)** $\mathrm{P}\left(\Omega\right) = 1$.
-3. **(Countable Additivity)** If $A_1, A_2, \dots$ are pairwise disjoint events, then $\mathrm{P}\left(\bigcup_{i=1}^{\infty} A_i\right) = \sum_{i=1}^{\infty} \mathrm{P}\left(A_i\right)$.
-:::
-
-In the next post, we will use these axioms to derive several useful properties of probabilities (such as the inclusion-exclusion formula), and then move on to one of the most powerful ideas in probability: **conditioning**. Conditioning is the tool that lets us update our beliefs when we learn new information, and it will transform the way we think about probability problems.
+Let us step back to the beginning. We started with a simple question about uncertainty (where will we eat tonight?), and we have now built the entire foundational framework for answering such questions rigorously.
 
 ```{mermaid}
 %%| fig-align: center
-flowchart TD
-    A["<b>Motivation</b><br/>Why do we need a framework<br/>for uncertainty?"]
-    B["<b>Sample Space</b><br/>What can possibly happen?"]
-    C["<b>Events</b><br/>What do we care about?"]
-    D["<b>Probability Axioms</b><br/>The three rules of the game"]
-    E["<b>Discrete Uniform Law</b><br/>Tetrahedral die example"]
-    F["<b>Continuous Uniform Law</b><br/>Darts on a square"]
-    G["<b>Countable Additivity</b><br/>When three axioms<br/>are not quite enough"]
-    H["<b>Wrap-Up</b><br/>The complete recipe"]
+flowchart LR
+    A["Sample Space Ω<br/>All possible outcomes"] --> D["Probabilistic<br/>Model"]
+    B["Events<br/>Subsets of Ω"] --> D
+    C["Probability Law P<br/>Obeys the axioms"] --> D
 
-    A --> B --> C --> D --> E --> F --> G --> H
-
-    style H fill:#10a37f,color:#fff
+    style D fill:#10a37f,color:#fff
 ```
+
+Every probabilistic model consists of three ingredients:
+
+1. **A sample space $\Omega$**: a set listing all possible outcomes of the experiment. The outcomes must be mutually exclusive and collectively exhaustive.
+2. **A collection of events**: subsets of $\Omega$ to which we assign probabilities. We can combine events using set operations (union, intersection, complement).
+3. **A probability law $\mathrm{P}$**: an assignment of a number $\mathrm{P}\left(A\right)$ to each event $A$, satisfying the three axioms (nonnegativity, normalization, and countable additivity).
+
+With these three ingredients in place, we have a complete mathematical framework for reasoning about uncertainty. The rest of probability theory (conditional probability, independence, random variables, distributions, limit theorems) is built on top of this foundation.
+
+Going back to our restaurant die roll: the sample space is $\Omega = \left\{1, 2, 3, 4\right\}$ (one face per restaurant), the event "we eat sushi" is the subset $\left\{3\right\}$ (say sushi is face 3), and under the discrete uniform law for a fair die, $\mathrm{P}\left(\text{sushi}\right) = \frac{1}{4}$. Simple, but built on solid ground.
+
+In the next post, we will explore what happens when we gain partial information about the outcome, which leads us to **conditional probability** and the concept of **independence**. Stay tuned.
