@@ -721,14 +721,14 @@ In other words, given the input $\vb{x}_i$, the output $y_i$ is normally distrib
 ::: {#fig-gaussian_around_line}
 {{< video images/gaussian_around_line.mp4 >}}
 
-The probabilistic model: at each input $x$, the output $y$ is drawn from a Gaussian centered on the line $\boldsymbol{\uptheta}^{\intercal}\vb{x}$.
+The probabilistic model: at each input $\vb{x}$, the output $y$ is drawn from a Gaussian centered on the line $\boldsymbol{\uptheta}^{\intercal}\vb{x}$.
 :::
 
 We can write the density of $y_i$ given $\vb{x}_i$ and parameterized by $\boldsymbol{\uptheta}$ as
 
 $$
 p\left(y_i \mid \vb{x}_i ; \boldsymbol{\uptheta}\right) = \frac{1}{\sigma\sqrt{2\pi}} \exp\left(-\frac{\left(y_i - \boldsymbol{\uptheta}^{\intercal}\vb{x}_i\right)^2}{2\sigma^2}\right).
-$$
+$$ {#eq-output_distribution_expanded}
 
 (Note the semicolon before $\boldsymbol{\uptheta}$: we write $\boldsymbol{\uptheta}$ after a semicolon, not a comma, because $\boldsymbol{\uptheta}$ is a fixed parameter, not a random variable we are conditioning on.)
 
@@ -760,7 +760,7 @@ $$
 L\left(\boldsymbol{\uptheta}\right) = \prod_{i=1}^{n} p\left(y_i \mid \vb{x}_i; \boldsymbol{\uptheta}\right).
 $$
 
-We already know the form of each individual term $p\left(y_i \mid \vb{x}_i; \boldsymbol{\uptheta}\right)$ from @eq-output_distribution. Substituting it in:
+We already know the form of each individual term $p\left(y_i \mid \vb{x}_i; \boldsymbol{\uptheta}\right)$ from @eq-output_distribution_expanded. Substituting it in:
 
 $$
 L\left(\boldsymbol{\uptheta}\right) = \prod_{i=1}^{n} \frac{1}{\sigma\sqrt{2\pi}} \exp\left(-\frac{\left(y_i - \boldsymbol{\uptheta}^{\intercal}\vb{x}_i\right)^2}{2\sigma^2}\right).
@@ -771,7 +771,10 @@ $$
 The principle of **maximum likelihood** says: choose $\boldsymbol{\uptheta}$ to make the observed data as probable as possible. That is, we want
 
 $$
-\hat{\boldsymbol{\uptheta}} = \arg \max_{\boldsymbol{\uptheta}} L\left(\boldsymbol{\uptheta}\right).
+\begin{align*}
+\hat{\boldsymbol{\uptheta}} &= \arg \max_{\boldsymbol{\uptheta}} L\left(\boldsymbol{\uptheta}\right)\\
+                            &= \arg \max_{\boldsymbol{\uptheta}} \left[\prod_{i=1}^{n} \frac{1}{\sigma\sqrt{2\pi}} \exp\left(-\frac{\left(y_i - \boldsymbol{\uptheta}^{\intercal}\vb{x}_i\right)^2}{2\sigma^2}\right)\right].
+\end{align*}
 $$
 
 Products are awkward to work with, so we take the logarithm. Since $\log$ is strictly increasing, maximizing $L$ is the same as maximizing $\log L$. The **log-likelihood** is
@@ -784,7 +787,7 @@ $$
 \end{align*}
 $$
 
-Look at this expression carefully. The first term, $n \log\left(\frac{1}{\sigma\sqrt{2\pi}}\right)$, is a constant that does not depend on $\boldsymbol{\uptheta}$. The second term is $-\frac{1}{\sigma^2} \times \frac{1}{2} \sum_{i=1}^{n} \left(y_i - \boldsymbol{\uptheta}^{\intercal}\vb{x}_i\right)^2$. Since $\frac{1}{\sigma^2}$ is a positive constant, maximizing $\ell\left(\boldsymbol{\uptheta}\right)$ is the same as *minimizing*
+Look at this expression carefully. The first term, $n \log\left(\frac{1}{\sigma\sqrt{2\pi}}\right)$, is a constant that does not depend on $\boldsymbol{\uptheta}$. The second term is $-\frac{1}{\sigma^2} \left[ \frac{1}{2} \sum_{i=1}^{n} \left(y_i - \boldsymbol{\uptheta}^{\intercal}\vb{x}_i\right)^2\right]$. Since $\frac{1}{\sigma^2}$ is a positive constant, maximizing $\ell\left(\boldsymbol{\uptheta}\right)$ is the same as *minimizing*
 
 $$
 \frac{1}{2} \sum_{i=1}^{n} \left(y_i - \boldsymbol{\uptheta}^{\intercal}\vb{x}_i\right)^2.
