@@ -2,7 +2,7 @@
 title: "Sushrut Gaikwad"
 subtitle: "Data Enthusiast | Data Scientist"
 # subtitle: "My honest, humble, and lifelong attempt to understand the world around me."
-image: assets/images/me/me.png
+image: assets/images/me/me.jpg
 about:
   template: trestles
   image-shape: round
