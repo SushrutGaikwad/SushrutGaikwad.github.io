@@ -1,0 +1,327 @@
+---
+title: "Document Loaders"
+draft: true
+author: "Sushrut"
+date: 2026-04-25
+description: "."
+categories: [GenAI, "RAG"]
+tags: [GenAI, "RAG", "Document Loaders", "Blog"]
+format:
+  html:
+    link-citations: true
+    smooth-scroll: true
+    math: mathjax
+    toc: true
+    fig-format: svg
+    mermaid:
+      theme: dark
+bibliography: ../../../references/references.bib
+csl: ../../../references/apa.csl
+execute:
+  enabled: true
+  fig-format: svg
+---
+
+Recall that in the [introduction to RAG blog post](../introduction-to-rag/index.qmd), we saw what a RAG pipeline looks like, which is the following:
+
+```{mermaid}
+%%| label: fig-rag-pipeline
+%%| fig-cap: "The full RAG pipeline. Indexing (top) is done once, offline; the query path (bottom) runs for every user question."
+%%| fig-align: center
+flowchart TB
+    subgraph Indexing["Indexing (done offline)"]
+        direction TB
+        KS["Knowledge Source<br/>PDF, docx, csv, ..."] --> DL["Document Loader<br/>parse + metadata"]
+        DL --> CH["Chunking<br/>split into small pieces"]
+        CH --> EM1["Embedder Model<br/>text to vector"]
+        EM1 --> VS[("Vector Store /<br/>Knowledge Base")]
+    end
+    subgraph Query["Query (every user question)"]
+        direction TB
+        Q["User Query"] --> EM2["Embedder Model<br/>(the same one)"]
+        EM2 --> SS["Similarity Search<br/>find top-k chunks"]
+        SS --> AUG["Context Assembly<br/>augment the prompt"]
+        AUG --> LLM["LLM<br/>(generation)"]
+        LLM --> ANS["Grounded Answer"]
+    end
+    VS -.retrieve.-> SS
+    Q -.original query.-> AUG
+```
+
+In this and the upcoming few blog posts in this series, we will discuss some components of this pipeline. This blog post is about document loaders.
+
+# Why are Document Loaders Required
+
+In the pipeline (@fig-rag-pipeline), We can see that document loaders are used right at the beginning. What we basically want to do using this pipeline is add relevant context to the prompt. In other words, augment the prompt. This entire augmented prompt is then passed to the LLM as input such that it can eventually give us accurate responses. Recall that the "relevant context" that we have mentioned here is basically the product of filtering the knowledge source, which gives us a context highly relevant to the user's query. Of course, this is dynamic because it depends on the user's query. So we need to build a central knowledge base which contains the entire external knowledge we have that can contain the answer to the user's query, and this knowledge is something the LLM didn't see during its training. This knowledge base contains information in the form of vectors primarily (also known as embeddings), its associated text, and its corresponding metadata. So it is a database containing the entire knowledge that we want to use. CRUD operations can be performed on this database.
+
+The original raw knowledge data is known as the knowledge source, and the knowledge from this knowledge source is then transformed using the embedding model and put inside the knowledge base. The embedding model captures the semantic meaning of the text in the knowledge source by converting it into vectors. Please understand that knowledge source and knowledge base are different. As you can also see in the pipeline diagram (@fig-rag-pipeline), there can be multiple formats in which the text in the knowledge source can be available, e.g., PDF, txt, docx, csv, markdown, etc. For example, knowledge source can be a simple directory which can contain files of various formats.
+
+As we can see, the main work that we are supposed to do here is take the data or the text from the knowledge source and put it inside the knowledge base. In other words, this is data ingestion. The problem is that the data in the knowledge source can be in multiple files of varying formats. We need a workflow or a component that takes in data of varying formats and outputs data in a unified and defined format. This component is called data loader. This acts like a translator which can take text (or data) in any format and convert it to that unified format. The rack pipeline then works on data in this unified format.
+
+# What are Document Loaders
+
+Document Loaders are these special components inside a RAG pipeline which perform the following three key tasks:
+
+1. Load the file or the document,
+2. Parse the document, i.e., go through and understand the structure of the document (each document format has a different structure, e.g., PDF, txt, markdown, etc.), and extract the text,
+3. Extract an output from the document.
+
+The output generated should be in a unified format. The reason why we want the output that is generated to be in a single format is that we want our RAG pipeline to work irrespective (or agnostic) of the format in which the knowledge is stored in the knowledge source. There are various types of document loaders, e.g., PDF loader, markdown loader, etc. But each of these loaders output the text in the same single unified output format. In LangChain, this output format is known as [`Document`](https://reference.langchain.com/python/langchain-core/documents/base/Document). So the chunking is carried out on the textual information which is in this `Document` format only and no other format. Same with the embedder model, i.e., it takes in text that is in this `Document` format only, and no other format. Same for all other components of the RAG pipeline. So document loaders help us eliminate the variation that is present in the knowledge source in the form of different document formats.
+
+# Which problem is solved by Document Loaders
+
+As we already discussed, the text present in the knowledge source can be in multiple formats. We want a solution that converts all these different formats into a single unified format in the output. Recall that in the knowledge base, which is a database, apart from having the embedding vectors, it also stores the text corresponding to each of those embedding vectors and the metadata corresponding to each of those embedding vectors. This metadata is used to carry the source information of the text. Filtering of the text can also be performed based on this metadata. The unified output format given by Document Loaders should not only consist of the text but also its associated metadata. This is enabled by LangChain using its `Document` object. All document loader objects in LangChain have as output this `Document` object, which has two attributes: text (which is the text from the knowledge source), and the metadata associated with that text (e.g., source information, number of pages if the original source was a PDF, which page or section this particular text is taken from from the source, author, etc.).
+
+```py
+Document{
+    page_content: str,  # the actual text extracted
+    metadata: dict     # information about the source
+}
+```
+
+Any document loader class created in LangChain inherits from the internal `BaseLoader` class, which is an abstract class that code related to how to implement document loaders and how to convert the extracted text in the unified output format. In LangChain, there is a document loader available for almost all format types, e.g., PDF, markdown, etc. This is because the parsing step depends on the type of the file as each file type has a different structure.
+
+# Text Loader
+
+Let us see how to use LangChain's `TextLoader` document loader. We will load the [transformers.txt](notebooks/transformers.txt) file using this document loader. The code is the following.
+
+First install `langchain-community` using
+
+```sh
+pip install langchain-community
+```
+
+Then we do some standard imports and define the path of the txt file.
+
+```py
+from langchain_community.document_loaders import TextLoader
+from pathlib import Path
+
+file_path = Path("transformers.txt")  # path to the `transformers.txt` file
+file_path.exists()  # check if the file exists on the defined path
+```
+
+Next, we define the loader
+
+```py
+loader = TextLoader(file_path=file_path, encoding="utf-8")
+print(loader)
+```
+
+This prints
+
+```txt
+<langchain_community.document_loaders.text.TextLoader at {some_memory_location}>
+```
+
+Let us now load the documents.
+
+```py
+documents = loader.load()  # gives a list of `Document` objects
+type(documents)            # this prints "list"
+```
+
+We can find the number of documents using
+
+```py
+len(documents)  # this gives 1
+```
+
+Our list only contains a single `Document` object. But if we were using a PDF loader, it would have given us a `Document` object per page in this list.
+
+```py
+print(type(documents[0]))
+```
+
+This prints
+
+```txt
+<class 'langchain_core.documents.base.Document'>
+```
+
+What the variable `documents` actually contains can be seen by printing it.
+
+```py
+print(documents)
+```
+
+This prints
+
+```txt
+[Document(metadata={'source': 'transformers.txt'}, page_content='# The Transformer Architecture in Large Language Models\n\nThe transformer is the neural network architecture behind virtually every modern large language model (LLM), including the GPT, Claude, Gemini, and Llama families. It was introduced in the 2017 paper "Attention Is All You Need" by Vaswani and colleagues at Google. This document walks through how it works, building up from raw text to a predicted next token.\n\n## 1. The Core Problem\n\nA language model has one deceptively simple job: given a sequence of text, predict what comes next. From that single capability, everything else (answering questions, writing code, translating, reasoning) emerges through scale and training.\n\nTo do this well, a model needs to understand context. The word "bank" means something different in "river bank" versus "savings bank." Earlier architectures like recurrent neural networks (RNNs) processed text one word at a time, which made it hard to connect distant words and slow to train. The transformer\'s key insight was a mechanism called self-attention that lets every word look at every other word directly and in parallel.\n\n## 2. The High-Level Pipeline\n\nAt a glance, text flows through a transformer in these stages:\n\n1. **Tokenization**: split the text into tokens (chunks of words or characters).\n2. **Embedding**: convert each token into a vector of numbers.\n3. **Positional encoding**: add information about word order.\n4. **Transformer blocks**: a stack of layers, each containing self-attention and a feed-forward network, that progressively refine the representations.\n5. **Output projection**: convert the final vectors into probabilities over the vocabulary.\n6. **Sampling**: pick the next token.\n\nThe rest of this document expands each stage.\n\n## 3. Tokenization\n\nComputers cannot operate on raw text, so the first step is breaking text into discrete units called tokens. Modern LLMs do not use whole words or single characters. Instead they use subword tokenization (commonly byte pair encoding or similar schemes), where common words become single tokens and rare words get split into pieces.\n\nFor example, the sentence "Transformers are powerful" might become the tokens:\n\n```\n["Transform", "ers", " are", " powerful"]\n```\n\nEach token maps to an integer ID from a fixed vocabulary, which is typically 30,000 to 200,000 entries depending on the model. The leading spaces are often part of the token, which is why you see " are" rather than "are."\n\n## 4. Embeddings\n\nEach token ID is used to look up a row in an embedding matrix, producing a dense vector (a list of floating point numbers). A typical embedding dimension might be 768, 4096, or larger in big models.\n\nThese vectors are learned during training. Tokens with similar meanings end up with similar vectors, so the embedding space captures semantic relationships. The classic example is that the vector arithmetic "king minus man plus woman" lands near "queen."\n\nAt this point, a sequence of N tokens has become an N by D matrix, where D is the embedding dimension.\n\n## 5. Positional Encoding\n\nSelf-attention, on its own, treats input as an unordered set. It has no inherent sense that "the dog bit the man" differs from "the man bit the dog." To fix this, the model injects positional information.\n\nThe original transformer added fixed sinusoidal patterns to the embeddings. Modern LLMs more often use learned positional embeddings or rotary position embeddings (RoPE), which encode relative position directly into the attention computation and tend to generalize better to longer sequences. Whatever the method, the goal is the same: give the model a way to know where each token sits in the sequence.\n\n## 6. Self-Attention: The Heart of the Transformer\n\nSelf-attention is the mechanism that lets each token gather information from other tokens. It works by having every token ask a question, advertise what it offers, and carry a payload of information. These three roles are called the query, the key, and the value.\n\nFor each token, the model computes three vectors by multiplying its embedding by three separate learned weight matrices:\n\n- **Query (Q)**: what this token is looking for.\n- **Key (K)**: what this token offers to others.\n- **Value (V)**: the actual information this token will pass along if attended to.\n\nThe attention process then works as follows:\n\n1. **Score**: for a given token, compare its query against the keys of all tokens by taking dot products. A high score means "this other token is relevant to me."\n2. **Scale and normalize**: divide the scores by the square root of the key dimension (for numerical stability), then apply a softmax so the scores become weights that sum to 1.\n3. **Aggregate**: take a weighted sum of all the value vectors, using those weights. The result is a new representation of the token that blends in information from the tokens it found most relevant.\n\nThe compact mathematical form is:\n\n```\nAttention(Q, K, V) = softmax( (Q * K^T) / sqrt(d_k) ) * V\n```\n\nHere `d_k` is the dimension of the key vectors, and `K^T` is the transpose of the key matrix.\n\n### Why this matters\n\nConsider the sentence "The animal did not cross the street because it was too tired." When the model processes "it," self-attention lets that token attend strongly to "animal," resolving the reference. This happens automatically through learned weights, with no hand-written grammar rules.\n\n## 7. Multi-Head Attention\n\nA single attention computation captures one kind of relationship. But language has many simultaneous patterns: grammatical agreement, coreference, topic, tone, and more. To capture these in parallel, transformers use multiple attention heads.\n\nEach head has its own independent Q, K, and V projections, so each can specialize. One head might track subject-verb relationships while another tracks which adjectives modify which nouns. The model runs all heads at once, then concatenates their outputs and passes them through a final linear projection to combine them.\n\nA model with an embedding dimension of 4096 might split this across 32 heads of dimension 128 each, for instance.\n\n## 8. The Feed-Forward Network\n\nAfter attention mixes information across tokens, each token is processed independently by a small feed-forward network (FFN), also called a multilayer perceptron. This is applied position by position, the same network to each token.\n\nThe FFN typically expands the representation to a larger hidden dimension (often four times the embedding size), applies a nonlinear activation function (such as GELU or SwiGLU), then projects back down. This is where much of the model\'s raw knowledge and pattern storage is thought to live. If attention is about routing information between tokens, the feed-forward layer is about transforming and enriching each token\'s representation.\n\n## 9. Residual Connections and Normalization\n\nTwo supporting techniques make deep transformer stacks trainable.\n\n**Residual connections** add a layer\'s input back to its output. Instead of computing `output = Layer(input)`, the model computes `output = input + Layer(input)`. This gives gradients a direct path to flow backward during training and prevents information from being lost as it passes through many layers.\n\n**Layer normalization** rescales the values within each token\'s vector to keep them in a stable range. This keeps training numerically well behaved. Modern models typically apply normalization before each sublayer (a setup called pre-norm), which improves training stability.\n\n## 10. Putting a Block Together\n\nA single transformer block (one layer) combines the pieces above. A common pre-norm arrangement looks like this:\n\n```\nx = x + MultiHeadAttention(LayerNorm(x))\nx = x + FeedForward(LayerNorm(x))\n```\n\nThat is the whole block: normalize, attend, add back; then normalize, transform, add back. LLMs stack many of these blocks in sequence. A small model might have 12 blocks, while the largest models have 100 or more. Each block refines the representation a little further, with early layers tending to capture surface features and later layers capturing more abstract, semantic structure.\n\n## 11. Decoder-Only Models and Causal Masking\n\nThe original transformer had two halves, an encoder and a decoder, designed for translation. Most modern LLMs are decoder-only: they use just the second half, repeated many times.\n\nA defining feature of these models is the causal mask (also called the autoregressive mask). When predicting the token at a given position, the model must not look at future tokens, since at generation time those do not exist yet. The mask enforces this by setting the attention scores for all future positions to negative infinity before the softmax, which drives their weights to zero. Each token can attend only to itself and the tokens before it.\n\nThis is what makes the model autoregressive: it generates text one token at a time, left to right, with each new token conditioned on everything generated so far.\n\n## 12. From Vectors to Words: The Output Layer\n\nAfter the final transformer block, each position holds a rich vector summarizing the context up to that point. To turn the last position\'s vector into a prediction, the model multiplies it by an output projection matrix (often the transpose of the input embedding matrix, a trick called weight tying). This produces one raw score, called a logit, for every token in the vocabulary.\n\nA softmax then converts these logits into a probability distribution over the entire vocabulary. For example, after "The capital of France is," the model might assign high probability to "Paris" and low probability to nearly everything else.\n\n## 13. Sampling the Next Token\n\nWith a probability distribution in hand, the model chooses the next token. Several strategies exist:\n\n- **Greedy decoding**: always pick the highest-probability token. Deterministic but can be repetitive.\n- **Temperature**: scale the logits before softmax. Lower temperature makes the distribution sharper and more predictable; higher temperature makes it flatter and more creative.\n- **Top-k sampling**: restrict the choice to the k most likely tokens, then sample.\n- **Top-p (nucleus) sampling**: restrict to the smallest set of tokens whose cumulative probability exceeds p, then sample.\n\nThe chosen token is appended to the sequence, and the whole process repeats to generate the next token, and the next, until the model emits a stop token or hits a length limit.\n\n## 14. How Training Works\n\nDuring training, the model is shown enormous amounts of text and learns by predicting the next token at every position simultaneously. For each position, its predicted distribution is compared against the actual next token using a loss function called cross-entropy loss. Backpropagation then nudges all the weights (embeddings, attention projections, feed-forward layers, output projection) slightly in the direction that would have made the correct token more likely.\n\nRepeated across trillions of tokens, this simple objective produces a model that has implicitly absorbed grammar, facts, reasoning patterns, and writing styles. Many LLMs then go through further stages such as instruction tuning and reinforcement learning from human feedback to make them more helpful and aligned with what people want.\n\n## 15. Why Transformers Scale So Well\n\nTwo properties explain the transformer\'s dominance:\n\n**Parallelism**: unlike RNNs, which process tokens sequentially, a transformer processes all positions in a sequence at once during training. This maps efficiently onto modern GPUs and TPUs, making it practical to train very large models.\n\n**Favorable scaling**: empirically, transformer performance improves predictably as you add more parameters, more data, and more compute. These scaling laws gave researchers confidence that building bigger models would keep paying off, which drove the rapid growth of the field.\n\n## 16. Known Limitations\n\nThe architecture is not without costs. Standard self-attention compares every token with every other token, so its compute and memory grow with the square of the sequence length. This makes very long contexts expensive, and a great deal of research targets more efficient attention variants. Transformers also have a fixed context window, lack built-in long-term memory across separate conversations, and can produce confident but incorrect output, since they are optimized to predict plausible text rather than to verify truth.\n\n## Summary\n\nThe transformer turns text into tokens, tokens into vectors, and then refines those vectors through stacked layers of self-attention and feed-forward networks. Self-attention lets every token draw on relevant context, multi-head attention captures many relationships at once, and causal masking makes generation proceed one token at a time. Trained on vast text with a simple next-token objective, this architecture scales gracefully and underlies the capabilities of today\'s large language models.')]
+```
+
+We can clearly see the two attributes `metadata` which is a dictionary that currently contains the source information, and `page_content` which contains the actual text present in the file. Let us have a look at them individually.
+
+```py
+extracted_doc = documents[0]
+print(extracted_doc.page_content)
+```
+
+This prints
+
+```txt
+# The Transformer Architecture in Large Language Models
+
+The transformer is the neural network architecture behind virtually every modern large language model (LLM), including the GPT, Claude, Gemini, and Llama families. It was introduced in the 2017 paper "Attention Is All You Need" by Vaswani and colleagues at Google. This document walks through how it works, building up from raw text to a predicted next token.
+
+## 1. The Core Problem
+
+A language model has one deceptively simple job: given a sequence of text, predict what comes next. From that single capability, everything else (answering questions, writing code, translating, reasoning) emerges through scale and training.
+
+To do this well, a model needs to understand context. The word "bank" means something different in "river bank" versus "savings bank." Earlier architectures like recurrent neural networks (RNNs) processed text one word at a time, which made it hard to connect distant words and slow to train. The transformer's key insight was a mechanism called self-attention that lets every word look at every other word directly and in parallel.
+
+## 2. The High-Level Pipeline
+
+At a glance, text flows through a transformer in these stages:
+
+1. **Tokenization**: split the text into tokens (chunks of words or characters).
+2. **Embedding**: convert each token into a vector of numbers.
+3. **Positional encoding**: add information about word order.
+4. **Transformer blocks**: a stack of layers, each containing self-attention and a feed-forward network, that progressively refine the representations.
+5. **Output projection**: convert the final vectors into probabilities over the vocabulary.
+6. **Sampling**: pick the next token.
+
+The rest of this document expands each stage.
+
+## 3. Tokenization
+
+Computers cannot operate on raw text, so the first step is breaking text into discrete units called tokens. Modern LLMs do not use whole words or single characters. Instead they use subword tokenization (commonly byte pair encoding or similar schemes), where common words become single tokens and rare words get split into pieces.
+
+For example, the sentence "Transformers are powerful" might become the tokens:
+
+["Transform", "ers", " are", " powerful"]
+
+Each token maps to an integer ID from a fixed vocabulary, which is typically 30,000 to 200,000 entries depending on the model. The leading spaces are often part of the token, which is why you see " are" rather than "are."
+
+## 4. Embeddings
+
+Each token ID is used to look up a row in an embedding matrix, producing a dense vector (a list of floating point numbers). A typical embedding dimension might be 768, 4096, or larger in big models.
+
+These vectors are learned during training. Tokens with similar meanings end up with similar vectors, so the embedding space captures semantic relationships. The classic example is that the vector arithmetic "king minus man plus woman" lands near "queen."
+
+At this point, a sequence of N tokens has become an N by D matrix, where D is the embedding dimension.
+
+## 5. Positional Encoding
+
+Self-attention, on its own, treats input as an unordered set. It has no inherent sense that "the dog bit the man" differs from "the man bit the dog." To fix this, the model injects positional information.
+
+The original transformer added fixed sinusoidal patterns to the embeddings. Modern LLMs more often use learned positional embeddings or rotary position embeddings (RoPE), which encode relative position directly into the attention computation and tend to generalize better to longer sequences. Whatever the method, the goal is the same: give the model a way to know where each token sits in the sequence.
+
+## 6. Self-Attention: The Heart of the Transformer
+
+Self-attention is the mechanism that lets each token gather information from other tokens. It works by having every token ask a question, advertise what it offers, and carry a payload of information. These three roles are called the query, the key, and the value.
+
+For each token, the model computes three vectors by multiplying its embedding by three separate learned weight matrices:
+
+- **Query (Q)**: what this token is looking for.
+- **Key (K)**: what this token offers to others.
+- **Value (V)**: the actual information this token will pass along if attended to.
+
+The attention process then works as follows:
+
+1. **Score**: for a given token, compare its query against the keys of all tokens by taking dot products. A high score means "this other token is relevant to me."
+2. **Scale and normalize**: divide the scores by the square root of the key dimension (for numerical stability), then apply a softmax so the scores become weights that sum to 1.
+3. **Aggregate**: take a weighted sum of all the value vectors, using those weights. The result is a new representation of the token that blends in information from the tokens it found most relevant.
+
+The compact mathematical form is:
+
+Attention(Q, K, V) = softmax( (Q * K^T) / sqrt(d_k) ) * V
+
+Here `d_k` is the dimension of the key vectors, and `K^T` is the transpose of the key matrix.
+
+### Why this matters
+
+Consider the sentence "The animal did not cross the street because it was too tired." When the model processes "it," self-attention lets that token attend strongly to "animal," resolving the reference. This happens automatically through learned weights, with no hand-written grammar rules.
+
+## 7. Multi-Head Attention
+
+A single attention computation captures one kind of relationship. But language has many simultaneous patterns: grammatical agreement, coreference, topic, tone, and more. To capture these in parallel, transformers use multiple attention heads.
+
+Each head has its own independent Q, K, and V projections, so each can specialize. One head might track subject-verb relationships while another tracks which adjectives modify which nouns. The model runs all heads at once, then concatenates their outputs and passes them through a final linear projection to combine them.
+
+A model with an embedding dimension of 4096 might split this across 32 heads of dimension 128 each, for instance.
+
+## 8. The Feed-Forward Network
+
+After attention mixes information across tokens, each token is processed independently by a small feed-forward network (FFN), also called a multilayer perceptron. This is applied position by position, the same network to each token.
+
+The FFN typically expands the representation to a larger hidden dimension (often four times the embedding size), applies a nonlinear activation function (such as GELU or SwiGLU), then projects back down. This is where much of the model's raw knowledge and pattern storage is thought to live. If attention is about routing information between tokens, the feed-forward layer is about transforming and enriching each token's representation.
+
+## 9. Residual Connections and Normalization
+
+Two supporting techniques make deep transformer stacks trainable.
+
+**Residual connections** add a layer's input back to its output. Instead of computing `output = Layer(input)`, the model computes `output = input + Layer(input)`. This gives gradients a direct path to flow backward during training and prevents information from being lost as it passes through many layers.
+
+**Layer normalization** rescales the values within each token's vector to keep them in a stable range. This keeps training numerically well behaved. Modern models typically apply normalization before each sublayer (a setup called pre-norm), which improves training stability.
+
+## 10. Putting a Block Together
+
+A single transformer block (one layer) combines the pieces above. A common pre-norm arrangement looks like this:
+
+x = x + MultiHeadAttention(LayerNorm(x))
+x = x + FeedForward(LayerNorm(x))
+
+
+That is the whole block: normalize, attend, add back; then normalize, transform, add back. LLMs stack many of these blocks in sequence. A small model might have 12 blocks, while the largest models have 100 or more. Each block refines the representation a little further, with early layers tending to capture surface features and later layers capturing more abstract, semantic structure.
+
+## 11. Decoder-Only Models and Causal Masking
+
+The original transformer had two halves, an encoder and a decoder, designed for translation. Most modern LLMs are decoder-only: they use just the second half, repeated many times.
+
+A defining feature of these models is the causal mask (also called the autoregressive mask). When predicting the token at a given position, the model must not look at future tokens, since at generation time those do not exist yet. The mask enforces this by setting the attention scores for all future positions to negative infinity before the softmax, which drives their weights to zero. Each token can attend only to itself and the tokens before it.
+
+This is what makes the model autoregressive: it generates text one token at a time, left to right, with each new token conditioned on everything generated so far.
+
+## 12. From Vectors to Words: The Output Layer
+
+After the final transformer block, each position holds a rich vector summarizing the context up to that point. To turn the last position's vector into a prediction, the model multiplies it by an output projection matrix (often the transpose of the input embedding matrix, a trick called weight tying). This produces one raw score, called a logit, for every token in the vocabulary.
+
+A softmax then converts these logits into a probability distribution over the entire vocabulary. For example, after "The capital of France is," the model might assign high probability to "Paris" and low probability to nearly everything else.
+
+## 13. Sampling the Next Token
+
+With a probability distribution in hand, the model chooses the next token. Several strategies exist:
+
+- **Greedy decoding**: always pick the highest-probability token. Deterministic but can be repetitive.
+- **Temperature**: scale the logits before softmax. Lower temperature makes the distribution sharper and more predictable; higher temperature makes it flatter and more creative.
+- **Top-k sampling**: restrict the choice to the k most likely tokens, then sample.
+- **Top-p (nucleus) sampling**: restrict to the smallest set of tokens whose cumulative probability exceeds p, then sample.
+
+The chosen token is appended to the sequence, and the whole process repeats to generate the next token, and the next, until the model emits a stop token or hits a length limit.
+
+## 14. How Training Works
+
+During training, the model is shown enormous amounts of text and learns by predicting the next token at every position simultaneously. For each position, its predicted distribution is compared against the actual next token using a loss function called cross-entropy loss. Backpropagation then nudges all the weights (embeddings, attention projections, feed-forward layers, output projection) slightly in the direction that would have made the correct token more likely.
+
+Repeated across trillions of tokens, this simple objective produces a model that has implicitly absorbed grammar, facts, reasoning patterns, and writing styles. Many LLMs then go through further stages such as instruction tuning and reinforcement learning from human feedback to make them more helpful and aligned with what people want.
+
+## 15. Why Transformers Scale So Well
+
+Two properties explain the transformer's dominance:
+
+**Parallelism**: unlike RNNs, which process tokens sequentially, a transformer processes all positions in a sequence at once during training. This maps efficiently onto modern GPUs and TPUs, making it practical to train very large models.
+
+**Favorable scaling**: empirically, transformer performance improves predictably as you add more parameters, more data, and more compute. These scaling laws gave researchers confidence that building bigger models would keep paying off, which drove the rapid growth of the field.
+
+## 16. Known Limitations
+
+The architecture is not without costs. Standard self-attention compares every token with every other token, so its compute and memory grow with the square of the sequence length. This makes very long contexts expensive, and a great deal of research targets more efficient attention variants. Transformers also have a fixed context window, lack built-in long-term memory across separate conversations, and can produce confident but incorrect output, since they are optimized to predict plausible text rather than to verify truth.
+
+## Summary
+
+The transformer turns text into tokens, tokens into vectors, and then refines those vectors through stacked layers of self-attention and feed-forward networks. Self-attention lets every token draw on relevant context, multi-head attention captures many relationships at once, and causal masking makes generation proceed one token at a time. Trained on vast text with a simple next-token objective, this architecture scales gracefully and underlies the capabilities of today's large language models.
+```
+
+```py
+print(extracted_doc.metadata)
+```
+
+This prints
+
+```txt
+{'source': 'transformers.txt'}
+```
+
+You can view LangChain's documentation on document loaders [here](https://docs.langchain.com/oss/python/integrations/document_loaders). The documentation says that document loaders provide a **standard interface** for reading data from different sources (such as Slack, Notion, or Google Drive) into LangChain’s [`Document`](https://reference.langchain.com/python/langchain-core/documents/base/Document) format. This ensures that data can be handled consistently regardless of the source. All document loaders implement the [`BaseLoader`](https://reference.langchain.com/python/langchain-core/document_loaders/base/BaseLoader) interface. The documentation also lists all the various types of document loaders available in LangChain.
