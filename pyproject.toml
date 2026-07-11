@@ -9,6 +9,19 @@ dependencies = [
     "nbclient",
     "numpy",
     "matplotlib",
+]
+
+# Heavy visual-generation toolchain, needed only locally to produce the figures
+# and animations in each post's _src/ folder. CI does not need these: the visuals
+# are pre-rendered and committed as images, so the build only installs the base
+# dependencies above to run Quarto's Python cells.
+[dependency-groups]
+viz = [
     "scipy>=1.17.1",
     "manim>=0.20.1",
 ]
+
+# Install the viz group by default for local `uv run` / `uv sync`, so generating
+# visuals works out of the box. CI opts out by installing only the base deps.
+[tool.uv]
+default-groups = ["viz"]
