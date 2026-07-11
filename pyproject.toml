@@ -1,0 +1,14 @@
+[project]
+name = "sushrut-mindscape"
+version = "0.1.0"
+description = "Local environment for rendering Sushrut's Mindscape (Quarto) and generating blog visuals."
+requires-python = ">=3.11"
+dependencies = [
+    "jupyter",
+    "nbformat",
+    "nbclient",
+    "numpy",
+    "matplotlib",
+    "scipy>=1.17.1",
+    "manim>=0.20.1",
+]
