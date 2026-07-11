@@ -1,0 +1,170 @@
+---
+title: "Linear Algebra, Part 16: The Singular Value Decomposition"
+draft: true
+author: "Sushrut"
+date: 2026-07-08
+description: "The sixteenth post in a story-driven linear algebra series following Gilbert Strang's MIT 18.06 lectures. We meet the one factorization that works for every matrix: A = U Sigma V transpose. We build it from the geometry of stretching a circle into an ellipse, compute it from the eigenvectors of A transpose A, and see how it lays the four fundamental subspaces bare."
+categories: [Linear Algebra, Mathematics]
+tags: [Linear Algebra, Mathematics, SVD, Singular Values]
+format:
+  html:
+    link-citations: true
+    smooth-scroll: true
+    math: mathjax
+    toc: true
+    fig-format: svg
+    mermaid:
+      theme: dark
+bibliography: ../../../references/references.bib
+csl: ../../../references/apa.csl
+execute:
+  enabled: true
+  fig-format: svg
+---
+
+# Introduction
+
+We have spent the last several posts taking matrices apart. The spectral theorem ([Part 13](../symmetric-and-positive-definite-matrices/index.qmd)) gave us a gorgeous factorization, $\vb{A} = \vb{Q}\boldsymbol{\Lambda}\vb{Q}^{\intercal}$, but it came with strings attached: the matrix had to be symmetric. Then [Part 15](../similar-matrices-and-jordan-form/index.qmd) showed that some matrices cannot be diagonalized at all, and the best we could do was the fragile, hard-to-compute Jordan form. It would be reasonable to suspect that there is no single, clean factorization that works for *every* matrix.
+
+There is. It is called the **singular value decomposition**, or SVD, and it is the climax of the whole subject. It applies to any matrix at all: square or rectangular, full rank or rank-deficient, symmetric or not. It is numerically stable, it reveals all four fundamental subspaces at a glance, and it powers an astonishing range of applications, from image compression to recommendation systems to the mathematics of large language models. If you remember one factorization from this series, make it this one.
+
+The promise of this post: we will discover the SVD by asking a simple geometric question, "what does a matrix do to a circle?", build the factorization $\vb{A} = \vb{U}\boldsymbol{\Sigma}\vb{V}^{\intercal}$ from that picture, compute it by hand on a small matrix using tools we already have, and finally watch it illuminate the four subspaces.
+
+## Where we are
+
+```{mermaid}
+%%| fig-align: center
+flowchart LR
+    subgraph ACT1["Act I: Solving Ax = b"]
+        P1["1. Geometry"] --> P2["2. Elimination & LU"] --> P3["3. Column Space & Nullspace"] --> P4["4. Rank & Complete Solution"]
+    end
+    subgraph ACT2["Act II: Structure & Orthogonality"]
+        P5["5. Basis & Four Subspaces"] --> P6["6. Graphs & Networks"] --> P7["7. Projections"] --> P8["8. Least Squares & QR"] --> P9["9. Determinants"]
+    end
+    subgraph ACT3["Act III: Eigenvalues & Beyond"]
+        P10["10. Eigenvalues"] --> P11["11. Diagonalization & ODEs"] --> P12["12. Markov & Fourier"] --> P13["13. Positive Definite"] --> P14["14. Complex & FFT"] --> P15["15. Jordan Form"] --> P16["16. SVD"] --> P17["17. Transformations"] --> P18["18. Pseudoinverse"]
+    end
+    ACT1 --> ACT2 --> ACT3
+
+    style P16 fill:#10a37f,color:#fff
+```
+
+# The geometric idea: circles become ellipses
+
+Forget formulas for a moment and think about what a $2 \times 2$ matrix $\vb{A}$ *does* to the plane. Feed it every unit vector, the tips of which trace out the unit circle, and look at where the outputs land. Because $\vb{A}$ is linear, the unit circle always maps to an **ellipse** (possibly squashed flat, if $\vb{A}$ is singular). That is a strong constraint, and the SVD is the statement that captures it precisely.
+
+Here is the key insight. An ellipse has two perpendicular axes. So among all the input unit vectors, there must be a special pair that is perpendicular *and* whose images are also perpendicular, landing exactly along the axes of the ellipse. Call those special orthonormal input directions $\vb{v}_1$ and $\vb{v}_2$, and their (perpendicular) image directions $\vb{u}_1$ and $\vb{u}_2$. The amounts by which they get stretched, the lengths of the ellipse's semi-axes, we call $\sigma_1$ and $\sigma_2$, the **singular values**. In symbols, the matrix takes an orthonormal pair to a perpendicular pair, scaled:
+
+$$
+\vb{A}\vb{v}_1 = \sigma_1 \vb{u}_1, \qquad \vb{A}\vb{v}_2 = \sigma_2 \vb{u}_2.
+$$
+
+The animation below shows this happening: the unit circle, with its special orthonormal directions $\vb{v}_1, \vb{v}_2$, is carried by $\vb{A}$ into an ellipse whose perpendicular semi-axes are $\sigma_1 \vb{u}_1$ and $\sigma_2 \vb{u}_2$.
+
+{{< video images/svd_ellipse.mp4 >}}
+
+# From the picture to the factorization
+
+Let us write the relations $\vb{A}\vb{v}_i = \sigma_i \vb{u}_i$ in matrix form. Stack the orthonormal input vectors as the columns of a matrix $\vb{V}$, the orthonormal output vectors as the columns of $\vb{U}$, and the singular values along the diagonal of $\boldsymbol{\Sigma}$. Then all the relations at once read
+
+$$
+\vb{A}\vb{V} = \vb{U}\boldsymbol{\Sigma}.
+$$
+
+Because the columns of $\vb{V}$ are orthonormal, $\vb{V}$ is an orthogonal matrix, so $\vb{V}^{-1} = \vb{V}^{\intercal}$ (a fact we earned back in [Part 3](../vector-spaces-column-space-and-nullspace/index.qmd)). Multiplying on the right by $\vb{V}^{\intercal}$ gives the **singular value decomposition**:
+
+$$
+\vb{A} = \vb{U}\boldsymbol{\Sigma}\vb{V}^{\intercal}.
+$$ {#eq-svd}
+
+Read @eq-svd from right to left and it is a story in three acts, which is exactly the motion in the animation above. First $\vb{V}^{\intercal}$, an orthogonal matrix, *rotates* (or reflects) the input so the special directions $\vb{v}_i$ line up with the coordinate axes. Then $\boldsymbol{\Sigma}$, a diagonal matrix, *stretches* along those axes by the singular values. Finally $\vb{U}$, another orthogonal matrix, *rotates* the result into its final orientation. Every matrix, no matter how complicated it looks, is just rotate, stretch, rotate.
+
+Compare this to the spectral theorem $\vb{A} = \vb{Q}\boldsymbol{\Lambda}\vb{Q}^{\intercal}$ for symmetric matrices. There, the same orthogonal matrix $\vb{Q}$ appeared on both sides. The SVD is the generalization that allows *two different* orthonormal bases, one for the input space and one for the output space. That extra freedom is precisely what lets it handle every matrix, including rectangular ones where input and output do not even live in the same space.
+
+# Computing the SVD
+
+We have an existence story, but how do we actually find $\vb{U}$, $\boldsymbol{\Sigma}$, and $\vb{V}$? The trick is to make one of the orthogonal matrices disappear by looking at $\vb{A}^{\intercal}\vb{A}$. Using @eq-svd,
+
+$$
+\vb{A}^{\intercal}\vb{A} = \left(\vb{U}\boldsymbol{\Sigma}\vb{V}^{\intercal}\right)^{\intercal}\left(\vb{U}\boldsymbol{\Sigma}\vb{V}^{\intercal}\right) = \vb{V}\boldsymbol{\Sigma}^{\intercal}\vb{U}^{\intercal}\vb{U}\boldsymbol{\Sigma}\vb{V}^{\intercal} = \vb{V}\boldsymbol{\Sigma}^{2}\vb{V}^{\intercal},
+$$
+
+because $\vb{U}^{\intercal}\vb{U} = \vb{I}$. But $\vb{V}\boldsymbol{\Sigma}^{2}\vb{V}^{\intercal}$ is exactly the spectral factorization of the symmetric, positive semidefinite matrix $\vb{A}^{\intercal}\vb{A}$. So the $\vb{v}_i$ are the eigenvectors of $\vb{A}^{\intercal}\vb{A}$, and the singular values are the square roots of its eigenvalues:
+
+$$
+\sigma_i = \sqrt{\lambda_i\left(\vb{A}^{\intercal}\vb{A}\right)}.
+$$
+
+That is the whole recipe. Let us run it on a concrete matrix,
+
+$$
+\vb{A} = \begin{bmatrix} 4 & 4 \\ -3 & 3 \end{bmatrix}.
+$$
+
+**Step 1: find $\vb{V}$ and $\boldsymbol{\Sigma}$ from $\vb{A}^{\intercal}\vb{A}$.** We compute
+
+$$
+\vb{A}^{\intercal}\vb{A} = \begin{bmatrix} 4 & -3 \\ 4 & 3 \end{bmatrix}\begin{bmatrix} 4 & 4 \\ -3 & 3 \end{bmatrix} = \begin{bmatrix} 25 & 7 \\ 7 & 25 \end{bmatrix}.
+$$
+
+This is symmetric, and we can read its eigenvalues off quickly: for a matrix $\left[\begin{smallmatrix} a & b \\ b & a \end{smallmatrix}\right]$ the eigenvalues are $a + b$ and $a - b$, here $25 + 7 = 32$ and $25 - 7 = 18$, with eigenvectors $\left(1, 1\right)$ and $\left(1, -1\right)$. Normalizing, and taking square roots for the singular values,
+
+$$
+\vb{v}_1 = \frac{1}{\sqrt{2}}\begin{bmatrix} 1 \\ 1 \end{bmatrix}, \quad \vb{v}_2 = \frac{1}{\sqrt{2}}\begin{bmatrix} 1 \\ -1 \end{bmatrix}, \qquad \sigma_1 = \sqrt{32}, \quad \sigma_2 = \sqrt{18}.
+$$
+
+**Step 2: find $\vb{U}$.** Here is a subtlety worth slowing down for: we do *not* get to choose $\vb{U}$ independently. Once $\vb{V}$ is fixed, the relation $\vb{A}\vb{v}_i = \sigma_i \vb{u}_i$ forces each output direction to be
+
+$$
+\vb{u}_i = \frac{1}{\sigma_i}\vb{A}\vb{v}_i.
+$$
+
+Computing them,
+
+$$
+\vb{u}_1 = \frac{1}{\sqrt{32}}\vb{A}\vb{v}_1 = \frac{1}{\sqrt{32}} \cdot \frac{1}{\sqrt{2}}\begin{bmatrix} 8 \\ 0 \end{bmatrix} = \begin{bmatrix} 1 \\ 0 \end{bmatrix}, \qquad
+\vb{u}_2 = \frac{1}{\sqrt{18}}\vb{A}\vb{v}_2 = \frac{1}{\sqrt{18}} \cdot \frac{1}{\sqrt{2}}\begin{bmatrix} 0 \\ -6 \end{bmatrix} = \begin{bmatrix} 0 \\ -1 \end{bmatrix}.
+$$
+
+Notice the minus sign in $\vb{u}_2$. Had we naively grabbed $\left(0, 1\right)$ as the eigenvector of $\vb{A}\vb{A}^{\intercal}$, the factorization would not have reproduced $\vb{A}$. This is the one place the SVD asks for care: the signs of the $\vb{u}_i$ are determined by $\vb{A}$, not free.
+
+Putting the pieces together,
+
+$$
+\vb{A} = \vb{U}\boldsymbol{\Sigma}\vb{V}^{\intercal} =
+\begin{bmatrix} 1 & 0 \\ 0 & -1 \end{bmatrix}
+\begin{bmatrix} \sqrt{32} & 0 \\ 0 & \sqrt{18} \end{bmatrix}
+\frac{1}{\sqrt{2}}\begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}.
+$$
+
+You can multiply this out to recover $\left[\begin{smallmatrix} 4 & 4 \\ -3 & 3 \end{smallmatrix}\right]$ exactly. @tbl-svd_pieces collects where each piece comes from.
+
+::: {.tbl tbl-colwidths="auto"}
+| Piece | What it is | Where it comes from |
+|:---|:---|:---|
+| $\vb{V}$ | orthonormal input directions $\vb{v}_i$ | eigenvectors of $\vb{A}^{\intercal}\vb{A}$ |
+| $\boldsymbol{\Sigma}$ | singular values $\sigma_i$ on the diagonal | $\sigma_i = \sqrt{\lambda_i\left(\vb{A}^{\intercal}\vb{A}\right)}$ |
+| $\vb{U}$ | orthonormal output directions $\vb{u}_i$ | $\vb{u}_i = \vb{A}\vb{v}_i / \sigma_i$ (eigenvectors of $\vb{A}\vb{A}^{\intercal}$) |
+
+: The three pieces of the SVD and how to compute them. {#tbl-svd_pieces style="width:85%; margin:auto;"}
+:::
+
+# The SVD reveals the four subspaces
+
+The deepest payoff of the SVD is structural. Suppose $\vb{A}$ has rank $r$. Then exactly $r$ of the singular values are nonzero, and they sort the orthonormal bases into the four fundamental subspaces from [Part 5](../basis-dimension-and-the-four-subspaces/index.qmd), perfectly aligned. The first $r$ columns of $\vb{V}$ are an orthonormal basis for the **row space**; the remaining columns of $\vb{V}$ are an orthonormal basis for the **nullspace**. On the output side, the first $r$ columns of $\vb{U}$ are an orthonormal basis for the **column space**, and the rest span the **left nullspace**. @fig-svd_subspaces shows the whole picture.
+
+![The SVD chooses orthonormal bases that line up perfectly with the four subspaces. The first $r$ directions $\mathbf{v}_i$ (row space) map to the first $r$ directions $\mathbf{u}_i$ (column space), each scaled by $\sigma_i$. The remaining $\mathbf{v}_i$ span the nullspace and are sent to zero.](images/svd_subspaces.png){#fig-svd_subspaces fig-align="center" width=95%}
+
+In one factorization, the SVD diagonalizes $\vb{A}$ as a map from the row space to the column space: pick the right orthonormal basis on each side, and $\vb{A}$ does nothing but scale the $i$-th row-space direction by $\sigma_i$ to give the $i$-th column-space direction. Everything in the nullspace is crushed to zero. This is the cleanest possible description of what any matrix does, and we will cash it in next time and the time after.
+
+A quick word on rank-deficient matrices, to show nothing breaks. For the rank-one matrix $\vb{A} = \left[\begin{smallmatrix} 4 & 3 \\ 8 & 6 \end{smallmatrix}\right]$, we have $\vb{A}^{\intercal}\vb{A} = \left[\begin{smallmatrix} 80 & 60 \\ 60 & 45 \end{smallmatrix}\right]$, whose eigenvalues are $125$ and $0$. So there is a single nonzero singular value $\sigma_1 = \sqrt{125}$, with $\vb{v}_1 = \left(4, 3\right)/5$ spanning the row space and $\vb{u}_1 = \left(1, 2\right)/\sqrt{5}$ spanning the column space. The zero singular value flags the one-dimensional nullspace. The SVD reports the rank honestly, just by counting nonzero singular values.
+
+# Where we are, and where we go next
+
+Let us take stock. We have reached the summit of the factorization story:
+
+- Geometrically, every matrix turns the unit sphere into an ellipsoid; the SVD names the special perpendicular input directions $\vb{v}_i$, output directions $\vb{u}_i$, and stretch factors $\sigma_i$.
+- Algebraically, $\vb{A} = \vb{U}\boldsymbol{\Sigma}\vb{V}^{\intercal}$ with $\vb{U}, \vb{V}$ orthogonal and $\boldsymbol{\Sigma}$ diagonal. It exists for *every* matrix, and we compute it from the eigenvectors of $\vb{A}^{\intercal}\vb{A}$.
+- Structurally, the nonzero singular values count the rank, and the columns of $\vb{V}$ and $\vb{U}$ hand us orthonormal bases for all four fundamental subspaces at once.
+
+The SVD makes vivid an idea we have only hinted at: that a matrix is not really a grid of numbers, it is a *transformation*, and the numbers you see depend entirely on the basis you chose to write it in. Pick the basis well (the $\vb{v}_i$ and $\vb{u}_i$) and the transformation becomes pure scaling. That raises a question we have dodged since the beginning: what exactly is the relationship between a transformation and the matrix that represents it, and what happens to that matrix when we change the basis? That is the subject of Part 17, and it will let us see image compression fall out as a direct application.

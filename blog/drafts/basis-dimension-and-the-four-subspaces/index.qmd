@@ -1,0 +1,150 @@
+---
+title: "Linear Algebra, Part 5: Basis, Dimension, and the Four Subspaces"
+draft: true
+author: "Sushrut"
+date: 2026-06-27
+description: "The fifth post in a story-driven linear algebra series following Gilbert Strang's MIT 18.06 lectures. We make the words independence, basis, and dimension precise, and discover that the rank we have been computing secretly measures four spaces at once: the column space, the row space, the nullspace, and the left nullspace."
+categories: [Linear Algebra, Mathematics]
+tags: [Linear Algebra, Mathematics, Basis, Dimension, Four Subspaces]
+format:
+  html:
+    link-citations: true
+    smooth-scroll: true
+    math: mathjax
+    toc: true
+    fig-format: svg
+    mermaid:
+      theme: dark
+bibliography: ../../../references/references.bib
+csl: ../../../references/apa.csl
+execute:
+  enabled: true
+  fig-format: svg
+---
+
+# Introduction
+
+[Part 4](../rank-and-the-complete-solution/index.qmd) finished Act I: given any system $\vb{A}\vb{x} = \vb{b}$, elimination now hands us the entire solution set. Along the way we leaned hard on three words without ever defining them. We said the special solutions form a *basis* for the nullspace, that the nullspace has *dimension* $n - r$, and we kept talking about columns being *independent* or redundant. Those words were doing real work, and it is time to make them precise.
+
+The payoff is immediate and beautiful. Once we pin down independence, basis, and dimension, the single number we have been computing all along, the rank $r$, turns out to measure not one or two spaces but *four*, two living in the input space and two in the output space. These are the **four fundamental subspaces**, and they are the structural heart of linear algebra. This post opens Act II by assembling them into one picture, the diagram that the rest of the course keeps coming back to.
+
+## Where we are
+
+```{mermaid}
+%%| fig-align: center
+flowchart LR
+    subgraph ACT1["Act I: Solving Ax = b"]
+        P1["1. Geometry"] --> P2["2. Elimination & LU"] --> P3["3. Column Space & Nullspace"] --> P4["4. Rank & Complete Solution"]
+    end
+    subgraph ACT2["Act II: Structure & Orthogonality"]
+        P5["5. Basis & Four Subspaces"] --> P6["6. Graphs & Networks"] --> P7["7. Projections"] --> P8["8. Least Squares & QR"] --> P9["9. Determinants"]
+    end
+    subgraph ACT3["Act III: Eigenvalues & Beyond"]
+        P10["10. Eigenvalues"] --> P11["11. Diagonalization & ODEs"] --> P12["12. Markov & Fourier"] --> P13["13. Positive Definite"] --> P14["14. Complex & FFT"] --> P15["15. Jordan Form"] --> P16["16. SVD"] --> P17["17. Transformations"] --> P18["18. Pseudoinverse"]
+    end
+    ACT1 --> ACT2 --> ACT3
+
+    style P5 fill:#10a37f,color:#fff
+```
+
+# Three words made precise
+
+Everything in this section is about a set of vectors $\vb{v}_1, \vb{v}_2, \dots, \vb{v}_k$. We want to measure two things: whether they are *wasteful* (does any vector repeat information already carried by the others?) and how much *territory* they cover.
+
+## Linear independence
+
+The vectors $\vb{v}_1, \dots, \vb{v}_k$ are **linearly independent** if the only way to combine them into the zero vector is the trivial way, with all coefficients zero:
+
+$$
+c_1 \vb{v}_1 + c_2 \vb{v}_2 + \cdots + c_k \vb{v}_k = \vb{0}
+\quad\Longrightarrow\quad
+c_1 = c_2 = \cdots = c_k = 0.
+$$
+
+If some nontrivial combination reaches zero, the vectors are **dependent**, and that combination tells you one vector is built from the others. This connects directly to a space we already know: if the vectors are the columns of a matrix $\vb{A}$, then a nontrivial combination giving $\vb{0}$ is exactly a nonzero vector in the nullspace. So:
+
+$$
+\text{the columns of } \vb{A} \text{ are independent} \quad\Longleftrightarrow\quad N(\vb{A}) = \left\{\vb{0}\right\}.
+$$
+
+That is why a free variable (a nonzero nullspace) was the signal of redundancy back in Part 4.
+
+## Span
+
+The vectors **span** a space if every vector in that space is some linear combination of them. Spanning is about coverage: the vectors reach everything in the space, with no gaps. The column space $C(\vb{A})$, by its very definition, is the space spanned by the columns of $\vb{A}$.
+
+## Basis and dimension
+
+Independence and spanning pull in opposite directions: independence wants *few* vectors (no waste), spanning wants *enough* vectors (no gaps). A **basis** is the perfect balance, a set of vectors that is both independent and spanning. It is just enough vectors to reach everything, with none to spare.
+
+The deep fact, which we will take as established, is that **every basis of a given space has the same number of vectors**. That common number is the **dimension** of the space. Dimension is well-defined precisely because you can never cover the same space with two bases of different sizes; if you tried to use fewer vectors than the dimension you would leave gaps, and more than the dimension would force dependence.
+
+Let us anchor this on the matrix we carried through Parts 3 and 4,
+
+$$
+\vb{A} =
+\begin{bmatrix}
+  1 & 2 & 2 & 2 \\
+  2 & 4 & 6 & 8 \\
+  3 & 6 & 8 & 10
+\end{bmatrix},
+$$
+
+whose rank is $r = 2$ (pivots in columns $1$ and $3$). Its four columns are *not* independent, since column $2$ is twice column $1$, and there is a second relation among the rest. But the two pivot columns $\left(1, 2, 3\right)$ and $\left(2, 6, 8\right)$ *are* independent, and every column is a combination of them. So those two pivot columns are a basis for the column space, and
+
+$$
+\dim C(\vb{A}) = r = 2.
+$$
+
+This is the real meaning of rank: **the rank is the dimension of the column space**, the number of genuinely independent directions among the columns.
+
+# The four fundamental subspaces
+
+Here is the surprise. A single matrix $\vb{A}$ of size $m \times n$ gives rise to not two but four natural subspaces, and elimination hands us a basis and a dimension for every one of them. Two of them live in the input space $\mathbb{R}^n$, and two live in the output space $\mathbb{R}^m$.
+
+**The column space $C(\vb{A})$** lives in $\mathbb{R}^m$ (the columns have $m$ entries). It is spanned by the columns, a basis is the pivot columns, and its dimension is the rank $r$. For our $\vb{A}$: a subspace of $\mathbb{R}^3$ with dimension $2$, basis $\left\{\left(1,2,3\right), \left(2,6,8\right)\right\}$.
+
+**The nullspace $N(\vb{A})$** lives in $\mathbb{R}^n$ (solutions $\vb{x}$ have $n$ entries). A basis is the special solutions, one per free variable, and its dimension is $n - r$. For our $\vb{A}$: a subspace of $\mathbb{R}^4$ with dimension $2$, basis $\left\{\left(-2,1,0,0\right), \left(2,0,-2,1\right)\right\}$.
+
+**The row space $C(\vb{A}^{\intercal})$** lives in $\mathbb{R}^n$ (rows have $n$ entries). It is the space spanned by the rows of $\vb{A}$, equivalently the column space of $\vb{A}^{\intercal}$. A wonderful fact falls out of elimination here: row operations are combinations of rows, so they never change the row space, which means the nonzero rows of the reduced form $\vb{R}$ are a basis for it. Its dimension is again the rank $r$. (That the row space and column space share the same dimension $r$ is the statement that the number of independent rows equals the number of independent columns, one of the quiet miracles of the subject.) For our $\vb{A}$, the nonzero rows of $\vb{R}$ are $\left(1,2,0,-2\right)$ and $\left(0,0,1,2\right)$: a subspace of $\mathbb{R}^4$ with dimension $2$.
+
+**The left nullspace $N(\vb{A}^{\intercal})$** lives in $\mathbb{R}^m$. It is the set of vectors $\vb{y}$ with $\vb{A}^{\intercal}\vb{y} = \vb{0}$, equivalently $\vb{y}^{\intercal}\vb{A} = \vb{0}^{\intercal}$ (hence the name: $\vb{y}$ multiplies $\vb{A}$ from the left). Its dimension is $m - r$. We can find it from the elimination record: the combinations of rows that produced zero rows of $\vb{U}$. For our $\vb{A}$, the zero row came from $-\,\text{row}_1 - \text{row}_2 + \text{row}_3$, so $\vb{y} = \left(1, 1, -1\right)$ (up to sign) spans it: a subspace of $\mathbb{R}^3$ with dimension $m - r = 1$.
+
+@tbl-four_subspaces collects all of this in one place.
+
+::: {.tbl tbl-colwidths="auto"}
+| Subspace | Lives in | Dimension | Basis (for our $\vb{A}$) |
+|:---|:---:|:---:|:---|
+| Column space $C(\vb{A})$ | $\mathbb{R}^m$ | $r$ | pivot columns: $\left(1,2,3\right), \left(2,6,8\right)$ |
+| Nullspace $N(\vb{A})$ | $\mathbb{R}^n$ | $n - r$ | special solutions: $\left(-2,1,0,0\right), \left(2,0,-2,1\right)$ |
+| Row space $C(\vb{A}^{\intercal})$ | $\mathbb{R}^n$ | $r$ | nonzero rows of $\vb{R}$: $\left(1,2,0,-2\right), \left(0,0,1,2\right)$ |
+| Left nullspace $N(\vb{A}^{\intercal})$ | $\mathbb{R}^m$ | $m - r$ | $\left(1,1,-1\right)$ |
+
+: The four fundamental subspaces of an $m \times n$ matrix of rank $r$, with bases for our example ($m = 3$, $n = 4$, $r = 2$). {#tbl-four_subspaces style="width:95%; margin:auto;"}
+:::
+
+# The big picture
+
+The four subspaces are not four unrelated facts; they fit together into a single diagram that organizes everything we have done. @fig-four_subspaces is that picture. On the left is the input space $\mathbb{R}^n$, split into the row space (dimension $r$) and the nullspace (dimension $n - r$). On the right is the output space $\mathbb{R}^m$, split into the column space (dimension $r$) and the left nullspace (dimension $m - r$). The matrix $\vb{A}$ carries the left space to the right space.
+
+![The big picture: a matrix $\mathbf{A}$ acts from $\mathbb{R}^n$ to $\mathbb{R}^m$. The input space splits into the row space (dimension $r$) and the nullspace (dimension $n-r$); the output space splits into the column space (dimension $r$) and the left nullspace (dimension $m-r$). Everything in the nullspace is sent to $\mathbf{0}$.](images/four_subspaces.png){#fig-four_subspaces fig-align="center" width=95%}
+
+The diagram makes two relationships visible. First, the dimensions on each side add up to the whole space:
+
+$$
+\underbrace{r + \left(n - r\right) = n}_{\text{input space } \mathbb{R}^n},
+\qquad
+\underbrace{r + \left(m - r\right) = m}_{\text{output space } \mathbb{R}^m}.
+$$
+
+The first of these is the rank-nullity statement we asserted in Part 4, now obviously true: the row space and nullspace dimensions must fill up all of $\mathbb{R}^n$. Second, the picture hints at something we have not yet earned: inside each space, the two subspaces are drawn *perpendicular* to each other. The nullspace is at a right angle to the row space, and the left nullspace is at a right angle to the column space. That perpendicularity is real, and it is the bridge to the next chapter; but to even say what "perpendicular" means for whole subspaces, we need the idea of orthogonality. For now, take the right angles in the picture as a promise.
+
+# Where we are, and where we go next
+
+We have turned three informal words into precise tools and used them to assemble the central object of the subject:
+
+- A set of vectors is **independent** when only the trivial combination gives zero, it **spans** a space when its combinations fill that space, and a **basis** is a set that does both. Every basis of a space has the same size, its **dimension**.
+- The **rank** $r$ is the dimension of the column space, equal to the dimension of the row space.
+- Every matrix has **four fundamental subspaces** (@tbl-four_subspaces), and elimination produces a basis for each. They assemble into the big picture of @fig-four_subspaces, with dimensions $r$, $n - r$, $r$, and $m - r$.
+
+This diagram is the skeleton of Act II. Before we add the flesh of orthogonality to it, we will take one post to stretch our new vocabulary in two directions. First, vector spaces do not have to be made of column vectors at all; whole matrices, and even functions, form vector spaces with their own bases and dimensions. Second, these abstract subspaces turn out to describe very concrete things, like the flow of current through an electrical network. Both threads come together in Part 6, on matrix spaces and graphs.

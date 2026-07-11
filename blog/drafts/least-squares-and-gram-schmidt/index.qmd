@@ -1,0 +1,191 @@
+---
+title: "Linear Algebra, Part 8: Least Squares and Gram-Schmidt"
+draft: true
+author: "Sushrut"
+date: 2026-06-30
+description: "The eighth post in a story-driven linear algebra series following Gilbert Strang's MIT 18.06 lectures. We use projection to fit a straight line through data no line can pass through, derive the least squares normal equations, connect them to linear regression, and then make everything cleaner with orthonormal bases via Gram-Schmidt and the A = QR factorization."
+categories: [Linear Algebra, Mathematics]
+tags: [Linear Algebra, Mathematics, Least Squares, Gram-Schmidt, QR]
+format:
+  html:
+    link-citations: true
+    smooth-scroll: true
+    math: mathjax
+    toc: true
+    fig-format: svg
+    mermaid:
+      theme: dark
+bibliography: ../../../references/references.bib
+csl: ../../../references/apa.csl
+execute:
+  enabled: true
+  fig-format: svg
+---
+
+# Introduction
+
+[Part 7](../orthogonality-and-projections/index.qmd) gave us a powerful move: when $\vb{b}$ is out of reach of the column space, project it onto the column space and solve for the projection instead. The error $\vb{e} = \vb{b} - \vb{p}$ comes out perpendicular to the space, and the coefficients satisfy the normal equations $\vb{A}^{\intercal}\vb{A}\hat{\vb{x}} = \vb{A}^{\intercal}\vb{b}$. That was the abstract machinery. This post puts it to work on the most common task in all of applied mathematics: fitting a model to data that does not fit exactly.
+
+We will fit a straight line through three points that no line passes through, and watch the normal equations deliver the best possible line. This is **least squares**, and it is the same computation behind the linear regression you may have met from a statistics angle in my [linear regression post](../../published/linear-regression/index.qmd); here we see it as pure geometry. Then we will notice that all the awkwardness lives in the matrix $\vb{A}^{\intercal}\vb{A}$, and that it melts away if the columns of $\vb{A}$ are orthonormal. Making columns orthonormal is the job of **Gram-Schmidt**, which hands us the clean factorization $\vb{A} = \vb{Q}\vb{R}$.
+
+## Where we are
+
+```{mermaid}
+%%| fig-align: center
+flowchart LR
+    subgraph ACT1["Act I: Solving Ax = b"]
+        P1["1. Geometry"] --> P2["2. Elimination & LU"] --> P3["3. Column Space & Nullspace"] --> P4["4. Rank & Complete Solution"]
+    end
+    subgraph ACT2["Act II: Structure & Orthogonality"]
+        P5["5. Basis & Four Subspaces"] --> P6["6. Graphs & Networks"] --> P7["7. Projections"] --> P8["8. Least Squares & QR"] --> P9["9. Determinants"]
+    end
+    subgraph ACT3["Act III: Eigenvalues & Beyond"]
+        P10["10. Eigenvalues"] --> P11["11. Diagonalization & ODEs"] --> P12["12. Markov & Fourier"] --> P13["13. Positive Definite"] --> P14["14. Complex & FFT"] --> P15["15. Jordan Form"] --> P16["16. SVD"] --> P17["17. Transformations"] --> P18["18. Pseudoinverse"]
+    end
+    ACT1 --> ACT2 --> ACT3
+
+    style P8 fill:#10a37f,color:#fff
+```
+
+# Fitting a line through stubborn data
+
+Suppose we measure three data points and want the straight line $y = C + D t$ that best describes them:
+
+$$
+\left(t, y\right) = \left(1, 1\right), \quad \left(2, 2\right), \quad \left(3, 2\right).
+$$
+
+Plot them and you will see they are not collinear; no line hits all three. If a line $y = C + Dt$ *did* pass through all three, the parameters $C$ and $D$ would have to satisfy three equations at once:
+
+$$
+\begin{align*}
+  C + D \cdot 1 &= 1, \\
+  C + D \cdot 2 &= 2, \\
+  C + D \cdot 3 &= 2,
+\end{align*}
+\qquad\text{that is,}\qquad
+\underbrace{\begin{bmatrix} 1 & 1 \\ 1 & 2 \\ 1 & 3 \end{bmatrix}}_{\vb{A}}
+\begin{bmatrix} C \\ D \end{bmatrix}
+=
+\underbrace{\begin{bmatrix} 1 \\ 2 \\ 2 \end{bmatrix}}_{\vb{b}}.
+$$
+
+This is $\vb{A}\vb{x} = \vb{b}$ with three equations and two unknowns, and it has *no* solution: $\vb{b}$ is not in the column space of $\vb{A}$. Rather than give up, we ask for the next best thing. For any choice of line, the vector $\vb{A}\vb{x}$ holds the three values the line predicts at $t = 1, 2, 3$, and the differences $\vb{b} - \vb{A}\vb{x}$ are the **errors**, the vertical gaps between the data points and the line. Least squares chooses $C$ and $D$ to make the total squared error
+
+$$
+\lVert \vb{A}\vb{x} - \vb{b} \rVert^2 = e_1^2 + e_2^2 + e_3^2
+$$
+
+as small as possible. The animation below shows the search: as the line swings toward its best position, the vertical error bars shrink and the total squared error drops to its minimum, settling at the best fit $y = \tfrac{2}{3} + \tfrac{1}{2}t$.
+
+{{< video images/least_squares_fit.mp4 >}}
+
+## The normal equations deliver the answer
+
+Minimizing the squared length of the error is *exactly* the projection problem from Part 7: the best $\hat{\vb{x}}$ makes $\vb{A}\hat{\vb{x}}$ the projection of $\vb{b}$ onto the column space, with the error perpendicular to that space. So we do not need calculus; we just write the normal equations $\vb{A}^{\intercal}\vb{A}\hat{\vb{x}} = \vb{A}^{\intercal}\vb{b}$. Compute the pieces:
+
+$$
+\vb{A}^{\intercal}\vb{A} =
+\begin{bmatrix} 3 & 6 \\ 6 & 14 \end{bmatrix},
+\qquad
+\vb{A}^{\intercal}\vb{b} =
+\begin{bmatrix} 5 \\ 11 \end{bmatrix}.
+$$
+
+(The entries are familiar sums from statistics: the number of points, $\sum t$, $\sum t^2$, $\sum y$, and $\sum t y$.) The normal equations are
+
+$$
+\begin{align*}
+  3C + 6D &= 5, \\
+  6C + 14D &= 11,
+\end{align*}
+$$
+
+and solving them gives $D = \tfrac{1}{2}$ and $C = \tfrac{2}{3}$. The best-fit line is
+
+$$
+y = \frac{2}{3} + \frac{1}{2}\,t.
+$$
+
+Its predictions at $t = 1, 2, 3$ are $\vb{p} = \left(\tfrac{7}{6}, \tfrac{5}{3}, \tfrac{13}{6}\right)$, the projection of $\vb{b}$ onto the column space, and the errors are $\vb{e} = \vb{b} - \vb{p} = \left(-\tfrac{1}{6}, \tfrac{2}{6}, -\tfrac{1}{6}\right)$. Two checks confirm the geometry of Part 7: the errors sum to zero and satisfy $\vb{A}^{\intercal}\vb{e} = \vb{0}$, so $\vb{e}$ is orthogonal to both columns of $\vb{A}$, exactly as a projection error must be.
+
+::: {.callout-note}
+## Least squares is linear regression
+
+The line we just fit is precisely what statisticians call the linear regression of $y$ on $t$. In my [linear regression post](../../published/linear-regression/index.qmd) the same answer is derived from a probabilistic story (maximizing the likelihood under Gaussian noise) and from gradient descent. Here it falls out of one geometric idea: the best fit is the projection of the data onto the column space, and the normal equations $\vb{A}^{\intercal}\vb{A}\hat{\vb{x}} = \vb{A}^{\intercal}\vb{b}$ are nothing but "make the error perpendicular". Three very different roads, one destination. That is a good sign we have found something real.
+:::
+
+# Orthonormal bases make everything easier
+
+Look back at the normal equations and notice where the work was: forming and inverting $\vb{A}^{\intercal}\vb{A}$. That matrix is a nuisance precisely because the columns of $\vb{A}$ are not perpendicular and not unit length. What if they were?
+
+Call a set of vectors **orthonormal** if they are mutually orthogonal and each has length $1$:
+
+$$
+\vb{q}_i^{\intercal}\vb{q}_j =
+\begin{cases} 1 & i = j, \\ 0 & i \neq j. \end{cases}
+$$
+
+If we collect orthonormal columns into a matrix $\vb{Q}$, this condition is the compact and beautiful statement
+
+$$
+\vb{Q}^{\intercal}\vb{Q} = \vb{I}.
+$$
+
+A square matrix with orthonormal columns is called an **orthogonal matrix**; rotation matrices and permutation matrices (which we met in Part 3) are examples. The instant payoff: if $\vb{A}$ has orthonormal columns $\vb{Q}$, then $\vb{A}^{\intercal}\vb{A} = \vb{Q}^{\intercal}\vb{Q} = \vb{I}$, and the normal equations collapse from $\vb{Q}^{\intercal}\vb{Q}\hat{\vb{x}} = \vb{Q}^{\intercal}\vb{b}$ to simply
+
+$$
+\hat{\vb{x}} = \vb{Q}^{\intercal}\vb{b}.
+$$
+
+No matrix to invert at all; each coefficient is just a dot product with a column. This is such a convenience that it is worth a procedure to *manufacture* orthonormal columns from ordinary ones.
+
+# Gram-Schmidt: manufacturing perpendicularity
+
+**Gram-Schmidt** turns any independent set of vectors into an orthonormal set spanning the same space, one vector at a time, using the projection idea from Part 7. Keep the first direction, then strip from each later vector everything that points along the directions already chosen, leaving only the genuinely new, perpendicular part. @fig-gram_schmidt shows the key step.
+
+![The heart of Gram-Schmidt: to make a vector perpendicular to $\mathbf{a}_1$, subtract its projection onto $\mathbf{a}_1$. What remains, $\mathbf{a}_2 - \text{proj}$, is orthogonal to $\mathbf{a}_1$; normalizing both gives an orthonormal pair $\mathbf{q}_1, \mathbf{q}_2$.](images/gram_schmidt.png){#fig-gram_schmidt fig-align="center" width=72%}
+
+Let us run it on $\vb{a}_1 = \left(1, 1, 1\right)$ and $\vb{a}_2 = \left(1, 0, 2\right)$. First, keep $\vb{a}_1$ and normalize it:
+
+$$
+\vb{q}_1 = \frac{\vb{a}_1}{\lVert \vb{a}_1 \rVert} = \frac{1}{\sqrt{3}}\left(1, 1, 1\right).
+$$
+
+Next, remove from $\vb{a}_2$ its component along $\vb{a}_1$. The projection is $\dfrac{\vb{a}_1^{\intercal}\vb{a}_2}{\vb{a}_1^{\intercal}\vb{a}_1}\vb{a}_1 = \dfrac{3}{3}\left(1,1,1\right) = \left(1,1,1\right)$, so the perpendicular remainder is
+
+$$
+\vb{a}_2 - \left(1,1,1\right) = \left(1, 0, 2\right) - \left(1, 1, 1\right) = \left(0, -1, 1\right).
+$$
+
+A quick check: $\left(0,-1,1\right)^{\intercal}\left(1,1,1\right) = 0$, perpendicular as promised. Normalizing gives the second orthonormal vector:
+
+$$
+\vb{q}_2 = \frac{1}{\sqrt{2}}\left(0, -1, 1\right).
+$$
+
+## The result is A = QR
+
+Gram-Schmidt does not just produce $\vb{Q}$; it produces a factorization. Each original column is a combination of the orthonormal vectors built so far, and "so far" means the combination is *upper triangular*. Collecting those combinations into a matrix $\vb{R}$, we get
+
+$$
+\vb{A} = \vb{Q}\vb{R},
+$$
+
+where $\vb{Q}$ has orthonormal columns and $\vb{R}$ is upper triangular (with $\vb{R} = \vb{Q}^{\intercal}\vb{A}$). For our two vectors,
+
+$$
+\vb{R} = \begin{bmatrix} \sqrt{3} & \sqrt{3} \\ 0 & \sqrt{2} \end{bmatrix}.
+$$
+
+This is the orthogonal cousin of the $\vb{A} = \vb{L}\vb{U}$ from Part 2. Where $\vb{L}\vb{U}$ came from elimination and powered solving, $\vb{Q}\vb{R}$ comes from orthogonalization and powers stable least squares: with $\vb{A} = \vb{Q}\vb{R}$ the normal equations simplify to $\vb{R}\hat{\vb{x}} = \vb{Q}^{\intercal}\vb{b}$, a single triangular solve with none of the numerical trouble that inverting $\vb{A}^{\intercal}\vb{A}$ can bring. It is the factorization at the heart of modern numerical linear algebra.
+
+# Where we are, and where we go next
+
+This post turned projection into a practical tool and then sharpened it:
+
+- **Least squares** fits a model to data that no model fits exactly by minimizing the total squared error. The best parameters solve the **normal equations** $\vb{A}^{\intercal}\vb{A}\hat{\vb{x}} = \vb{A}^{\intercal}\vb{b}$, and the answer is the projection of the data onto the column space. For our three points the best line was $y = \tfrac{2}{3} + \tfrac{1}{2}t$. This is exactly linear regression, seen geometrically.
+- **Orthonormal columns** ($\vb{Q}^{\intercal}\vb{Q} = \vb{I}$) make $\vb{A}^{\intercal}\vb{A} = \vb{I}$, collapsing the normal equations to $\hat{\vb{x}} = \vb{Q}^{\intercal}\vb{b}$.
+- **Gram-Schmidt** manufactures orthonormal columns by subtracting projections, yielding the factorization $\vb{A} = \vb{Q}\vb{R}$.
+
+That closes the orthogonality chapter and, with it, most of Act II. We have now leaned on the matrix $\vb{A}^{\intercal}\vb{A}$, on invertibility, and on the question of whether columns are independent, again and again. It would be wonderful to have a single number attached to a square matrix that answers "is this invertible?" outright, and that also measures how much the matrix stretches or shrinks volume. There is exactly such a number, the **determinant**, and it is the subject of Part 9, the finale of Act II and the gateway to eigenvalues.

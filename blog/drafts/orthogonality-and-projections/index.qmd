@@ -1,0 +1,137 @@
+---
+title: "Linear Algebra, Part 7: Orthogonality and Projections"
+draft: true
+author: "Sushrut"
+date: 2026-06-29
+description: "The seventh post in a story-driven linear algebra series following Gilbert Strang's MIT 18.06 lectures. We define orthogonality, prove the right angles promised by the big picture, and learn to project a vector onto a line and onto a subspace, the geometric move that lets us solve systems that have no exact solution."
+categories: [Linear Algebra, Mathematics]
+tags: [Linear Algebra, Mathematics, Orthogonality, Projection]
+format:
+  html:
+    link-citations: true
+    smooth-scroll: true
+    math: mathjax
+    toc: true
+    fig-format: svg
+    mermaid:
+      theme: dark
+bibliography: ../../../references/references.bib
+csl: ../../../references/apa.csl
+execute:
+  enabled: true
+  fig-format: svg
+---
+
+# Introduction
+
+Twice in Act II we have drawn right angles we had not earned. The big picture of [Part 5](../basis-dimension-and-the-four-subspaces/index.qmd) showed the nullspace perpendicular to the row space, and the left nullspace perpendicular to the column space. In [Part 6](../matrix-spaces-rank-one-and-graphs/index.qmd) the same right angles reappeared in a circuit. But we never said what "perpendicular" means for vectors, let alone for whole subspaces. This post pays that debt: we define **orthogonality**, prove those right angles are real, and then put orthogonality to work.
+
+The work is the part that should excite you. Until now, when $\vb{A}\vb{x} = \vb{b}$ had no solution, we simply said "no solution" and moved on. But "no exact solution" is the normal situation in real life: you have more data points than parameters, and no line passes through every point. Orthogonality gives us the best possible answer anyway. The trick is **projection**: if we cannot reach $\vb{b}$, we reach the closest point to $\vb{b}$ that we *can*. That closest point, and the right angle that finds it, is the whole story of this post and the launchpad for least squares in Part 8.
+
+## Where we are
+
+```{mermaid}
+%%| fig-align: center
+flowchart LR
+    subgraph ACT1["Act I: Solving Ax = b"]
+        P1["1. Geometry"] --> P2["2. Elimination & LU"] --> P3["3. Column Space & Nullspace"] --> P4["4. Rank & Complete Solution"]
+    end
+    subgraph ACT2["Act II: Structure & Orthogonality"]
+        P5["5. Basis & Four Subspaces"] --> P6["6. Graphs & Networks"] --> P7["7. Projections"] --> P8["8. Least Squares & QR"] --> P9["9. Determinants"]
+    end
+    subgraph ACT3["Act III: Eigenvalues & Beyond"]
+        P10["10. Eigenvalues"] --> P11["11. Diagonalization & ODEs"] --> P12["12. Markov & Fourier"] --> P13["13. Positive Definite"] --> P14["14. Complex & FFT"] --> P15["15. Jordan Form"] --> P16["16. SVD"] --> P17["17. Transformations"] --> P18["18. Pseudoinverse"]
+    end
+    ACT1 --> ACT2 --> ACT3
+
+    style P7 fill:#10a37f,color:#fff
+```
+
+# What orthogonality means
+
+Two vectors are **orthogonal** (perpendicular) when the angle between them is a right angle. The clean algebraic test is that their dot product is zero:
+
+$$
+\vb{x} \perp \vb{y} \quad\Longleftrightarrow\quad \vb{x}^{\intercal}\vb{y} = 0.
+$$
+
+For instance $\left(1, 2, 3\right)$ and $\left(2, -1, 0\right)$ are orthogonal, since $\left(1\right)\left(2\right) + \left(2\right)\left(-1\right) + \left(3\right)\left(0\right) = 0$. Where does this test come from? The length of a vector is $\lVert \vb{x} \rVert = \sqrt{\vb{x}^{\intercal}\vb{x}}$ (the Pythagorean theorem applied to its components). Two vectors meet at a right angle exactly when the Pythagorean relation holds for the triangle they form:
+
+$$
+\lVert \vb{x} \rVert^2 + \lVert \vb{y} \rVert^2 = \lVert \vb{x} + \vb{y} \rVert^2.
+$$
+
+Expanding the right side, $\lVert \vb{x} + \vb{y} \rVert^2 = \vb{x}^{\intercal}\vb{x} + 2\vb{x}^{\intercal}\vb{y} + \vb{y}^{\intercal}\vb{y}$, so the Pythagorean equation holds precisely when the cross term $\vb{x}^{\intercal}\vb{y}$ vanishes. The dot-product test is just Pythagoras in disguise.
+
+## Orthogonal subspaces and the right angles in the big picture
+
+Two subspaces are **orthogonal** when every vector in one is orthogonal to every vector in the other. With this definition we can finally prove a right angle we have been drawing since Part 5: the **row space is orthogonal to the nullspace**.
+
+The proof is a one-liner once you read $\vb{A}\vb{x} = \vb{0}$ the right way. If $\vb{x}$ is in the nullspace, then $\vb{A}\vb{x} = \vb{0}$ says that *each row of $\vb{A}$, dotted with $\vb{x}$, gives zero*. So $\vb{x}$ is orthogonal to every row, hence to every combination of rows, hence to the entire row space. That is exactly orthogonality of the two subspaces. (The same argument applied to $\vb{A}^{\intercal}$ shows the column space is orthogonal to the left nullspace.) The right angles in the big picture were honest all along; we just needed the dot product to see them.
+
+In fact these pairs are not merely orthogonal, they are **orthogonal complements**: within $\mathbb{R}^n$, the nullspace contains *every* vector orthogonal to the row space, nothing is left over. This is why their dimensions add to $n$, as we found in Part 5.
+
+# Projection onto a line
+
+Now to the payoff. Suppose we have a vector $\vb{b}$ and a line, the line through a vector $\vb{a}$, and $\vb{b}$ is not on that line. We want the point on the line closest to $\vb{b}$. Call it $\vb{p}$, the **projection** of $\vb{b}$ onto the line.
+
+The key insight is geometric, and @fig-projection_line shows it: the closest point $\vb{p}$ is the foot of the perpendicular from $\vb{b}$ to the line. The little vector connecting $\vb{p}$ to $\vb{b}$, the **error** $\vb{e} = \vb{b} - \vb{p}$, stands at a right angle to the line. That single right angle determines everything.
+
+{{< video images/projection_line.mp4 >}}
+
+Let us turn the picture into a formula. Since $\vb{p}$ lies on the line, it is some multiple of $\vb{a}$, say $\vb{p} = \hat{x}\,\vb{a}$. The error $\vb{e} = \vb{b} - \hat{x}\vb{a}$ must be orthogonal to $\vb{a}$:
+
+$$
+\vb{a}^{\intercal}\left(\vb{b} - \hat{x}\vb{a}\right) = 0
+\quad\Longrightarrow\quad
+\hat{x} = \frac{\vb{a}^{\intercal}\vb{b}}{\vb{a}^{\intercal}\vb{a}},
+\quad\text{so}\quad
+\vb{p} = \frac{\vb{a}^{\intercal}\vb{b}}{\vb{a}^{\intercal}\vb{a}}\,\vb{a}.
+$$
+
+Try it with $\vb{a} = \left(1, 1, 1\right)$ and $\vb{b} = \left(1, 2, 3\right)$. Then $\vb{a}^{\intercal}\vb{b} = 6$ and $\vb{a}^{\intercal}\vb{a} = 3$, so $\hat{x} = 2$ and $\vb{p} = 2\left(1,1,1\right) = \left(2, 2, 2\right)$. The error is $\vb{e} = \vb{b} - \vb{p} = \left(-1, 0, 1\right)$, and indeed $\vb{e}^{\intercal}\vb{a} = -1 + 0 + 1 = 0$: the error is perpendicular to the line, exactly as the picture promised.
+
+There is a tidy way to repackage this. Since $\vb{p} = \vb{a}\,\hat{x} = \vb{a}\dfrac{\vb{a}^{\intercal}\vb{b}}{\vb{a}^{\intercal}\vb{a}} = \left(\dfrac{\vb{a}\vb{a}^{\intercal}}{\vb{a}^{\intercal}\vb{a}}\right)\vb{b}$, the projection is itself a matrix times $\vb{b}$. The **projection matrix** onto the line is
+
+$$
+\vb{P} = \frac{\vb{a}\vb{a}^{\intercal}}{\vb{a}^{\intercal}\vb{a}}.
+$$
+
+Notice $\vb{a}\vb{a}^{\intercal}$ is a rank-one matrix, our atom from Part 6. Multiplying any $\vb{b}$ by $\vb{P}$ drops it straight onto the line.
+
+# Projection onto a subspace
+
+A line was a one-dimensional target. The real goal is to project onto a whole subspace, the column space of a matrix $\vb{A}$, because that is where "solve $\vb{A}\vb{x} = \vb{b}$ as best you can" lives. Suppose $\vb{A}$ has independent columns spanning a plane (or higher), and $\vb{b}$ sticks out of that column space. We want the closest point $\vb{p}$ in $C(\vb{A})$.
+
+The geometry is identical, just one dimension up, as @fig-projection_plane shows. The closest point $\vb{p}$ lies in the subspace, so $\vb{p} = \vb{A}\hat{\vb{x}}$ for some coefficients $\hat{\vb{x}}$. The error $\vb{e} = \vb{b} - \vb{A}\hat{\vb{x}}$ must now be orthogonal to *every* column of $\vb{A}$, which we write compactly as $\vb{A}^{\intercal}\vb{e} = \vb{0}$:
+
+$$
+\vb{A}^{\intercal}\left(\vb{b} - \vb{A}\hat{\vb{x}}\right) = \vb{0}
+\quad\Longrightarrow\quad
+\boxed{\;\vb{A}^{\intercal}\vb{A}\,\hat{\vb{x}} = \vb{A}^{\intercal}\vb{b}\;}.
+$$
+
+These are the **normal equations**, and they are the most important equations in this post. Solving them gives $\hat{\vb{x}} = \left(\vb{A}^{\intercal}\vb{A}\right)^{-1}\vb{A}^{\intercal}\vb{b}$, and therefore the projection and its matrix are
+
+$$
+\vb{p} = \vb{A}\left(\vb{A}^{\intercal}\vb{A}\right)^{-1}\vb{A}^{\intercal}\vb{b},
+\qquad
+\vb{P} = \vb{A}\left(\vb{A}^{\intercal}\vb{A}\right)^{-1}\vb{A}^{\intercal}.
+$$
+
+![Projection onto a subspace: the column space $C(\mathbf{A})$ is a plane, $\mathbf{b}$ sticks out of it, and the closest point $\mathbf{p}$ is the foot of the perpendicular. The error $\mathbf{e} = \mathbf{b} - \mathbf{p}$ is orthogonal to the plane, so it lives in the left nullspace.](images/projection_plane.png){#fig-projection_plane fig-align="center" width=80%}
+
+Two things are worth pausing on. First, notice the matrix $\vb{A}^{\intercal}\vb{A}$ at the center of everything. We met it back in Part 3 and promised it would matter; here it is, the gatekeeper of projection. It is invertible exactly when $\vb{A}$ has independent columns (full column rank), which is the condition we will need in Part 8. Second, the error $\vb{e}$ is orthogonal to the column space, so by the previous section it lives in the **left nullspace** $N(\vb{A}^{\intercal})$. The decomposition $\vb{b} = \vb{p} + \vb{e}$ splits $\vb{b}$ into a column-space part and a left-nullspace part, the two orthogonal complements on the output side of the big picture. Projection is the big picture in action.
+
+## Two sanity checks on P
+
+The projection matrix $\vb{P} = \vb{A}\left(\vb{A}^{\intercal}\vb{A}\right)^{-1}\vb{A}^{\intercal}$ has two properties that match the geometry exactly. It is **symmetric**, $\vb{P}^{\intercal} = \vb{P}$ (you can check this by transposing the formula and using that $\vb{A}^{\intercal}\vb{A}$ is symmetric). And it is **idempotent**, $\vb{P}^2 = \vb{P}$: once you have projected $\vb{b}$ into the subspace, projecting again does nothing, because $\vb{p}$ is already there. Both are reassuring confirmations that $\vb{P}$ does what "projection" should.
+
+# Where we are, and where we go next
+
+This post turned a promise into a tool:
+
+- Vectors are **orthogonal** when $\vb{x}^{\intercal}\vb{y} = 0$ (Pythagoras in disguise), and this let us **prove** the right angles in the big picture: row space $\perp$ nullspace, column space $\perp$ left nullspace.
+- To find the closest point in a line or subspace to a vector $\vb{b}$, we **project**: the error $\vb{b} - \vb{p}$ is orthogonal to the target, which gives $\vb{p} = \frac{\vb{a}^{\intercal}\vb{b}}{\vb{a}^{\intercal}\vb{a}}\vb{a}$ for a line and the **normal equations** $\vb{A}^{\intercal}\vb{A}\hat{\vb{x}} = \vb{A}^{\intercal}\vb{b}$ for a subspace.
+
+We now have, sitting right in front of us, the machine for solving systems that have no exact solution: when $\vb{b}$ is out of reach, project it onto the column space and solve for the projection instead. The most famous use of this is fitting a straight line through a cloud of data points that no line can pass through exactly, the method of least squares. That is Part 8, where the normal equations meet real data and connect directly to the regression you may already know.
