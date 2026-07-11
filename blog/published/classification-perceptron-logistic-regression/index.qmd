@@ -3,7 +3,7 @@ title: "Classification, the Perceptron, and Logistic Regression"
 draft: false
 author: "Sushrut"
 date: 2026-04-18
-description: "A first-principles walk from binary classification to the perceptron, logistic regression, and Newton's method, ending with a perspective-shift on functions as infinite-dimensional vectors."
+description: "A first-principles walk from binary classification to the perceptron, logistic regression, and Newton's method, told as the story of a single object: the decision boundary, drawn ever more intelligently."
 categories: [Machine Learning, Supervised Learning, Mathematics]
 tags: [Machine Learning, Classification, Logistic Regression, Perceptron, Newton's Method, Blog]
 format:
@@ -26,7 +26,9 @@ execute:
 
 In the [linear regression post](../linear-regression/index.qmd), we built a complete framework for predicting a continuous output from a vector of features. We defined a hypothesis $h_{\boldsymbol{\uptheta}}\left(\vb{x}\right) = \boldsymbol{\uptheta}^{\intercal}\vb{x}$, a cost function $J\left(\boldsymbol{\uptheta}\right)$ measuring squared error, and two strategies (gradient descent and the normal equations) for finding the parameters $\boldsymbol{\uptheta}$ that minimize the cost. We even saw that the squared error cost is not arbitrary: it falls out of a maximum likelihood argument when we assume the output is the linear prediction plus Gaussian noise.
 
-That post ended with a teaser: the next algorithm we will study, logistic regression, will look surprisingly familiar. This post delivers on that teaser. But before logistic regression, we are going to take a small detour through a simpler and historically important algorithm called the **perceptron**. Then, after logistic regression, we will look at **Newton's method**, an alternative to gradient descent that exploits the curvature of the cost function. Finally, in an optional appendix, we will introduce a perspective from functional analysis that will pay dividends when we eventually study kernels and Gaussian processes.
+That post answered the question "how much?": given the features of a house, how many dollars is it worth? This post answers a different kind of question, "which kind?": is this tumor malignant or benign, is this email spam or not, will this loan default or not? The output is no longer a number on a continuous scale; it is one of two labels.
+
+Here is the thread that will hold the whole post together. Separating two classes means **drawing a boundary** between them, and almost everything we do will be a way of drawing that boundary a little more intelligently. We will draw it three times. First with a tool we already have (linear regression), and watch it fail. Then with a hard rule (the **perceptron**). Then with a smooth, probabilistic rule (**logistic regression**), which not only draws the boundary but tells us how *confident* it is on either side. Along the way we will pick up **Newton's method**, a faster way to find that boundary, and close with a short, optional appendix that reframes what a function "is," a perspective that will pay dividends when we later study kernels and Gaussian processes.
 
 This post is largely based on the treatment in @ng_cs229_notes and the accompanying lecture series [@stanford_cs229_ml_youtube]. Where additional context is helpful, we draw on standard references in the field [@bishop2006pattern; @hastie2009elements].
 
@@ -39,15 +41,17 @@ flowchart TB
     B["<b>2. The Naive Attempt</b><br/>Why linear regression<br/>fails for classification"]
     C["<b>3. The Perceptron</b><br/>Hard threshold,<br/>geometric update"]
     D["<b>4. Logistic Regression</b><br/>Soft threshold,<br/>probabilities, MLE"]
-    E["<b>5. Newton's Method</b><br/>A faster optimizer<br/>using curvature"]
-    F["<b>6. Discriminative vs Generative</b><br/>A quick foreshadowing"]
-    G["<b>7. Wrapping Up</b><br/>Full picture and<br/>what comes next"]
-    H["<b>Appendix</b><br/>Functions as<br/>infinite-dimensional vectors"]
-    A --> B --> C --> D --> E --> F --> G --> H
+    E["<b>5. The Two Boundaries</b><br/>Hard cut vs<br/>probability field"]
+    F["<b>6. Newton's Method</b><br/>A faster optimizer<br/>using curvature"]
+    G["<b>7. Discriminative vs Generative</b><br/>A quick foreshadowing"]
+    H["<b>8. Wrapping Up</b><br/>Full picture and<br/>what comes next"]
+    I["<b>Appendix</b><br/>Functions as<br/>infinite-dimensional vectors"]
+    A --> B --> C --> D --> E --> F --> G --> H --> I
 
     style A fill:#1e8449,color:#fff,stroke:#fff
-    style G fill:#b9770e,color:#fff,stroke:#fff
-    style H fill:#5a3a78,color:#fff,stroke:#fff
+    style E fill:#1f6f8b,color:#fff,stroke:#fff
+    style H fill:#b9770e,color:#fff,stroke:#fff
+    style I fill:#5a3a78,color:#fff,stroke:#fff
 ```
 
 We will start with a concrete example you can visualize, build intuition with pencil-and-paper reasoning, and only *then* introduce the math. Every formula will earn its place by solving a problem you already feel.
@@ -79,7 +83,7 @@ If we plot these points on a number line with $x$ as the horizontal axis and col
 
 ![The toy tumor dataset. Each point is one tumor, plotted at its size $x$ (in cm), colored blue if benign ($y = 0$) and orange if malignant ($y = 1$). The two classes separate cleanly along the size axis.](images/tumor_scatter.png){#fig-tumor_scatter fig-align="center" width=100%}
 
-A clear pattern emerges: there is some threshold along the size axis below which tumors tend to be benign and above which they tend to be malignant. A new tumor with size $x$ should be classified by checking which side of the threshold it falls on. The threshold itself is called a **decision boundary**.
+A clear pattern emerges: there is some threshold along the size axis below which tumors tend to be benign and above which they tend to be malignant. A new tumor with size $x$ should be classified by checking which side of the threshold it falls on. That threshold is our first **decision boundary**, and notice its shape: with a single feature, the boundary is just a **point** on the size axis. Hold on to that observation. As we add features, the boundary will grow from a point into a line, and watching it grow is one of the through-lines of this post.
 
 This is a supervised learning problem just like linear regression, but with one crucial difference: the output $y$ is no longer a continuous real number. It is a *discrete* label, taking only the values $0$ or $1$. This makes the problem a **binary classification** problem. (When $y$ can take more than two discrete values, we get **multi-class classification**, which we will save for a future post.)
 
@@ -87,7 +91,7 @@ How do we build a model for this? Let us start by trying the only tool we curren
 
 # The Naive Attempt: Just Use Linear Regression?
 
-We could ignore the fact that $y$ is discrete and just throw linear regression at the problem. Treat $y \in \{0, 1\}$ as a continuous output, fit a line $h_{\boldsymbol{\uptheta}}\left(x\right) = \theta_0 + \theta_1 x$ to the data, and at test time use the rule "predict malignant if $h_{\boldsymbol{\uptheta}}\left(x\right) \geq 0.5$, otherwise predict benign."
+We could ignore the fact that $y$ is discrete and just throw linear regression at the problem. Treat $y \in \{0, 1\}$ as a continuous output, fit a line $h_{\boldsymbol{\uptheta}}\left(x\right) = \theta_0 + \theta_1 x$ to the data, and at test time use the rule "predict malignant if $h_{\boldsymbol{\uptheta}}\left(x\right) \geq 0.5$, otherwise predict benign." The decision boundary is then wherever the fitted line crosses $0.5$.
 
 This works embarrassingly well on simple datasets, which is the trap. Look at the left panel of @fig-linear_regression_fails. We fit linear regression to the data, draw the resulting line, and threshold at $0.5$. The decision boundary (the $x$ value at which the line crosses $0.5$) sits cleanly between the benign and malignant clusters, and every training point is correctly classified.
 
@@ -95,15 +99,15 @@ Now look at the right panel, where we have added a single very obvious malignant
 
 ![Left: linear regression fit to the original tumor dataset; the decision boundary (where $h_{\boldsymbol{\uptheta}}\left(x\right) = 0.5$) cleanly separates malignant from benign tumors. Right: adding a single far-out malignant tumor tilts the fitted line, shifting the decision boundary to the right and causing some malignant tumors to be misclassified as benign (red rings).](images/linear_regression_fails.png){#fig-linear_regression_fails fig-align="center" width=100%}
 
-What went wrong? Linear regression is trying to minimize squared error, treating the labels $0$ and $1$ as if they were heights on a continuous scale. A point labeled $1$ that lies "very far on the malignant side" is treated as an embarrassingly large prediction error (because the line predicts something much less than $1$ there), even though it is in fact a *clearer* example of malignancy, not a worse one. The model bends over backwards to reduce that error and ends up hurting itself elsewhere.
+What went wrong? Our boundary turned out to be **fragile**: a single far-away point dragged it across some of our data. The root cause is that linear regression is trying to minimize squared error, treating the labels $0$ and $1$ as if they were heights on a continuous scale. A point labeled $1$ that lies "very far on the malignant side" is treated as an embarrassingly large prediction error (because the line predicts something much less than $1$ there), even though it is in fact a *clearer* example of malignancy, not a worse one. The model bends over backwards to reduce that error and ends up hurting itself elsewhere.
 
 There is also a more fundamental conceptual issue. The hypothesis $\boldsymbol{\uptheta}^{\intercal}\vb{x}$ can take any real value, ranging over $\left(-\infty, +\infty\right)$. But we know in advance that $y \in \{0, 1\}$. It does not make sense for a hypothesis to predict $h_{\boldsymbol{\uptheta}}\left(\vb{x}\right) = -3.7$ or $h_{\boldsymbol{\uptheta}}\left(\vb{x}\right) = 12.4$. We need to constrain the output to live in $\{0, 1\}$ (or at least somewhere bounded, like $\left[0, 1\right]$).
 
-The natural fix is to compose the linear function $\boldsymbol{\uptheta}^{\intercal}\vb{x}$ with a **squashing function** that maps real numbers to $\{0, 1\}$ (or to $\left[0, 1\right]$). Since the squashed output is bounded, no single far-out point can pull the score the way it pulled the linear regression line: once a score is past the saturation region, pushing it further does almost nothing to the prediction. The simplest squashing function is a hard step: output $1$ if the input is non-negative, $0$ otherwise. That choice gives us our first real classification algorithm.
+The natural fix is to compose the linear function $\boldsymbol{\uptheta}^{\intercal}\vb{x}$ with a **squashing function** that maps real numbers to $\{0, 1\}$ (or to $\left[0, 1\right]$). Since the squashed output is bounded, no single far-out point can pull the score the way it pulled the linear regression line: once a score is past the saturation region, pushing it further does almost nothing to the prediction. The boundary stops being fragile. The simplest squashing function is a hard step: output $1$ if the input is non-negative, $0$ otherwise. That choice gives us our first real classification algorithm.
 
 # The Perceptron: The First Idea That Works
 
-The **perceptron**, proposed by @rosenblatt1958perceptron in the 1950s, was once thought to be a rough mathematical model of how individual neurons in the brain process information. It is rarely used in practice today (we will see why shortly), but it is so simple and so geometrically clean that it remains a perfect place to build intuition for how classification algorithms work.
+The **perceptron**, proposed by @rosenblatt1958perceptron in the 1950s, was once thought to be a rough mathematical model of how individual neurons in the brain process information. It is rarely used in practice today (we will see why shortly), but it is so simple and so geometrically clean that it remains a perfect place to build intuition for how classification algorithms draw their boundaries.
 
 ## The Hypothesis
 
@@ -122,10 +126,14 @@ $$
 where $g$ is the **threshold function**
 
 $$
-g\left(z\right) = \begin{cases} 1 & \text{if } z \geq 0\\ 0 & \text{if } z < 0 \end{cases}.
+g\left(z\right) =
+\begin{cases}
+  1, & \text{if } z \geq 0,\\
+  0, & \text{if } z < 0.
+\end{cases}
 $$ {#eq-perceptron_threshold}
 
-In words: compute the linear score $\boldsymbol{\uptheta}^{\intercal}\vb{x}$ (a real number between $-\infty$ and $+\infty$), and then squash it to $0$ or $1$ depending on whether it is non-negative. The function $g$ looks like a hard step, as shown on the left panel of @fig-step_vs_sigmoid. (The right panel shows the sigmoid function, which we will meet later when we discuss logistic regression. Keep an eye on it for now; the visual contrast will be useful.)
+In words: compute the linear score $\boldsymbol{\uptheta}^{\intercal}\vb{x}$ (a real number between $-\infty$ and $+\infty$), and then squash it to $0$ or $1$ depending on whether it is non-negative. The function $g$ looks like a hard step, as shown on the left panel of @fig-step_vs_sigmoid. (The right panel shows the sigmoid function, which we will meet later when we discuss logistic regression. Keep an eye on it for now; the visual contrast will be the whole point when we put the two boundaries side by side.)
 
 ![Left: the threshold function used by the perceptron. Right: the sigmoid function used by logistic regression. The sigmoid is a smooth version of the step.](images/step_vs_sigmoid.png){#fig-step_vs_sigmoid fig-align="center" width=85%}
 
@@ -152,7 +160,7 @@ $$
 
 The two rules look identical, except that linear regression uses $\boldsymbol{\uptheta}^{\intercal}\vb{x}_i$ as the prediction while the perceptron uses $g \left(\boldsymbol{\uptheta}^{\intercal}\vb{x}_i\right)$. This cosmetic similarity is misleading: the perceptron is a fundamentally different algorithm, and this update rule is *not* derived from minimizing any obvious cost function. (In fact, it is hard to derive the perceptron from a maximum likelihood argument at all, which is one of the reasons it fell out of favor.)
 
-So why does the rule work? The answer is best seen geometrically.
+So why does the rule work? The answer is best seen geometrically, in terms of what it does to the boundary.
 
 ## Geometric Intuition
 
@@ -165,6 +173,8 @@ We make two key observations.
 The perceptron predicts $1$ when $\boldsymbol{\uptheta}^{\intercal}\vb{x} \geq 0$ and $0$ otherwise. So the **decision boundary** is the set of points where $\boldsymbol{\uptheta}^{\intercal}\vb{x} = 0$. Geometrically, this is the hyperplane through the origin perpendicular to $\boldsymbol{\uptheta}$. (Why? Because $\boldsymbol{\uptheta}^{\intercal}\vb{x} = 0$ means the dot product of $\boldsymbol{\uptheta}$ with $\vb{x}$ is zero, which means $\boldsymbol{\uptheta}$ and $\vb{x}$ are perpendicular.) Points on one side of this hyperplane have $\boldsymbol{\uptheta}^{\intercal}\vb{x} > 0$ (predicted as positive), and points on the other side have $\boldsymbol{\uptheta}^{\intercal}\vb{x} < 0$ (predicted as negative). The vector $\boldsymbol{\uptheta}$ itself points into the positive half-space. @fig-decision_boundary_geometry illustrates this.
 
 ![The decision boundary is the line where $\boldsymbol{\uptheta}^{\intercal}\vb{x} = 0$, which is the hyperplane through the origin perpendicular to $\boldsymbol{\uptheta}$. The vector $\boldsymbol{\uptheta}$ itself points into the positive half-space (orange tint, where $\boldsymbol{\uptheta}^{\intercal}\vb{x} > 0$); the other half-space (blue tint) is where $\boldsymbol{\uptheta}^{\intercal}\vb{x} < 0$. A sample point $\vb{x}$ on the positive side has $\boldsymbol{\uptheta}^{\intercal}\vb{x} > 0$; a sample point $\vb{x}'$ on the negative side has $\boldsymbol{\uptheta}^{\intercal}\vb{x}' < 0$.](images/decision_boundary_geometry.png){#fig-decision_boundary_geometry fig-align="center" width=80%}
+
+This is exactly the "line" form of the boundary we promised at the very start. With one feature the boundary was a point; with two features it is a line, and $\boldsymbol{\uptheta}$ is the arrow perpendicular to it. (The figure draws the boundary through the origin because here $\vb{x}$ has no intercept term. Once we restore the intercept $\theta_0$, the same line simply slides off the origin to wherever the data needs it. We will see that concretely when we compare the two boundaries on real data.)
 
 **Observation 2: To make a dot product bigger, add a small piece of one vector to the other.**
 
@@ -205,7 +215,7 @@ So the perceptron rotates its $\boldsymbol{\uptheta}$ vector (and equivalently, 
 The perceptron training on a synthetic linearly-separable 2D dataset, starting from a parameter vector $\boldsymbol{\uptheta}^{\left(0\right)}$ that points in exactly the opposite of the correct direction. The vector $\boldsymbol{\uptheta}$ (in green) is always perpendicular to the decision boundary (in white). Misclassified examples have red rings; the example currently being visited has a yellow ring. The first three updates are shown at slow pacing so the per-step mechanics are clear; the remaining updates are shown at faster pacing. After about a dozen updates, the boundary has rotated all the way around to a separating configuration, and subsequent visits confirm convergence (no more updates).
 :::
 
-There is a beautiful theoretical result here: if your training data is **linearly separable** (i.e., there exists a hyperplane that perfectly separates the two classes), then the perceptron is guaranteed to find such a hyperplane in a finite number of updates [@novikoff1962convergence]. The catch is, of course, that real data is rarely linearly separable, in which case the perceptron will keep oscillating forever without converging.
+There is a beautiful theoretical result here: if your training data is **linearly separable** (i.e., there exists a hyperplane that perfectly separates the two classes), then the perceptron is guaranteed to find such a hyperplane in a finite number of updates [@novikoff1962convergence]. The catch is, of course, that real data is rarely linearly separable, in which case the perceptron will keep oscillating forever without converging. We will come back to this weakness, and *see* it contrasted against logistic regression, when we put the two boundaries side by side.
 
 ## A Useful Side Observation
 
@@ -219,12 +229,12 @@ where $M$ is the set of misclassified examples encountered so far and each $c_i 
 
 ## Why We Don't Use the Perceptron in Practice
 
-The perceptron has two big shortcomings:
+The perceptron has two big shortcomings, and both are really complaints about the *kind* of boundary it draws:
 
 1. **No probabilities.** It only outputs hard $0$ or $1$ predictions. But often we want to know how *confident* the model is. A tumor that scores $\boldsymbol{\uptheta}^{\intercal}\vb{x} = 0.01$ should not be treated with the same confidence as one scoring $\boldsymbol{\uptheta}^{\intercal}\vb{x} = 50$, even though both yield prediction $1$.
 2. **No graceful learning from "almost right" examples.** Because the prediction is hard $0$ or $1$, the update is either applied at full strength (wrong example) or not at all (right example, even by a hair). There is no notion of "this example was almost wrong, let me adjust slightly."
 
-The fix is wonderfully simple: replace the hard step function $g$ with a smooth, continuous function that ranges from $0$ to $1$ but transitions smoothly between them. That single change gives us logistic regression and unlocks a probabilistic interpretation, a principled cost function via maximum likelihood, and a graceful update rule. Let us go there now.
+The fix is wonderfully simple: replace the hard step function $g$ with a smooth, continuous function that ranges from $0$ to $1$ but transitions smoothly between them. That single change gives us logistic regression and unlocks a probabilistic interpretation, a principled cost function via maximum likelihood, and a graceful update rule. Let us go there now. (And once both classifiers are on the table, we will put their boundaries side by side and watch exactly what that one change buys us.)
 
 ```{mermaid}
 %%| fig-align: center
@@ -233,11 +243,12 @@ flowchart TB
     B["<b>2. The Naive Attempt</b><br/>Why linear regression<br/>fails for classification"]
     C["<b>3. The Perceptron</b><br/>Hard threshold,<br/>geometric update"]
     D["<b>4. Logistic Regression</b><br/>Soft threshold,<br/>probabilities, MLE"]
-    E["<b>5. Newton's Method</b><br/>A faster optimizer<br/>using curvature"]
-    F["<b>6. Discriminative vs Generative</b><br/>A quick foreshadowing"]
-    G["<b>7. Wrapping Up</b><br/>Full picture and<br/>what comes next"]
-    H["<b>Appendix</b><br/>Functions as<br/>infinite-dimensional vectors"]
-    A --> B --> C --> D --> E --> F --> G --> H
+    E["<b>5. The Two Boundaries</b><br/>Hard cut vs<br/>probability field"]
+    F["<b>6. Newton's Method</b><br/>A faster optimizer<br/>using curvature"]
+    G["<b>7. Discriminative vs Generative</b><br/>A quick foreshadowing"]
+    H["<b>8. Wrapping Up</b><br/>Full picture and<br/>what comes next"]
+    I["<b>Appendix</b><br/>Functions as<br/>infinite-dimensional vectors"]
+    A --> B --> C --> D --> E --> F --> G --> H --> I
 
     style A fill:#555,color:#fff,stroke:#aaa
     style B fill:#555,color:#fff,stroke:#aaa
@@ -247,6 +258,7 @@ flowchart TB
     style F fill:#444,color:#aaa,stroke:#666
     style G fill:#444,color:#aaa,stroke:#666
     style H fill:#444,color:#aaa,stroke:#666
+    style I fill:#444,color:#aaa,stroke:#666
 ```
 
 # Logistic Regression: From Hard to Soft
@@ -274,7 +286,7 @@ The sigmoid was already shown on the right panel of @fig-step_vs_sigmoid. Notice
 - $g\left(0\right) = \frac{1}{1 + 1} = \frac{1}{2}$.
 - $g$ is smooth and strictly increasing.
 
-So the sigmoid is a **soft version** of the perceptron's hard step: it transitions smoothly from $0$ to $1$ around $z = 0$, rather than jumping discontinuously. This smoothness is the key.
+So the sigmoid is a **soft version** of the perceptron's hard step: it transitions smoothly from $0$ to $1$ around $z = 0$, rather than jumping discontinuously. This smoothness is the key, and it is also exactly what will turn the perceptron's hard half-spaces into logistic regression's graded probability field once we compare the two.
 
 A natural question: why this particular function and not some other smooth function that goes from $0$ to $1$? For now, take it as given. We will see in a future post on generalized linear models that the sigmoid arises *naturally* from a more fundamental principle, the assumption that $y \mid \vb{x}$ follows a Bernoulli distribution.
 
@@ -309,7 +321,7 @@ For the tumor example, this means: given a tumor of size $x$, the model outputs 
 
 ![The fitted sigmoid curve $h_{\boldsymbol{\uptheta}}\left(x\right) = g \left(\theta_0 + \theta_1 x\right)$ overlaid on the tumor scatter. Each data point sits at $y = 0$ or $y = 1$ along the size axis. The sigmoid passes through $0.5$ at the decision boundary, hugs $0$ for small (benign) tumors, and hugs $1$ for large (malignant) tumors. Three highlighted tumors show how their sizes map through the sigmoid to give probabilities of malignancy.](images/probability_interpretation.png){#fig-probability_interpretation fig-align="center" width=100%}
 
-A subtle but important point: logistic regression is a **probability machine**, not a classifier per se. Given a new tumor, it outputs a number like $0.83$ ("83% chance of malignancy"). To turn this into an actual prediction, we choose a threshold (typically $0.5$): if $h_{\boldsymbol{\uptheta}}\left(\vb{x}\right) \geq 0.5$, predict malignant; otherwise, predict benign. Different thresholds give different prediction policies (you might want a *lower* threshold for high-stakes decisions like cancer screening, where false negatives are catastrophic, even at the cost of more false positives). We will mostly use the $0.5$ default in this post.
+A subtle but important point: logistic regression is a **probability machine**, not a classifier per se. Given a new tumor, it outputs a number like $0.83$ ("83% chance of malignancy"). To turn this into an actual prediction, we choose a threshold (typically $0.5$): if $h_{\boldsymbol{\uptheta}}\left(\vb{x}\right) \geq 0.5$, predict malignant; otherwise, predict benign. The decision boundary is the set of points where the probability is exactly $0.5$. Different thresholds give different prediction policies (you might want a *lower* threshold for high-stakes decisions like cancer screening, where false negatives are catastrophic, even at the cost of more false positives). We will mostly use the $0.5$ default in this post.
 
 We can write @eq-bernoulli_model more compactly as a single expression that handles both cases:
 
@@ -428,7 +440,7 @@ This is the same update rule as the perceptron and (up to a sign convention beca
 The fact that linear regression, the perceptron, and logistic regression all share this update rule is not a coincidence. All three are special cases of a broader family called **generalized linear models (GLMs)**, where the choice of distribution for $y \mid \vb{x}$ (Gaussian for linear regression, Bernoulli for logistic regression) determines the form of $h_{\boldsymbol{\uptheta}}$, but the maximum likelihood gradient always reduces to a sum of terms of the form $\left(y_i - h_{\boldsymbol{\uptheta}} \left(\vb{x}_i\right)\right) \vb{x}_i$. We will derive this in a future post.
 :::
 
-Comparing the perceptron update with the logistic regression update is illuminating. In the perceptron, $h_{\boldsymbol{\uptheta}} \left(\vb{x}_i\right)$ is either $0$ or $1$, so the factor $\left(y_i - h_{\boldsymbol{\uptheta}} \left(\vb{x}_i\right)\right)$ is either $0$ (correct) or $\pm 1$ (incorrect). The update either does nothing or moves at full strength. In logistic regression, $h_{\boldsymbol{\uptheta}} \left(\vb{x}_i\right) \in \left(0, 1\right)$ takes any value strictly between $0$ and $1$, so the factor is a continuous quantity reflecting how *wrong* the prediction is. A barely-wrong example produces a tiny update; a confidently-wrong example produces a large one. This graceful, proportional learning is one of the reasons logistic regression works so much better in practice than the perceptron.
+Comparing the perceptron update with the logistic regression update is illuminating, and it is the algebraic shadow of the visual difference we will see in @fig-boundary_comparison. In the perceptron, $h_{\boldsymbol{\uptheta}} \left(\vb{x}_i\right)$ is either $0$ or $1$, so the factor $\left(y_i - h_{\boldsymbol{\uptheta}} \left(\vb{x}_i\right)\right)$ is either $0$ (correct) or $\pm 1$ (incorrect). The update either does nothing or moves at full strength. In logistic regression, $h_{\boldsymbol{\uptheta}} \left(\vb{x}_i\right) \in \left(0, 1\right)$ takes any value strictly between $0$ and $1$, so the factor is a continuous quantity reflecting how *wrong* the prediction is. A barely-wrong example produces a tiny update; a confidently-wrong example produces a large one. This graceful, proportional learning is one of the reasons logistic regression works so much better in practice than the perceptron.
 
 The same trade-offs between batch and stochastic apply here as in linear regression: batch (@eq-logistic_batch_update_vector) computes the true gradient at every step and gives smoother, more directly downhill movement, but each step is expensive ($\mathcal{O}\!\left(n\right)$ examples per update). Stochastic (@eq-logistic_sgd_update_vector) is much cheaper per step ($\mathcal{O}\!\left(1\right)$ examples) but the gradient direction is noisy because each individual example's contribution is only an *unbiased estimate* of the full gradient. In practice, stochastic gradient ascent (or its more common mini-batch cousin, which sums over a small subset of examples per update) is the default for large datasets.
 
@@ -450,7 +462,7 @@ $$
 \end{cases}
 $$
 
-Let us recap before moving on to optimization.
+We now have two complete classifiers in hand, the perceptron and logistic regression, both built on the same linear score $\boldsymbol{\uptheta}^{\intercal}\vb{x}$. We have *described*, in words and in algebra, how their boundaries differ. It is time to actually look at them.
 
 ```{mermaid}
 %%| fig-align: center
@@ -459,11 +471,12 @@ flowchart TB
     B["<b>2. The Naive Attempt</b><br/>Why linear regression<br/>fails for classification"]
     C["<b>3. The Perceptron</b><br/>Hard threshold,<br/>geometric update"]
     D["<b>4. Logistic Regression</b><br/>Soft threshold,<br/>probabilities, MLE"]
-    E["<b>5. Newton's Method</b><br/>A faster optimizer<br/>using curvature"]
-    F["<b>6. Discriminative vs Generative</b><br/>A quick foreshadowing"]
-    G["<b>7. Wrapping Up</b><br/>Full picture and<br/>what comes next"]
-    H["<b>Appendix</b><br/>Functions as<br/>infinite-dimensional vectors"]
-    A --> B --> C --> D --> E --> F --> G --> H
+    E["<b>5. The Two Boundaries</b><br/>Hard cut vs<br/>probability field"]
+    F["<b>6. Newton's Method</b><br/>A faster optimizer<br/>using curvature"]
+    G["<b>7. Discriminative vs Generative</b><br/>A quick foreshadowing"]
+    H["<b>8. Wrapping Up</b><br/>Full picture and<br/>what comes next"]
+    I["<b>Appendix</b><br/>Functions as<br/>infinite-dimensional vectors"]
+    A --> B --> C --> D --> E --> F --> G --> H --> I
 
     style A fill:#555,color:#fff,stroke:#aaa
     style B fill:#555,color:#fff,stroke:#aaa
@@ -473,11 +486,77 @@ flowchart TB
     style F fill:#444,color:#aaa,stroke:#666
     style G fill:#444,color:#aaa,stroke:#666
     style H fill:#444,color:#aaa,stroke:#666
+    style I fill:#444,color:#aaa,stroke:#666
+```
+
+# The Two Boundaries, Side by Side
+
+Both the perceptron and logistic regression squash the same linear score $\boldsymbol{\uptheta}^{\intercal}\vb{x}$. The perceptron squashes with a hard step; logistic regression squashes with a smooth sigmoid. We have said, in words, that this makes one a hard classifier and the other a probability machine. But words are easy to nod along to and hard to truly absorb. In this section we put both boundaries on a scatter plot of actual data and watch them form. This is the payoff of everything we have built so far.
+
+## The boundary in one dimension, then two
+
+So far our tumor example has had a single feature, size, and we noted at the outset that with one feature the decision boundary is just a **point** on the size axis: tumors smaller than the threshold are called benign, larger ones malignant. The left panel of @fig-boundary_1d_vs_2d shows this. Both classifiers agree on the *kind* of object the boundary is (a point) but disagree on its character: the perceptron's decision is a hard step (yellow), jumping from $0$ to $1$ at the boundary, while logistic regression's is a smooth sigmoid (teal) that passes through $0.5$ there.
+
+Real tumors, of course, are described by more than one number. Suppose we also record a measure of **cell-shape irregularity** (loosely, how far the cell nuclei deviate from a smooth, round, uniform shape, the kind of measurement that appears as "texture" or "uniformity of cell shape" in the classic Wisconsin breast-cancer data). Now each tumor is a point $\vb{x} = \left(x_1, x_2\right)$ in a plane, and the decision boundary, the set of points where $\boldsymbol{\uptheta}^{\intercal}\vb{x} = 0$, becomes a **line**. The right panel of @fig-boundary_1d_vs_2d shows the same dataset lifted into 2D: benign tumors cluster at small size and low irregularity (lower left), malignant ones at large size and high irregularity (upper right), and the boundary is the line separating the two half-planes.
+
+![The decision boundary grows with the number of features. Left: with one feature (tumor size), the boundary is a point on the size axis; the perceptron's hard step (yellow) and logistic regression's soft sigmoid (teal) both cross there. Right: with two features (size and cell-shape irregularity), the same boundary becomes a line, with benign tumors on one side and malignant on the other.](images/boundary_1d_vs_2d.png){#fig-boundary_1d_vs_2d fig-align="center" width=100%}
+
+This line is exactly the boundary we met abstractly in @fig-decision_boundary_geometry, now made concrete. The weight vector $\left(\theta_1, \theta_2\right)$ is perpendicular to the line, and the intercept $\theta_0$ slides the line off the origin so it can sit wherever the data needs it (which is why the boundary in @fig-boundary_1d_vs_2d does not pass through the origin, unlike the deliberately intercept-free picture in @fig-decision_boundary_geometry).
+
+## Watching both boundaries form
+
+Now for the real payoff. @fig-boundary_comparison runs both classifiers on the *same* 2D tumor dataset and animates each boundary forming, side by side. On the left, the perceptron; on the right, logistic regression. Watch the two panels together.
+
+::: {#fig-boundary_comparison}
+{{< video images/boundary_comparison.mp4 >}}
+
+The perceptron (left) and logistic regression (right) drawing their boundaries on the same 2D tumor dataset (size and cell-shape irregularity). The perceptron paints two flat half-spaces and rotates the dividing line until no training point is misclassified (red rings mark current mistakes). Logistic regression paints a smooth probability field that sharpens as gradient ascent runs: the white line is the $P = 0.5$ boundary, and the dashed lines are the $P = 0.25$ and $P = 0.75$ level sets. Both end with the same kind of straight boundary, but only the right panel reports a *confidence* on each side.
+:::
+
+Three things are worth pausing on.
+
+**Both boundaries are straight lines.** This is the family resemblance. Both classifiers compute the same linear score $\boldsymbol{\uptheta}^{\intercal}\vb{x}$ and split the plane along the line where that score is zero. Neither can draw a curved boundary (for that we would need to add nonlinear features or move to a different model). So in this sense the perceptron and logistic regression are cousins: same shape of boundary, different way of choosing and dressing it.
+
+**The perceptron paints two flat regions.** Everything on one side is "malignant," everything on the other is "benign," with no shades in between. And notice *which* line it picks: it stops the instant the data is separated, so the boundary it lands on is just *some* separator, one of infinitely many, determined by the order it happened to visit the examples. A point sitting one millimeter inside malignant territory and a point sitting far inside it are treated identically. This is the "no probabilities" complaint from the perceptron section, made visible.
+
+**Logistic regression paints a gradient.** The same straight boundary is there (the white $P = 0.5$ line), but now it is the center of a smooth field that runs from confident-benign (blue) to confident-malignant (orange). The parallel dashed level sets show that confidence grows steadily as you move away from the boundary: a tumor far into the orange region is not merely "malignant," it is "malignant with probability $0.99$." This is the extra thing the soft sigmoid bought us, the thing the perceptron's hard step threw away.
+
+::: {.callout-note title="A subtlety: perfectly separable data and runaway confidence"}
+The clean, well-separated clusters above hide an awkward quirk of logistic regression. On *perfectly* separable data, the maximum-likelihood weights do not converge to a finite value, they run off to infinity. The reason: once the data is separated, the model can always nudge the likelihood a little higher by scaling $\boldsymbol{\uptheta}$ up, which makes every correct prediction more confident, sharpening the sigmoid field toward a hard step. There is no finite "best" $\boldsymbol{\uptheta}$, only ever-larger ones. In practice we tame this with a touch of regularization (a small penalty on $\left\Vert \boldsymbol{\uptheta} \right\Vert$) or early stopping, which is exactly what keeps the probability field in @fig-boundary_comparison a smooth gradient rather than collapsing into a perceptron-style hard cut. See @bishop2006pattern and @hastie2009elements for the details.
+:::
+
+There is a nice symmetry hiding here. The perceptron is troubled by data that is *not* separable: as we noted when we introduced it, it never settles and oscillates forever. Logistic regression is troubled by data that is *too* separable: its weights run away. But logistic regression's trouble is mild and routinely fixed (a little regularization), while the perceptron's is fundamental. And on the messy, overlapping data of the real world, it is the perceptron's problem that actually bites, while logistic regression stays graceful, settling on a sensible boundary and honest probabilities. That, in one picture, is why logistic regression is so often the first thing practitioners reach for.
+
+Let us take stock with the roadmap before we turn to making logistic regression fast.
+
+```{mermaid}
+%%| fig-align: center
+flowchart TB
+    A["<b>1. The Problem</b><br/>Tumor size and<br/>malignancy"]
+    B["<b>2. The Naive Attempt</b><br/>Why linear regression<br/>fails for classification"]
+    C["<b>3. The Perceptron</b><br/>Hard threshold,<br/>geometric update"]
+    D["<b>4. Logistic Regression</b><br/>Soft threshold,<br/>probabilities, MLE"]
+    E["<b>5. The Two Boundaries</b><br/>Hard cut vs<br/>probability field"]
+    F["<b>6. Newton's Method</b><br/>A faster optimizer<br/>using curvature"]
+    G["<b>7. Discriminative vs Generative</b><br/>A quick foreshadowing"]
+    H["<b>8. Wrapping Up</b><br/>Full picture and<br/>what comes next"]
+    I["<b>Appendix</b><br/>Functions as<br/>infinite-dimensional vectors"]
+    A --> B --> C --> D --> E --> F --> G --> H --> I
+
+    style A fill:#555,color:#fff,stroke:#aaa
+    style B fill:#555,color:#fff,stroke:#aaa
+    style C fill:#555,color:#fff,stroke:#aaa
+    style D fill:#555,color:#fff,stroke:#aaa
+    style E fill:#555,color:#fff,stroke:#aaa
+    style F fill:#1e8449,color:#fff,stroke:#fff
+    style G fill:#444,color:#aaa,stroke:#666
+    style H fill:#444,color:#aaa,stroke:#666
+    style I fill:#444,color:#aaa,stroke:#666
 ```
 
 # Newton's Method: A Faster Optimizer
 
-We now have logistic regression with a gradient ascent update rule. But gradient ascent is not the only game in town. There is another optimization algorithm, called **Newton's method**, that often converges much faster (in terms of number of iterations) by using *second-order* information about the function being optimized. It is what you will likely use to fit logistic regression in your homework if you are following CS229, and it is widely used in practice.
+We now have logistic regression with a gradient ascent update rule. That update will find the boundary, but it can be slow, inching toward the maximum-likelihood $\boldsymbol{\uptheta}$ one small step at a time. There is another optimization algorithm, called **Newton's method**, that often converges much faster (in terms of number of iterations) by using *second-order* information about the function being optimized. It is what you will likely use to fit logistic regression in your homework if you are following CS229, and it is widely used in practice.
 
 The idea takes a bit of setup, so let us build it from the ground up.
 
@@ -504,19 +583,19 @@ Newton's method for root finding. At each step, we draw the tangent line at the 
 :::
 
 To turn the recipe into a formula, we need the equation of the tangent line. The tangent line to $f$ at $\theta^{\left(t\right)}$ has slope $f'\!\left(\theta^{\left(t\right)}\right)$ and passes through $\left(\theta^{\left(t\right)}, f\!\left(\theta^{\left(t\right)}\right)\right)$, so its equation is
- 
+
 $$
 y - f\!\left(\theta^{\left(t\right)}\right) = f'\!\left(\theta^{\left(t\right)}\right) \left(\theta - \theta^{\left(t\right)}\right).
 $$
- 
+
 Setting $y = 0$ and solving for $\theta$ (which we will call $\theta^{\left(t+1\right)}$):
- 
+
 $$
 0 - f\!\left(\theta^{\left(t\right)}\right) = f'\!\left(\theta^{\left(t\right)}\right) \left(\theta^{\left(t+1\right)} - \theta^{\left(t\right)}\right) \implies \theta^{\left(t+1\right)} = \theta^{\left(t\right)} - \frac{f\!\left(\theta^{\left(t\right)}\right)}{f'\!\left(\theta^{\left(t\right)}\right)}.
 $$
- 
+
 So the **Newton update for root finding** is
- 
+
 $$
 \theta^{\left(t+1\right)} = \theta^{\left(t\right)} - \frac{f\!\left(\theta^{\left(t\right)}\right)}{f'\!\left(\theta^{\left(t\right)}\right)}.
 $$ {#eq-newton_root_finding}
@@ -579,23 +658,25 @@ For logistic regression specifically, this is not an issue: the log-likelihood i
 
 # Discriminative vs Generative: A Quick Foreshadowing
 
-Before we close, we want to plant a seed for a distinction that will become important in future posts.
+Before we close, we want to plant a seed for a distinction that will become important in future posts. It is, once again, a statement about how we draw the boundary.
 
-Logistic regression directly models $p \left(y \mid \vb{x}; \boldsymbol{\uptheta}\right)$, the conditional distribution of the label given the features. This kind of algorithm, which models the *conditional* distribution (or directly maps from $\vb{x}$ to $y$ as the perceptron does), is called a **discriminative** algorithm.
+Logistic regression directly models $p \left(y \mid \vb{x}; \boldsymbol{\uptheta}\right)$, the conditional distribution of the label given the features. This kind of algorithm, which models the *conditional* distribution (or directly maps from $\vb{x}$ to $y$ as the perceptron does), is called a **discriminative** algorithm. It draws the boundary directly, without ever asking what each class "looks like."
 
-A different family of algorithms instead models the *joint* distribution $p \left(\vb{x}, y\right) = p \left(\vb{x} \mid y\right) \cdot p \left(y\right)$. These are called **generative** algorithms because, in addition to classifying, they actually model how each class generates its features. Examples include Gaussian Discriminant Analysis (GDA) and Naive Bayes.
+A different family of algorithms instead models the *joint* distribution $p \left(\vb{x}, y\right) = p \left(\vb{x} \mid y\right) \cdot p \left(y\right)$. These are called **generative** algorithms because, in addition to classifying, they actually model how each class generates its features. Examples include Gaussian Discriminant Analysis (GDA) and Naive Bayes. They learn what benign and malignant tumors each look like, and the boundary emerges as a by-product of comparing the two.
 
 The two families have different strengths. Generative models can be more data-efficient when their assumptions hold but are sensitive to model misspecification. Discriminative models like logistic regression are more robust because they make weaker assumptions [@hastie2009elements]. We will explore generative algorithms in detail in a future post; for now, just file this distinction away.
 
 # Wrapping Up
 
-Let us trace what we have done.
+Let us trace what we have done. It was, from start to finish, the story of a single object: the decision boundary, and how to draw it well.
 
-We started with a fundamentally new problem: predicting a discrete label rather than a continuous number. A naive attempt to use linear regression failed because (a) it ignored the discrete structure of $y$, and (b) the unbounded output $\boldsymbol{\uptheta}^{\intercal}\vb{x}$ does not match $y \in \{0, 1\}$. We needed to compose the linear function with a squashing function.
+We started with a fundamentally new problem: predicting a discrete label rather than a continuous number, which we framed as drawing a boundary between two classes. A naive attempt to use linear regression failed because (a) it ignored the discrete structure of $y$, and (b) the unbounded output $\boldsymbol{\uptheta}^{\intercal}\vb{x}$ does not match $y \in \{0, 1\}$, leaving us with a *fragile* boundary that a single far-away point could drag across our data. We needed to compose the linear function with a squashing function.
 
-The first squashing function we tried was the hard threshold, which gave us the **perceptron**. Geometrically, the perceptron is beautifully simple: $\boldsymbol{\uptheta}$ is perpendicular to the decision boundary, and each misclassified example rotates $\boldsymbol{\uptheta}$ to push the boundary in the right direction. But the perceptron has no probabilistic interpretation, no graceful learning from "almost right" examples, and is hard to derive from any principled cost function.
+The first squashing function we tried was the hard threshold, which gave us the **perceptron**. Geometrically, the perceptron is beautifully simple: $\boldsymbol{\uptheta}$ is perpendicular to the decision boundary, and each misclassified example rotates $\boldsymbol{\uptheta}$ to push the boundary in the right direction. But the perceptron draws a *hard* boundary: no probabilistic interpretation, no graceful learning from "almost right" examples, and it is hard to derive from any principled cost function.
 
-Replacing the hard threshold with a smooth one, the **sigmoid**, gave us **logistic regression**. The sigmoid lets us interpret the output as a probability, which in turn allowed us to model $y \mid \vb{x}$ as Bernoulli, write down a likelihood function, and apply maximum likelihood estimation to find $\boldsymbol{\uptheta}$. Stunningly, the resulting gradient ascent update rule is identical (up to a sign) to the one for linear regression and the perceptron. This is not a coincidence; it is a consequence of all three algorithms being instances of generalized linear models, a connection we will explore in a future post.
+Replacing the hard threshold with a smooth one, the **sigmoid**, gave us **logistic regression**. The sigmoid lets us interpret the output as a probability, which in turn allowed us to model $y \mid \vb{x}$ as Bernoulli, write down a likelihood function, and apply maximum likelihood estimation to find $\boldsymbol{\uptheta}$. Stunningly, the resulting gradient ascent update rule is identical (up to a sign) to the one for linear regression and the perceptron. This is not a coincidence; it is a consequence of all three algorithms being instances of generalized linear models.
+
+We then put the two boundaries **side by side** and watched them form on the same 2D tumor data (@fig-boundary_comparison). The perceptron's boundary was a hard cut into two flat half-spaces; logistic regression's was the same straight line, but wrapped in a smooth probability field that reports confidence on either side. That single picture is the clearest summary of what the soft sigmoid buys you over the hard step.
 
 To fit logistic regression efficiently, we introduced **Newton's method**, an alternative to gradient ascent that uses second-order curvature information via the Hessian. Newton converges much faster in iterations but pays an $\mathcal{O} \left(d^3\right)$ cost per iteration to invert the Hessian. For low-to-medium dimensions, it is often the right choice; for high dimensions, gradient methods win.
 
@@ -608,11 +689,12 @@ flowchart TB
     B["<b>2. The Naive Attempt</b><br/>Why linear regression<br/>fails for classification"]
     C["<b>3. The Perceptron</b><br/>Hard threshold,<br/>geometric update"]
     D["<b>4. Logistic Regression</b><br/>Soft threshold,<br/>probabilities, MLE"]
-    E["<b>5. Newton's Method</b><br/>A faster optimizer<br/>using curvature"]
-    F["<b>6. Discriminative vs Generative</b><br/>A quick foreshadowing"]
-    G["<b>7. Wrapping Up</b><br/>Full picture and<br/>what comes next"]
-    H["<b>Appendix</b><br/>Functions as<br/>infinite-dimensional vectors"]
-    A --> B --> C --> D --> E --> F --> G --> H
+    E["<b>5. The Two Boundaries</b><br/>Hard cut vs<br/>probability field"]
+    F["<b>6. Newton's Method</b><br/>A faster optimizer<br/>using curvature"]
+    G["<b>7. Discriminative vs Generative</b><br/>A quick foreshadowing"]
+    H["<b>8. Wrapping Up</b><br/>Full picture and<br/>what comes next"]
+    I["<b>Appendix</b><br/>Functions as<br/>infinite-dimensional vectors"]
+    A --> B --> C --> D --> E --> F --> G --> H --> I
 
     style A fill:#1e8449,color:#fff,stroke:#fff
     style B fill:#1e8449,color:#fff,stroke:#fff
@@ -620,8 +702,9 @@ flowchart TB
     style D fill:#1e8449,color:#fff,stroke:#fff
     style E fill:#1e8449,color:#fff,stroke:#fff
     style F fill:#1e8449,color:#fff,stroke:#fff
-    style G fill:#b9770e,color:#fff,stroke:#fff
-    style H fill:#5a3a78,color:#fff,stroke:#fff
+    style G fill:#1e8449,color:#fff,stroke:#fff
+    style H fill:#b9770e,color:#fff,stroke:#fff
+    style I fill:#5a3a78,color:#fff,stroke:#fff
 ```
 
 The recurring update rule $\boldsymbol{\uptheta} \leftarrow \boldsymbol{\uptheta} + \alpha \left(y - h_{\boldsymbol{\uptheta}} \left(\vb{x}\right)\right) \vb{x}$ across linear regression, the perceptron, and logistic regression is a strong hint of a deeper structure. In the next post, we will reveal that structure: the framework of **generalized linear models (GLMs)**, where the choice of distribution for $y \mid \vb{x}$ determines the choice of $h_{\boldsymbol{\uptheta}}$, and the same maximum likelihood machinery generates them all. The sigmoid will reveal itself as a *consequence* of the Bernoulli assumption, not an arbitrary choice.
