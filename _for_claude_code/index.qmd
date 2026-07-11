@@ -1,0 +1,283 @@
+---
+title: "Example post"
+draft: false
+author: "Sushrut"
+date: 2025-12-24
+description: "A short but detailed description of the example post."
+categories: [Example]
+tags: [Example, Blog]
+format:
+  html:
+    link-citations: true
+    smooth-scroll: true
+    math: mathjax
+    toc: true
+    fig-format: svg
+    mermaid:
+      theme: dark
+bibliography: ../../../references/references.bib
+csl: ../../../references/apa.csl
+execute:
+  enabled: true
+  fig-format: svg
+---
+
+All the content in the YAML frontmatter stays the same except for the title, date, description, categories, and tags.
+
+# My Math Notation
+
+## Inline Equations
+
+Inline equations are written as $a^2 + b^2 = c^2$, which is normal.
+
+## Equation Blocks
+
+### Without Label
+
+$$
+y = f \left(x_1, x_2, \dots, x_d\right) = f (\vb{x}).
+$$
+
+Notice the full stop at the end of the equation. I normally put this full stop when the equation is at the end of a sentence. If the equation is not at the end of a sentence, then I normally put a comma at the end of the equation. The following is an example:
+
+"""
+In other words, we implemented functions of the form
+
+$$
+y = f \left(x_1, x_2, \dots, x_d\right) = f (\vb{x}),
+$$
+
+where $y \in \{0, 1\}$ and $x_1, x_2, \dots, x_d \in \{0, 1\}$ (or $\vb{x} \in \{0, 1\}^d$).
+"""
+
+Notice how I always put auto-adjusting parentheses around the equation, i.e., $\left($ and $\right)$. Please follow this pattern for all types of parentheses, brackets, and braces. For example, $\left\{$ and $\right\}$ for braces, $\left[$ and $\right]$ for brackets, etc. This is to ensure that the equation is always properly formatted, regardless of the size of the equation.
+
+### With Label and Cross-Reference
+
+An example is the following:
+
+"""
+$$
+y = \sigma\left(\vb{w}^{\intercal} \vb{x}\right) = \frac{1}{1 + e^{- \vb{w}^{\intercal} \vb{x}}} = \frac{1}{1 + e^{-\left(w_0 + w_1 x_1 + w_2 x_2 + \cdots + w_d x_d\right)}}.
+$$ {#eq-sigmoid_activation_function}
+
+Notice that @eq-sigmoid_activation_function can never be exactly $0$ or exactly $1$.
+"""
+
+Notice how I always use $\vb{}$ for vectors. I can use this because I am using the physics package in La.
+
+I generally follow the convention that any vector should be represented by a lowercase, non-italic, and bold letter. If it were a greek letter, I use the upgreek package. For instance, in math mode I would show a theta vector as $\boldsymbol{\uptheta}$.
+
+Similarly, I show a matrix as an uppercase, non-italic, and bold letter. For instance, in math mode I would show a matrix as $\vb{A}$.
+
+Further, also notice how I show the transpose of a vector as $\vb{x}^{\intercal}$ and not as $\vb{x}^T$.
+
+### Align Environment
+
+I sometimes also use the align environment, e.g.,
+
+$$
+\begin{align*}
+  \nabla_{\boldsymbol{\uptheta}} J(\boldsymbol{\uptheta}) &= 0\\
+  \implies \nabla_{\boldsymbol{\uptheta}} \left( \frac{1}{2} \left(\vb{X} \boldsymbol{\uptheta} - \vb{y}\right)^{\intercal} \left(\vb{X} \boldsymbol{\uptheta} - \vb{y}\right) \right) &= 0\\
+  \implies \frac{1}{2} \nabla_{\boldsymbol{\uptheta}} \left( \left(\vb{X} \boldsymbol{\uptheta} \right)^{\intercal} \vb{X} \boldsymbol{\uptheta} - \left(\vb{X} \boldsymbol{\uptheta} \right)^{\intercal} \vb{y} - \vb{y}^{\intercal} \left(\vb{X} \boldsymbol{\uptheta} \right) + \vb{y}^{\intercal} \vb{y} \right) &= 0\\
+  \implies \frac{1}{2} \nabla_{\boldsymbol{\uptheta}} \left( \boldsymbol{\uptheta}^{\intercal} \left( \vb{X}^{\intercal} \vb{X} \right) \boldsymbol{\uptheta} - \vb{y}^{\intercal} \left( \vb{X}\boldsymbol{\uptheta} \right) - \vb{y}^{\intercal} \left( \vb{X}\boldsymbol{\uptheta} \right)  + \vb{y}^{\intercal} \vb{y} \right) &= 0\\
+  \implies \frac{1}{2} \nabla_{\boldsymbol{\uptheta}} \left( \boldsymbol{\uptheta}^{\intercal} \left( \vb{X}^{\intercal} \vb{X} \right) \boldsymbol{\uptheta} - 2 \vb{y}^{\intercal} \left( \vb{X}\boldsymbol{\uptheta} \right)  + \vb{y}^{\intercal} \vb{y} \right) &= 0\\
+  \implies \frac{1}{2} \nabla_{\boldsymbol{\uptheta}} \left( \boldsymbol{\uptheta}^{\intercal} \left( \vb{X}^{\intercal} \vb{X} \right) \boldsymbol{\uptheta} - 2 \left( \vb{X}^{\intercal} \vb{y} \right)^{\intercal} \boldsymbol{\uptheta} + \vb{y}^{\intercal} \vb{y} \right) &= 0\\
+  \implies \frac{1}{2} \left( 2 \vb{X}^{\intercal} \vb{X} \boldsymbol{\uptheta} - 2\vb{X}^{\intercal} \vb{y} \right) &= 0\\
+  \implies \vb{X}^{\intercal} \vb{X} \boldsymbol{\uptheta} - \vb{X}^{\intercal} \vb{y} &= 0
+\end{align*}
+$$
+
+Notice how I have kept the "=" sign aligned in the above equations.
+
+## Sets
+
+I generally follow the convention that any set should be represented using \mathcal{}. For instance, in math mode I would show a set as $\mathcal{A}$.
+
+If it is a known set, e.g., the set of real numbers, then I use \mathbb{}. For instance, in math mode I would show the set of real numbers as $\mathbb{R}$.
+
+One more place where I use $\mathcal{}$ is for denoting that a random variable follows a normal distribution. For instance, in math mode I would show that a random variable $X$ follows a normal distribution as $X_i \overset{\text{i.i.d.}}{\sim} \mathcal{N}(\mu, \sigma^2)$.
+
+## Probability
+
+I use capital letters to indicate random variables, e.g., $X$, and lowercase letters to indicate the values that the random variables can take, e.g., $x$. So, I would write $\mathrm{P}(X = x)$ to denote the probability that the random variable $X$ takes the value $x$. Also notice how I used $\mathrm{P}$ for probability and not simply $P$. For conditional probability, with two events $A$ and $B$, I write it as $\mathrm{P}(A \mid B)$. If two random variables $X$ and $Y$ are involved, I can write it in multiple ways, e.g., $\mathrm{P}(X \mid Y)$, $\mathrm{P}(X=x \mid Y=y)$, etc.
+
+For probability mass function of a random variable $X$, I write it as $p_{X}(x)$. If it is conditioned on $Y$, I write it as $p_{X \mid Y}(x \mid y)$. Similarly, if it is the probability density function, I write it as $f_{X}(x)$ and $f_{X \mid Y}(x \mid y)$ respectively. Further, if it is the cumulative distribution function, I write it as $F_{X}(x)$ and $F_{X \mid Y}(x \mid y)$ respectively.
+
+I write joint probability mass function of two random variables $X$ and $Y$ as $p_{X, Y}(x, y)$ or $p (x, y)$, joint probability density function as $f_{X, Y}(x, y)$ or $f(x, y)$, joint cumulative distribution function as $F_{X, Y}(x, y)$ or $F(x, y)$. I write their conditional counterparts as $p_{X, Y \mid Z}(x, y \mid z)$, $f_{X, Y \mid Z}(x, y \mid z)$, and $F_{X, Y \mid Z}(x, y \mid z)$ respectively.
+
+I write the complement as $A^{\mathsf{c}}$.
+
+## Matrices
+
+I generally show elements of a matrix in the following way:
+
+$$
+\vb{X} =
+\begin{bmatrix}
+  1 & 2140\\
+  1 & 1600\\
+  1 & 2400\\
+  \vdots & \vdots
+\end{bmatrix}.
+$$
+
+If I want to show a matrix as a stack of column vectors, I would show it as
+
+$$
+\vb{X} = 
+\begin{bmatrix}
+  \uparrow & \uparrow & & \uparrow\\
+  \vb{x}_1 & \vb{x}_2 & \cdots & \vb{x}_d\\
+  \downarrow & \downarrow & & \downarrow
+\end{bmatrix},
+$$
+
+and a stack of row vectors as
+
+$$
+\vb{X} = 
+\begin{bmatrix}
+  \leftarrow & \vb{x}_1^{\intercal} & \rightarrow \\
+  \leftarrow & \vb{x}_2^{\intercal} & \rightarrow \\
+  \vdots & \vdots & \vdots \\
+  \leftarrow & \vb{x}_n^{\intercal} & \rightarrow
+\end{bmatrix}.
+$$
+
+Notice how any vector $\vb{x}$ is always treated as a column vector. So, if I want to show a row vector, I would show it as $\vb{x}^{\intercal}$.
+
+## Derivatives
+
+I use the physics package convention for derivatives. The following are some examples.
+
+### Ordinary Derivatives
+
+$$\dv{x}$$
+$$\dv{f}{x}$$
+$$\dv[n]{f}{x}$$
+$$\left.\dv{f}{x}\right|_{x=a}$$
+
+### Partial Derivatives
+
+$$\pdv{x}$$
+$$\pdv{f}{x}$$
+$$\pdv[n]{f}{x}$$
+$$\pdv{f}{x}{y}$$
+$$\left.\pdv{f}{x}\right|_{x=a}$$
+
+### Differentials
+
+$$\dd{x}$$
+$$\dd[2]{x}$$
+
+## Integrals
+
+$$\int f(x) \dd{x}$$
+
+And I am assuming you know how integrals are done in LaTeX. The only thing I would like to point out is my convention of using $\dd{x}$ in integrals instead of $\mathrm{d}x$ or $dx$. Please stick to my convention.
+
+# Figures
+
+This is how I show a figure:
+
+![Figure title.](images/figure_name.png){#fig-figure_name fig-align="center" width=100% .invert}
+
+The width is kind of flexible depending upon the figure. However, it should not exceed 100%. I also use .invert for most figures. To cross-refer this figure, I would use @fig-figure_name. Notice how the file name of the figure and the label are the same. Always use this pattern for consistency.
+
+# Tables
+
+An example table is the following:
+
+::: {.tbl tbl-colwidths="auto"}
+| Area (sq ft) | Price ($) |
+|:------------:|:---------:|
+| 2104 | 399,900 |
+| 1600 | 329,900 |
+| 2400 | 369,000 |
+| 1416 | 232,000 |
+| 3000 | 539,900 |
+| ⋮    | ⋮       |
+
+: Table title. {#tbl-house_prices style="width:30%; margin:auto;"}
+:::
+
+I would cross-refer this table using @tbl-house_prices. Also, note that the width should be adjusted according to the table.
+
+# Algorithm or Pseudocode
+
+An example of an algorithm or a pseudocode is the following:
+
+::: {#alg-gradient-descent}
+<pre class="pseudocode">
+\begin{algorithm}
+\caption{Gradient Descent Algorithm}
+\begin{algorithmic}
+\INPUT Learning rate $\eta$, maximum iterations $T$
+\OUTPUT Parameters $\mathbf{w}_T, b_T$
+
+\STATE $t \gets 0$
+\STATE Initialize $\mathbf{w}_0, b_0$ randomly
+\WHILE{$t < T$}
+    \STATE $\mathbf{w}_{t+1} \gets \mathbf{w}_t - \eta \nabla \mathbf{w}_t$
+    \STATE $b_{t+1} \gets b_t - \eta \nabla b_t$
+    \STATE $t \gets t + 1$
+\ENDWHILE
+\end{algorithmic}
+\end{algorithm}
+</pre>
+:::
+
+<script>
+  pseudocode.renderClass("pseudocode", { lineNumber: true });
+</script>
+
+Also, I am not sure if it is possible to label and cross-reference an algorithm or pseudocode using "@". If it is, please let me know.
+
+# Mermaid Diagrams
+
+An example is the following:
+
+```{mermaid}
+%%| fig-align: center
+flowchart TD
+    A["Document Loader<br/><code>DocLoader.load_all()</code>"] --> B["102 .md/.mdx files<br/>from data/raw/docs/"]
+    B --> C["Batch Creator<br/><code>QAGenerator._create_batches()</code><br/>batch_size=8"]
+    C --> D["13 Document Batches"]
+    D --> E["GPT-5.4 API Call<br/>reasoning: high<br/><code>QAGenerator._call_openai()</code>"]
+    E --> F["JSON Response Parsing<br/><code>QAGenerator._parse_response()</code><br/>Pydantic validation"]
+    F --> G["Type Distribution Tracking<br/><code>_compute_type_guidance()</code>"]
+    G --> |"Loop until target reached"| E
+    F --> H["Quality Filter<br/><code>QualityFilter.filter()</code>"]
+    H --> I["90 QA Pairs"]
+    I --> J["Targeted Top-up<br/><code>QAGenerator.generate_targeted()</code><br/>12 comparative pairs"]
+    J --> K["Merge & Save<br/><code>QualityFilter.save()</code>"]
+    K --> L["golden_dataset.json<br/>102 QA pairs"]
+
+    style E fill:#10a37f,color:#fff
+    style L fill:#f59e0b,color:#fff
+```
+
+Notice how I always center it using "%%| fig-align: center". Otherwise it will be left-aligned, which I don't want.
+
+Also, I am not sure if it is possible to label and cross-reference a mermaid diagram using "@". If it is, please let me know.
+
+# Code
+
+Rendering code blocks is straightforward. For example, here is a simple Python code block:
+
+```python
+def hello_world():
+    print("Hello, world!")
+```
+
+Notice how I always use "```python" to render the code block. This is to ensure that the code block is always properly formatted.
+
+# External Citations
+
+I already have a references.bib file, as indicated in the YAML header. I can use it to cite my references. For example, I can cite a reference using "@ref-ref_name". This will render as a citation in the blog post. For example, @stanford_cs229_ml_youtube. You can tell me the best way to write citations in a sentence, e.g., in the middle of a sentence or at the end of a sentence, single citations or multiple citations, etc.
+
+## Citing My Other Blog Posts
+
+You can cite my other blog posts inside a particular blog post, e.g., a blog post whose index.qmd file name is in the folder named "blog_1" using exactly [citation text](../blog_1/index.qmd). For example, "Recall that in the [introduction to RAG blog post](../introduction-to-rag/index.qmd), we saw what a RAG pipeline looks like, which is the following".
