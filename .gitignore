@@ -35,7 +35,17 @@ Thumbs.db
 .env
 
 /.quarto/
-**/*.quarto_ipynb
+# Quarto's intermediate execution notebooks, including the numbered fallbacks
+# (index.quarto_ipynb, index.quarto_ipynb_1, ...) left behind by interrupted renders.
+**/*.quarto_ipynb*
 
 # Site libraries
 site_libs/
+
+# Source materials for blog posts (local-only inputs: subtitles, lecture notes PDFs).
+# Often copyrighted, so never commit them to this public repo. The README is tracked to
+# document the convention and keep the folder present; everything else here is ignored.
+_sources/*
+!_sources/README.md
+
+**/*.quarto_ipynb
