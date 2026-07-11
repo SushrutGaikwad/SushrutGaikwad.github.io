@@ -474,6 +474,7 @@ $$
 \begin{bmatrix}
   \theta_0\\
   \theta_1\\
+  \theta_2\\
   \vdots\\
   \theta_{d}
 \end{bmatrix}.
@@ -482,7 +483,29 @@ $$
 Now, observe what happens when we compute $\vb{X}\boldsymbol{\uptheta} - \vb{y}$:
 
 $$
-\vb{X}\boldsymbol{\uptheta} - \vb{y} =
+\begin{align*}
+\vb{X}\boldsymbol{\uptheta} - \vb{y}
+&=
+\begin{bmatrix}
+  \leftarrow & \vb{x}_1^{\intercal} & \rightarrow\\
+  \leftarrow & \vb{x}_2^{\intercal} & \rightarrow\\
+   & \vdots & \\
+  \leftarrow & \vb{x}_n^{\intercal} & \rightarrow
+\end{bmatrix}
+\underbrace{\begin{bmatrix}
+  \theta_0\\
+  \theta_1\\
+  \vdots\\
+  \theta_{d}
+\end{bmatrix}}_{\boldsymbol{\uptheta}}
+-
+\begin{bmatrix}
+  y_1\\
+  y_2\\
+  \vdots\\
+  y_n
+\end{bmatrix}\\
+&=
 \begin{bmatrix}
   \vb{x}_1^{\intercal} \boldsymbol{\uptheta}\\
   \vb{x}_2^{\intercal} \boldsymbol{\uptheta}\\
@@ -494,13 +517,16 @@ $$
   y_2\\
   \vdots\\
   y_n
-\end{bmatrix} =
+\end{bmatrix}\\[0.5em]
+\therefore \vb{X}\boldsymbol{\uptheta} - \vb{y}
+&=
 \begin{bmatrix}
   \vb{x}_1^{\intercal} \boldsymbol{\uptheta} - y_1\\
   \vb{x}_2^{\intercal} \boldsymbol{\uptheta} - y_2\\
   \vdots\\
   \vb{x}_n^{\intercal} \boldsymbol{\uptheta} - y_n
 \end{bmatrix}.
+\end{align*}
 $$
 
 This is a vector whose $i$th entry is the prediction error for the $i$th example. Using the fact that for any vector $\vb{z}$, the dot product $\vb{z}^{\intercal}\vb{z} = \sum_i z_i^2$, we can write
