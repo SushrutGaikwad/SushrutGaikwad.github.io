@@ -2,7 +2,7 @@
 title: "Kernel Methods"
 draft: false
 author: "Sushrut"
-date: 2026-07-17
+date: 2026-05-10
 description: "A first-principles tour of kernel methods: from feature maps and polynomial regression, through the kernel trick that hides an infinite-dimensional feature space behind a cheap function, to Mercer's theorem and the reach of the kernel idea."
 categories: [Machine Learning, Supervised Learning, Mathematics]
 tags: [Machine Learning, Kernel Methods, Kernel Trick, Feature Maps, Gaussian Kernel, Mercer Theorem, Support Vector Machines, Blog]
