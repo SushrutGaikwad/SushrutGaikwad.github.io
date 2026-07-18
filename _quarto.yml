@@ -86,6 +86,14 @@ format:
           <!-- MathJax configuration -->
           <script>
             window.MathJax = {
+              chtml: {
+                // Emit CSS for all glyphs, not just those typeset on page load.
+                // pseudocode.js renders algorithm blocks AFTER the initial MathJax
+                // pass via tex2chtml; with the default adaptiveCSS:true, any glyph
+                // not already present in the page body (e.g. an arrow in a post that
+                // never uses one outside the algorithm) would render blank.
+                adaptiveCSS: false
+              },
               loader: {
                 load: ['[tex]/physics', '[tex]/upgreek']
               },
@@ -118,5 +126,9 @@ format:
               }
             });
           </script>
+
+filters:
+  - at: post-quarto
+    path: _filters/cleveref_capitalize.lua
 
 jupyter: python3

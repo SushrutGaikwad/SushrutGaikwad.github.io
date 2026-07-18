@@ -56,3 +56,14 @@
   border: none;
   font-family: var(--bs-font-monospace);
 }
+
+/* Dark mode only: pseudocode.js hardcodes the algorithm's top/bottom rules and
+   the caption separator to solid black (border ... #000), which is invisible on
+   the dark theme. Match them to the inherited (light) text color instead. */
+.quarto-dark .ps-root .ps-algorithm {
+  border-top-color: currentColor;
+  border-bottom-color: currentColor;
+}
+.quarto-dark .ps-root .ps-algorithm.with-caption > .ps-line:first-child {
+  border-bottom-color: currentColor;
+}
