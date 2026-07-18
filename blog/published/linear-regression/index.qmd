@@ -3,9 +3,9 @@ title: "Linear Regression"
 draft: false
 author: "Sushrut"
 date: 2026-03-22
-description: "A first-principles introduction to linear regression, from eyeballing a line on a scatter plot to deriving the closed-form solution and its probabilistic justification."
+description: "A first-principles introduction to linear regression, from eyeballing a line on a scatter plot to deriving the closed-form solution, its probabilistic justification, and locally weighted (non-parametric) regression."
 categories: [Machine Learning, Supervised Learning, Mathematics]
-tags: [Machine Learning, Linear Regression, Regression, Blog]
+tags: [Machine Learning, Linear Regression, Regression, Locally Weighted Regression, Non-Parametric Methods, Blog]
 format:
   html:
     link-citations: true
@@ -41,8 +41,9 @@ flowchart TB
     F["<b>6. The Normal Equations</b><br/>A closed-form solution:<br/>no iteration needed"]
     G["<b>7. The Geometric View</b><br/>Linear regression<br/>as projection"]
     H["<b>8. Why Squared Error?</b><br/>The probabilistic<br/>interpretation"]
-    I["<b>9. Wrapping Up</b><br/>Full picture and<br/>what comes next"]
-    A --> B --> C --> D --> E --> F --> G --> H --> I
+    L["<b>9. Going Local</b><br/>Locally weighted regression:<br/>fitting curves with lines"]
+    I["<b>10. Wrapping Up</b><br/>Full picture and<br/>what comes next"]
+    A --> B --> C --> D --> E --> F --> G --> H --> L --> I
 
     style A fill:#1e8449,color:#fff,stroke:#fff
     style I fill:#b9770e,color:#fff,stroke:#fff
@@ -220,8 +221,9 @@ flowchart TB
     F["<b>6. The Normal Equations</b><br/>A closed-form solution:<br/>no iteration needed"]
     G["<b>7. The Geometric View</b><br/>Linear regression<br/>as projection"]
     H["<b>8. Why Squared Error?</b><br/>The probabilistic<br/>interpretation"]
-    I["<b>9. Wrapping Up</b><br/>Full picture and<br/>what comes next"]
-    A --> B --> C --> D --> E --> F --> G --> H --> I
+    L["<b>9. Going Local</b><br/>Locally weighted regression:<br/>fitting curves with lines"]
+    I["<b>10. Wrapping Up</b><br/>Full picture and<br/>what comes next"]
+    A --> B --> C --> D --> E --> F --> G --> H --> L --> I
 
     style A fill:#555,color:#fff,stroke:#aaa
     style B fill:#555,color:#fff,stroke:#aaa
@@ -231,6 +233,7 @@ flowchart TB
     style F fill:#444,color:#aaa,stroke:#666
     style G fill:#444,color:#aaa,stroke:#666
     style H fill:#444,color:#aaa,stroke:#666
+    style L fill:#444,color:#aaa,stroke:#666
     style I fill:#444,color:#aaa,stroke:#666
 ```
 
@@ -428,8 +431,9 @@ flowchart TB
     F["<b>6. The Normal Equations</b><br/>A closed-form solution:<br/>no iteration needed"]
     G["<b>7. The Geometric View</b><br/>Linear regression<br/>as projection"]
     H["<b>8. Why Squared Error?</b><br/>The probabilistic<br/>interpretation"]
-    I["<b>9. Wrapping Up</b><br/>Full picture and<br/>what comes next"]
-    A --> B --> C --> D --> E --> F --> G --> H --> I
+    L["<b>9. Going Local</b><br/>Locally weighted regression:<br/>fitting curves with lines"]
+    I["<b>10. Wrapping Up</b><br/>Full picture and<br/>what comes next"]
+    A --> B --> C --> D --> E --> F --> G --> H --> L --> I
 
     style A fill:#555,color:#fff,stroke:#aaa
     style B fill:#555,color:#fff,stroke:#aaa
@@ -439,6 +443,7 @@ flowchart TB
     style F fill:#1e8449,color:#fff,stroke:#fff
     style G fill:#444,color:#aaa,stroke:#666
     style H fill:#444,color:#aaa,stroke:#666
+    style L fill:#444,color:#aaa,stroke:#666
     style I fill:#444,color:#aaa,stroke:#666
 ```
 
@@ -835,11 +840,178 @@ Notice that the final result does not depend on $\sigma^2$. We would arrive at t
 The Gaussian noise assumption is one justification for squared error, but it is not the only possible set of assumptions. Other distributional assumptions on $\varepsilon_i$ would lead to different cost functions. For example, a Laplace distribution on the errors would lead to minimizing *absolute* error instead of squared error. The probabilistic interpretation tells us *when* squared error is natural, not that it is always the only valid choice.
 :::
 
-# Wrapping Up
+# Going Local: Locally Weighted Linear Regression
 
-Let us step back and trace the path we have taken, starting from a printed scatter plot and a ruler.
+Take a step back and notice an assumption that has run quietly through this entire post. From the very first scatter plot, we have been fitting a single straight line, and once we moved to many features, a single flat hyperplane, $h_{\boldsymbol{\uptheta}}\left(\vb{x}\right) = \boldsymbol{\uptheta}^{\intercal}\vb{x}$. Even the probabilistic story we just told baked this in: it assumed the *mean* of $y$ is a linear function of $\vb{x}$. This works wonderfully when the underlying relationship really is close to linear. But what happens when it is not?
 
-We began with a concrete problem: predicting Portland house prices from their area. A beginner's approach was to eyeball a line through the data. To improve on eyeballing, we needed a way to *measure* how good a line is, which led us to the idea of summing squared errors. We then formalized what a "line" means mathematically (the linear hypothesis $h_{\boldsymbol{\uptheta}}\left(\vb{x}\right) = \boldsymbol{\uptheta}^{\intercal}\vb{x}$) and what "good" means (the cost function $J\left(\boldsymbol{\uptheta}\right)$). With these tools in hand, we explored two strategies for finding the best parameters: gradient descent, which walks downhill iteratively, and the normal equations, which give the answer in one shot. We then saw the same normal equations emerge from a completely different direction, geometry: finding the best fit is the same as projecting the output vector onto the column space of the design matrix. Finally, we discovered that the squared error cost is not arbitrary; it is the natural consequence of assuming Gaussian noise in the data, via maximum likelihood estimation.
+## When a Straight Line Isn't Enough
+
+Look at the data in @fig-underfitting_overfitting. The points clearly trace out a gentle curve, and a straight line simply cannot follow it. The left panel shows the best-fit line, and it misses the curvature badly: too low where the data humps up, too high where the data dips down. We say the line **underfits** the data, meaning the model is too rigid to capture structure that is plainly there.
+
+![Underfitting, a reasonable fit, and overfitting on the same curved dataset. A straight line is too rigid and misses the curvature (left); adding an $x^2$ feature lets a quadratic follow the shape well (middle); a high-order polynomial threads the points but wiggles wildly between them (right).](images/underfitting_overfitting.png){#fig-underfitting_overfitting fig-align="center" width=100%}
+
+One fix is to hand the model more flexibility by adding features. If we augment each input $x$ with a second feature $x^2$ and fit $\hat{y} = \theta_0 + \theta_1 x + \theta_2 x^2$, the hypothesis can bend, and as the middle panel shows, it now follows the data much more faithfully.
+
+It is tempting to conclude that more features are always better. They are not. The right panel fits a high-order polynomial, flexible enough to pass through nearly every training point. On the training data it looks flawless, but between the points it swings around wildly, and near the edges it shoots off. This is **overfitting** [@ng_cs229_notes]: the model has so much freedom that it chases the noise in this particular sample instead of the underlying trend, and it would predict terribly for a new house whose area lands between two training points.
+
+So the quality of a linear model hinges on a delicate choice: enough features to capture the real structure, but not so many that we start fitting noise. Picking them well is part science, part craft. This raises a tantalizing question: could we get a flexible fit *without* having to guess the right features in advance? Locally weighted linear regression answers yes, and it does so by recycling the very first intuition of this post.
+
+## A Different Idea: Fit Locally
+
+Suppose we want to predict the price of a $2000$ square foot house. Intuitively, the most informative examples are other houses of *similar* size. A sprawling $5500$ square foot mansion tells us little about a modest home, so why should it get an equal vote when we fit our line? Locally weighted linear regression (LWR) takes this seriously: to make a prediction at a particular **query point** $\vb{x}$, it fits a line that pays most attention to the training examples near $\vb{x}$ and largely ignores the far-away ones.
+
+The change from ordinary linear regression is remarkably small. Both algorithms fit parameters $\boldsymbol{\uptheta}$ and then predict with $\boldsymbol{\uptheta}^{\intercal}\vb{x}$; the only difference is *what* they minimize when fitting.
+
+:::: {.columns}
+::: {.column width="48%"}
+**Ordinary least squares.** Fit $\boldsymbol{\uptheta}$ to minimize
+
+$$
+\sum_{i=1}^{n} \left(y_i - \boldsymbol{\uptheta}^{\intercal}\vb{x}_i\right)^2.
+$$
+:::
+::: {.column width="4%"}
+:::
+::: {.column width="48%"}
+**Weighted least squares.** Fit $\boldsymbol{\uptheta}$ to minimize
+
+$$
+\sum_{i=1}^{n} w_i\left(y_i - \boldsymbol{\uptheta}^{\intercal}\vb{x}_i\right)^2.
+$$
+:::
+::::
+
+The only new ingredient is the non-negative weight $w_i$ attached to each squared error, but it changes everything. On its own, the objective LWR minimizes is
+
+$$
+\min_{\boldsymbol{\uptheta}} \sum_{i=1}^{n} w_i \left(y_i - \boldsymbol{\uptheta}^{\intercal}\vb{x}_i\right)^2.
+$$ {#eq-lwr_objective}
+
+The intuition is direct. Where $w_i$ is large, we try hard to make that example's error $\left(y_i - \boldsymbol{\uptheta}^{\intercal}\vb{x}_i\right)^2$ small, because it counts heavily in the sum. Where $w_i$ is small, that example's error barely registers and is effectively ignored. All that remains is to say how the weights are chosen.
+
+## Choosing the Weights
+
+We want weights that are large for training points close to the query and small for points far away. A standard choice is the bell-shaped weight
+
+$$
+w_i = \exp\left(-\frac{\left(x_i - x\right)^2}{2\tau^2}\right).
+$$ {#eq-lwr_weights}
+
+Read it slowly. When a training input $x_i$ is close to the query $x$, the difference $\left(x_i - x\right)^2$ is near zero, so $w_i \approx \exp\left(0\right) = 1$: the example gets nearly full weight. When $x_i$ is far from $x$, the exponent is a large negative number and $w_i \approx 0$: the example is all but discarded. So @eq-lwr_weights does exactly what we wanted, handing the fit over to the training examples in the neighborhood of the query. @fig-lwr_weighting shows this at work: the orange bell sits over a query point, each data point is sized and brightened according to its weight, and the resulting weighted line (green) tilts to follow the local points, quite unlike the ordinary global line (grey) that treats all points equally.
+
+![The weighting mechanism of LWR at a single query point. The bell-shaped weight (orange) is near $1$ for points close to the query and near $0$ for far points. Each data point's size and brightness encode its weight, so the weighted local line (green) leans toward the heavily weighted neighbors, while the ordinary global line (grey) ignores locality entirely.](images/lwr_weighting.png){#fig-lwr_weighting fig-align="center" width=85%}
+
+There is a crucial detail hiding in @eq-lwr_weights: the weights depend on the query point $x$. Move to a different query and every $w_i$ changes, so we get a different weighted line. Unlike ordinary linear regression, where we fit one $\boldsymbol{\uptheta}$ once and are done, LWR refits from scratch for every point at which we want a prediction. We will return to the consequences of this shortly.
+
+::: {.callout-note title="These Weights Are Not a Gaussian"}
+The formula in @eq-lwr_weights looks cosmetically identical to the density of a Gaussian distribution, and having just come from the probabilistic interpretation, you might suspect a hidden connection. There is none. The $w_i$ are not probabilities, not random variables, and not normally distributed anything [@ng_cs229_notes]. They are simply a convenient, smoothly decaying measure of "closeness" to the query point. The resemblance to a bell curve is just an artifact of using $\exp\left(-\text{distance}^2\right)$, nothing more.
+:::
+
+::: {.callout-note title="Weights for Vector-Valued Inputs"}
+We wrote @eq-lwr_weights for a scalar input $x$ to keep the picture clean, but the same idea works when the input $\vb{x}$ is a vector. The natural generalization replaces the squared distance $\left(x_i - x\right)^2$ with the squared Euclidean distance between vectors,
+
+$$
+w_i = \exp\left(-\frac{\left(\vb{x}_i - \vb{x}\right)^{\intercal}\left(\vb{x}_i - \vb{x}\right)}{2\tau^2}\right),
+$$
+
+and, if we want different features to matter differently, with a Mahalanobis distance
+
+$$
+w_i = \exp\left(-\frac{\left(\vb{x}_i - \vb{x}\right)^{\intercal}\boldsymbol{\Sigma}^{-1}\left(\vb{x}_i - \vb{x}\right)}{2}\right)
+$$
+
+for an appropriate matrix $\boldsymbol{\Sigma}$ [@ng_cs229_notes].
+:::
+
+## The Bandwidth Knob
+
+The parameter $\tau$ in @eq-lwr_weights is the one knob of the weighting scheme, and it has a name: the **bandwidth**. It controls how quickly a training example's weight falls off as its input moves away from the query. A small $\tau$ makes the bell narrow, so only the very nearest points count; a large $\tau$ makes it wide, so even distant points keep meaningful weight.
+
+The bandwidth trades off exactly the two failure modes we met at the start of this section. @fig-lwr_bandwidth shows the LWR fit for three values of $\tau$ on our curved data.
+
+![The bandwidth $\tau$ controls locality. Too small (left) and the fit is jumpy, chasing individual points; too large (right) and it straightens into ordinary linear regression and underfits the curve; in between (middle) it is smooth and faithful.](images/lwr_bandwidth.png){#fig-lwr_bandwidth fig-align="center" width=100%}
+
+With a very small $\tau$ (left), each prediction leans on only a handful of nearby points, so the curve is jumpy and overfits, much like the high-order polynomial back in @fig-underfitting_overfitting. With a very large $\tau$ (right), every point gets nearly equal weight, the weighting washes out, and LWR collapses back into a single global straight line that underfits the curvature. The sweet spot (middle) lies between them. Just like the learning rate $\alpha$ for gradient descent, $\tau$ is a hyperparameter with no closed-form best value; it is chosen by experimentation, typically by checking which value predicts best on held-out data.
+
+## LWR in Action
+
+We now have all the pieces. To see them work together, imagine sweeping the query point across the data from left to right. At each position, we recompute the weights, fit a weighted straight line to the local neighborhood, and read off that line's value at the query point. Stringing those values together traces out the LWR prediction curve. @fig-lwr_in_action animates exactly this.
+
+![LWR in action. As the query point (star) sweeps across the data, the weighting window (orange) slides with it, a weighted straight line (green) is refit to the local neighborhood, and its value at the query is recorded. The smooth yellow curve is assembled entirely from these local straight-line fits.](images/lwr_in_action.gif){#fig-lwr_in_action fig-align="center" width=85%}
+
+Watch what emerges: a smooth, curved fit built entirely out of straight lines, one per query point. We never added an $x^2$ or an $x^5$ feature, and we never agonized over the polynomial degree. The flexibility came for free from fitting locally. This is what it means to say that, given enough training data, LWR makes the choice of features far less critical [@ng_cs229_notes].
+
+## Solving the Weighted Problem
+
+How do we actually compute the weighted fit at each query? Pleasantly, the closed-form machinery that gave us the normal equations carries over almost verbatim; we only have to thread the weights through.
+
+::: {.callout-tip title="Deep Dive: The Weighted Normal Equations"}
+This derivation mirrors the one that led to @eq-normal_equations_solution, so if you are happy to take the result on faith you can skip it. Collect the weights into a diagonal matrix $\vb{W} = \operatorname{diag}\left(w_1, w_2, \dots, w_n\right)$. Then the weighted objective @eq-lwr_objective, with a harmless factor of $\frac{1}{2}$ attached, can be written in matrix form as
+
+$$
+J\left(\boldsymbol{\uptheta}\right) = \frac{1}{2}\left(\vb{X}\boldsymbol{\uptheta} - \vb{y}\right)^{\intercal}\vb{W}\left(\vb{X}\boldsymbol{\uptheta} - \vb{y}\right),
+$$
+
+which is the same quadratic as the ordinary cost, but with $\vb{W}$ inserted in the middle. Setting its gradient to zero (the algebra is identical to the unweighted case, with $\vb{W}$ simply carried along) gives the **weighted normal equations**
+
+$$
+\vb{X}^{\intercal}\vb{W}\vb{X}\,\boldsymbol{\uptheta} = \vb{X}^{\intercal}\vb{W}\vb{y},
+$$
+
+and hence
+
+$$
+\hat{\boldsymbol{\uptheta}} = \left(\vb{X}^{\intercal}\vb{W}\vb{X}\right)^{-1}\vb{X}^{\intercal}\vb{W}\vb{y}.
+$$ {#eq-weighted_normal_equations}
+
+Compare this with the ordinary solution $\hat{\boldsymbol{\uptheta}} = \left(\vb{X}^{\intercal}\vb{X}\right)^{-1}\vb{X}^{\intercal}\vb{y}$ from @eq-normal_equations_solution: it is the very same formula with $\vb{W}$ slotted in, and setting $\vb{W} = \vb{I}$ (all weights equal) recovers ordinary least squares exactly.
+:::
+
+Because the weights $w_i$, and therefore $\vb{W}$, depend on the query point, we must solve @eq-weighted_normal_equations afresh for every prediction. @alg-lwr_prediction lays out the full procedure.
+
+::: {#alg-lwr_prediction}
+<pre class="pseudocode">
+\begin{algorithm}
+\caption{Prediction with Locally Weighted Linear Regression}
+\begin{algorithmic}
+\REQUIRE Training set $\left\{\left(\vb{x}_i, y_i\right)\right\}_{i=1}^{n}$, bandwidth $\tau$, query point $\vb{x}$
+\ENSURE Prediction $\hat{y}$ at $\vb{x}$
+\FOR{$i = 1$ \TO $n$}
+    \STATE $w_i \leftarrow \exp\left(-\norm{\vb{x}_i - \vb{x}}^2 / \left(2\tau^2\right)\right)$
+\ENDFOR
+\STATE $\vb{W} \leftarrow \operatorname{diag}\left(w_1, w_2, \dots, w_n\right)$
+\STATE $\boldsymbol{\uptheta} \leftarrow \left(\vb{X}^{\intercal} \vb{W} \vb{X}\right)^{-1} \vb{X}^{\intercal} \vb{W} \vb{y}$
+\STATE $\hat{y} \leftarrow \boldsymbol{\uptheta}^{\intercal} \vb{x}$
+\RETURN $\hat{y}$
+\end{algorithmic}
+\end{algorithm}
+</pre>
+:::
+
+That per-query refitting is not just an implementation quirk. It marks a genuine shift in what kind of learning algorithm we are dealing with, which is the note we will end on.
+
+## Parametric vs. Non-Parametric
+
+Look back at ordinary linear regression. Once we solved for $\hat{\boldsymbol{\uptheta}}$, whether by gradient descent or the normal equations, we could throw the training data away and keep only the $d+1$ numbers in $\hat{\boldsymbol{\uptheta}}$. Every future prediction is just $\hat{\boldsymbol{\uptheta}}^{\intercal}\vb{x}$. The model has a fixed, finite number of parameters that does not grow with the size of the training set. An algorithm like this is called **parametric**.
+
+LWR is different. There is no single $\boldsymbol{\uptheta}$ to store, because the fit is recomputed for every query using the weights around that query. To make any future prediction, we must keep the *entire* training set on hand. An algorithm where the amount of information we need to retain grows with the training set, rather than compressing into a fixed parameter vector, is called **non-parametric** [@ng_cs229_notes]. LWR is the first non-parametric algorithm we have met, and the contrast is worth making explicit.
+
+::: {.tbl tbl-colwidths="auto"}
+| | Parametric (ordinary LR) | Non-parametric (LWR) |
+|:--|:--|:--|
+| Parameters | A fixed vector $\hat{\boldsymbol{\uptheta}} \in \mathbb{R}^{d+1}$ | No fixed parameters; refit per query |
+| Training data after fitting | Can be discarded | Must be kept in full |
+| Work at prediction time | A single dot product | Solve a weighted fit over all data |
+| Sensitivity to feature choice | High | Lower, given enough data |
+
+: Parametric versus non-parametric learning, contrasted through ordinary linear regression and LWR. {#tbl-parametric_vs_nonparametric style="width:80%; margin:auto;"}
+:::
+
+This trade-off is the price of LWR's flexibility. It adapts to local structure without careful feature engineering, but it pays for that at every prediction, in both memory (keep all the data) and computation (refit each time). Which side of the bargain is worth it depends on the problem, the amount of data, and how much prediction-time cost you can afford.
+
+## Where We Stand
+
+We have now stretched linear regression in a genuinely new direction. Instead of trusting a single global line, LWR fits a fresh, locally weighted line for each query, using the bell-shaped weights of @eq-lwr_weights with the bandwidth $\tau$ as its one dial. Along the way we met our first non-parametric algorithm and the memory-for-flexibility bargain it strikes. Here is where that leaves us on the map.
 
 ```{mermaid}
 %%| fig-align: center
@@ -852,8 +1024,44 @@ flowchart TB
     F["<b>6. The Normal Equations</b><br/>A closed-form solution:<br/>no iteration needed"]
     G["<b>7. The Geometric View</b><br/>Linear regression<br/>as projection"]
     H["<b>8. Why Squared Error?</b><br/>The probabilistic<br/>interpretation"]
-    I["<b>9. Wrapping Up</b><br/>Full picture and<br/>what comes next"]
-    A --> B --> C --> D --> E --> F --> G --> H --> I
+    L["<b>9. Going Local</b><br/>Locally weighted regression:<br/>fitting curves with lines"]
+    I["<b>10. Wrapping Up</b><br/>Full picture and<br/>what comes next"]
+    A --> B --> C --> D --> E --> F --> G --> H --> L --> I
+
+    style A fill:#555,color:#fff,stroke:#aaa
+    style B fill:#555,color:#fff,stroke:#aaa
+    style C fill:#555,color:#fff,stroke:#aaa
+    style D fill:#555,color:#fff,stroke:#aaa
+    style E fill:#555,color:#fff,stroke:#aaa
+    style F fill:#555,color:#fff,stroke:#aaa
+    style G fill:#555,color:#fff,stroke:#aaa
+    style H fill:#555,color:#fff,stroke:#aaa
+    style L fill:#1e8449,color:#fff,stroke:#fff
+    style I fill:#444,color:#aaa,stroke:#666
+```
+
+With this final piece in place, let us zoom all the way out and take in the whole journey.
+
+# Wrapping Up
+
+Let us step back and trace the path we have taken, starting from a printed scatter plot and a ruler.
+
+We began with a concrete problem: predicting Portland house prices from their area. A beginner's approach was to eyeball a line through the data. To improve on eyeballing, we needed a way to *measure* how good a line is, which led us to the idea of summing squared errors. We then formalized what a "line" means mathematically (the linear hypothesis $h_{\boldsymbol{\uptheta}}\left(\vb{x}\right) = \boldsymbol{\uptheta}^{\intercal}\vb{x}$) and what "good" means (the cost function $J\left(\boldsymbol{\uptheta}\right)$). With these tools in hand, we explored two strategies for finding the best parameters: gradient descent, which walks downhill iteratively, and the normal equations, which give the answer in one shot. We then saw the same normal equations emerge from a completely different direction, geometry: finding the best fit is the same as projecting the output vector onto the column space of the design matrix. We discovered that the squared error cost is not arbitrary; it is the natural consequence of assuming Gaussian noise in the data, via maximum likelihood estimation. Finally, we loosened the assumption of a single global line altogether: locally weighted linear regression fits a fresh, neighbor-weighted line for every query point, buying us curved fits without any feature engineering and introducing our first non-parametric algorithm.
+
+```{mermaid}
+%%| fig-align: center
+flowchart TB
+    A["<b>1. The Problem</b><br/>House prices, scatter plot,<br/>eyeballing a line"]
+    B["<b>2. Measuring Error</b><br/>How far is our line<br/>from the data?"]
+    C["<b>3. The Linear Hypothesis</b><br/>Formalizing lines<br/>with parameters"]
+    D["<b>4. The Cost Function</b><br/>Squared error:<br/>one number for goodness"]
+    E["<b>5. Gradient Descent</b><br/>An iterative algorithm<br/>to find the best line"]
+    F["<b>6. The Normal Equations</b><br/>A closed-form solution:<br/>no iteration needed"]
+    G["<b>7. The Geometric View</b><br/>Linear regression<br/>as projection"]
+    H["<b>8. Why Squared Error?</b><br/>The probabilistic<br/>interpretation"]
+    L["<b>9. Going Local</b><br/>Locally weighted regression:<br/>fitting curves with lines"]
+    I["<b>10. Wrapping Up</b><br/>Full picture and<br/>what comes next"]
+    A --> B --> C --> D --> E --> F --> G --> H --> L --> I
 
     style A fill:#1e8449,color:#fff,stroke:#fff
     style B fill:#1e8449,color:#fff,stroke:#fff
@@ -863,10 +1071,11 @@ flowchart TB
     style F fill:#1e8449,color:#fff,stroke:#fff
     style G fill:#1e8449,color:#fff,stroke:#fff
     style H fill:#1e8449,color:#fff,stroke:#fff
+    style L fill:#1e8449,color:#fff,stroke:#fff
     style I fill:#b9770e,color:#fff,stroke:#fff
 ```
 
-Linear regression is the simplest supervised learning model, but the *framework* we built around it (cost function, gradient descent, maximum likelihood) is far more general. Nearly every supervised learning algorithm you will encounter follows the same pattern: define a hypothesis, define a cost, and optimize. What changes from algorithm to algorithm is the *form* of the hypothesis and sometimes the cost function. The optimization machinery (gradient descent and its variants) stays largely the same.
+Linear regression is the simplest supervised learning model, but the *framework* we built around it (cost function, gradient descent, maximum likelihood) is far more general. Nearly every supervised learning algorithm you will encounter follows the same pattern: define a hypothesis, define a cost, and optimize. What changes from algorithm to algorithm is the *form* of the hypothesis and sometimes the cost function. The optimization machinery (gradient descent and its variants) stays largely the same. Even locally weighted regression, for all its differences, still defines a cost and minimizes it; what changed there was that the cost is re-weighted around each query point.
 
 In the next post, we will extend this framework to classification, where the output is a category rather than a continuous number. The first classification algorithm we will study, logistic regression, will look surprisingly familiar: it is, in many ways, a close cousin of the linear regression model we built today.
 

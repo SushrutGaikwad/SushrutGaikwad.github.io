@@ -49,3 +49,6 @@ _sources/*
 !_sources/README.md
 
 **/*.quarto_ipynb
+
+# Manim
+media/
