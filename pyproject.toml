@@ -9,6 +9,7 @@ dependencies = [
     "nbclient",
     "numpy",
     "matplotlib",
+    "scikit-learn",
 ]
 
 # Heavy visual-generation toolchain, needed only locally to produce the figures
