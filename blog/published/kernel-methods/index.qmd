@@ -3,9 +3,9 @@ title: "Kernel Methods"
 draft: false
 author: "Sushrut"
 date: 2026-05-10
-description: "A first-principles tour of kernel methods: from feature maps and polynomial regression, through the kernel trick that hides an infinite-dimensional feature space behind a cheap function, to Mercer's theorem and the reach of the kernel idea."
+description: "A first-principles tour of kernel methods: from feature maps and polynomial regression, through the kernel trick that hides an infinite-dimensional feature space behind a cheap function, to Mercer's theorem, the closure rules that let you build kernels from kernels, and the reach of the kernel idea."
 categories: [Machine Learning, Supervised Learning, Mathematics]
-tags: [Machine Learning, Kernel Methods, Kernel Trick, Feature Maps, Gaussian Kernel, Mercer Theorem, Support Vector Machines, Blog]
+tags: [Machine Learning, Kernel Methods, Kernel Trick, Feature Maps, Gaussian Kernel, Mercer Theorem, Positive Semidefinite, Support Vector Machines, Blog]
 format:
   html:
     link-citations: true
@@ -34,11 +34,13 @@ This post is largely based on the treatment in @ng_cs229_notes and the accompany
 
 ## A concrete itch: a curve a line cannot fit
 
-Let us make the limitation concrete. Suppose we are predicting the price $y$ of a house from a single number $x$, its living area. We collect a handful of houses and plot them. The trend is not a straight line: prices rise, level off, dip, and rise again as area grows. @fig-linear_vs_cubic_fit shows what happens when we try.
+Let us make the limitation concrete. Suppose we are predicting the price $y$ of a house from a single number $x$, its living area. We collect fourteen houses and plot them, with area measured in thousands of square feet and price in hundreds of thousands of dollars. The trend is real but it is not straight: prices climb steeply across the small homes, flatten out through the middle of the market where an extra bedroom barely moves the number, and then climb again at the luxury end. @fig-linear_vs_cubic_fit shows what happens when we try to fit it.
 
-![On the left, the best straight line $y = \theta_0 + \theta_1 x$ cannot bend, so it misses the shape of the data. On the right, a cubic $y = \theta_0 + \theta_1 x + \theta_2 x^2 + \theta_3 x^3$ follows the curve beautifully, and yet, as we are about to see, it is still a *linear* model, just linear in a cleverly chosen set of inputs.](images/linear_vs_cubic_fit.png){#fig-linear_vs_cubic_fit fig-align="center" width=100%}
+![On the left, the best straight line $y = \theta_0 + \theta_1 x$ cannot bend, so it is wrong in a *pattern*: the dashed segments (the residuals) run short, then long, then short again. On the right, a cubic $y = \theta_0 + \theta_1 x + \theta_2 x^2 + \theta_3 x^3$ tracks the S-shaped trend and leaves residuals about four times smaller, and yet, as we are about to see, it is still a *linear* model, just linear in a cleverly chosen set of inputs.](images/linear_vs_cubic_fit.png){#fig-linear_vs_cubic_fit fig-align="center" width=100%}
 
-The straight line on the left is doing its honest best, and it is still terrible, because a line simply has no way to bend. The cubic on the right tracks the data. So how do we fit that cubic using the linear regression we already know? That is where our journey begins.
+Look at the dashed residual segments on the left. They are not scattered randomly around the line, which is what honest noise would look like; they swing in a systematic arc. That signature is the tell-tale sign of a model that is missing real structure, not just unlucky. The cubic on the right absorbs that structure. So how do we fit that cubic using the linear regression we already know? That is where our journey begins.
+
+These same fourteen houses will follow us through the whole post. By the end we will fit them with a feature space we never write down.
 
 ## The roadmap
 
@@ -55,15 +57,18 @@ flowchart TD
     D --> E["Insight: θ is always a combo of the data"]
     E --> F["Rewrite the algorithm with a kernel K(x, z)"]
     F --> G["ϕ vanishes: the kernelized algorithm"]
-    G --> H["Kernels as similarity; Mercer's theorem"]
-    H --> I["The reach of the kernel trick; on to SVMs"]
+    G --> H["Kernels as similarity: choose K directly"]
+    H --> I["Payoff: the 14 houses, fit"]
+    I --> J["Which K are legal? Mercer, and closure rules"]
+    J --> K["The reach of the kernel trick; on to SVMs"]
 
     style D fill:#c0392b,color:#fff
     style F fill:#2471a3,color:#fff
     style G fill:#1e8449,color:#fff
+    style I fill:#1e8449,color:#fff
 ```
 
-Two boxes are highlighted because they are the emotional beats of the story: the red one (the wall) and the blue and green ones (the trick that gets us past it). Keep them in the back of your mind.
+Four boxes are highlighted because they are the emotional beats of the story: the red one (the wall), the blue one (the trick that gets us past it), and the two green ones (the trick paying off, first in principle and then on our actual fourteen houses). Keep them in the back of your mind.
 
 # Feature Maps
 
@@ -119,6 +124,8 @@ $$
 
 taking a $d$-dimensional attribute vector $\vb{x}$ to a $p$-dimensional feature vector $\boldsymbol{\upphi}(\vb{x})$. For the cubic example we had $d = 1$ and $p = 4$. In a moment we will let $p$ get frighteningly large.
 
+One small but important point about $\boldsymbol{\upphi}$, because it trips people up later: a feature map takes exactly *one* input. When we start writing things like $\boldsymbol{\upphi}(\vb{x})^{\intercal}\boldsymbol{\upphi}(\vb{z})$, that is the *same* function $\boldsymbol{\upphi}$ applied separately to $\vb{x}$ and to $\vb{z}$, and then the two results dotted together. There is no such thing as "$\boldsymbol{\upphi}$ of the pair $(\vb{x}, \vb{z})$." Keep that straight and a lot of what follows will feel less slippery.
+
 ::: {.callout-note}
 ## An intuition worth building: why higher dimensions help
 
@@ -141,9 +148,15 @@ x_1^2 + x_2^2
 \end{bmatrix},
 $$
 
-which gives every point a third coordinate equal to its squared distance from the origin. The inner blob, being close to the origin, stays low; the outer ring shoots up. In this lifted 3D space a perfectly *flat* plane slides between the two classes. @fig-feature_map_lift animates exactly this lift.
+which gives every point a third coordinate equal to its squared distance from the origin. The inner blob, being close to the origin, stays low; the outer ring shoots up. In this lifted 3D space a perfectly *flat* plane slides between the two classes. @fig-feature_map_lift runs through exactly this lift, in five beats: a straight line spinning in the plane and failing at every angle, the lift itself, the separating plane appearing, an orbit to prove the separation is not a trick of the viewing angle, and finally the payoff.
 
-![In the original 2D plane, the inner class (blue) and the outer class (red) cannot be split by any line. After lifting with $\boldsymbol{\upphi}\left(\begin{bmatrix} x_1 & x_2 \end{bmatrix}^{\intercal}\right) = \begin{bmatrix} x_1 & x_2 & x_1^2 + x_2^2 \end{bmatrix}^{\intercal}$, the classes separate onto opposite sides of a flat plane.](images/feature_map_lift.gif){#fig-feature_map_lift fig-align="center" width=85%}
+::: {#fig-feature_map_lift}
+{{< video images/feature_map_lift.mp4 >}}
+
+The lift, in five beats. In the original 2D plane the inner class (blue) and the outer class (red) cannot be split by any line, and the spinning line shows why: red always ends up on both sides of it. Applying $\boldsymbol{\upphi}\left(\begin{bmatrix} x_1 & x_2 \end{bmatrix}^{\intercal}\right) = \begin{bmatrix} x_1 & x_2 & x_1^2 + x_2^2 \end{bmatrix}^{\intercal}$ raises each point to its squared distance from the origin, and a flat plane at height $2.5$ then separates the classes cleanly, from every viewing angle. In the final beat the points sink back down and the plane leaves its shadow behind: a circle.
+:::
+
+That last beat is the one to watch. When the points sink back down, the plane leaves a shadow behind: a **circle**. The flat boundary upstairs and the curved boundary downstairs are the same boundary, seen from two different spaces. The feature map did not make the problem linear by straightening the data; it moved the data somewhere a straight cut could reach it.
 
 The moral, which holds for regression just as much as classification: a well-chosen feature map can turn a problem that is hopeless for a linear model into one a linear model handles with ease. This is a sidebar to build intuition; our main derivation below stays with regression. If the picture already convinced you that "more features = more power," you can carry that feeling forward and read on.
 :::
@@ -185,6 +198,10 @@ Counting the constant, the $d$ linear terms, the $d^2$ quadratic terms, and the 
 
 Let us feel how bad that is. Take $d = 1000$, a perfectly ordinary size. Then $p \approx d^3 = 10^9$. Every single gradient descent update in @eq-bgd_features must build, store, and dot with vectors of a *billion* numbers. Compare that to ordinary least squares in @eq-bgd_original, where each update touches vectors of length $d = 1000$. We just made every step roughly $d^2 = 10^6$, a million, times slower, and we blew up our memory by the same factor. And all of that cost bought us nothing conceptually new; we merely chose a richer feature space.
 
+Words like "a million times slower" are easy to read past, so @fig-feature_explosion draws the gap on a log scale. The dashed green line at the bottom is the target we will be aiming for by the end of this post.
+
+![The length of the monomial feature vector against the number of attributes $d$, on log-log axes. At $d = 1000$ the degree-$\leq 3$ feature vector has about $10^{9}$ entries, while the dashed line, the cost we will eventually get away with paying, sits at $10^{3}$. The vertical arrow between them is a factor of a million, and closing it is the entire business of the next three sections.](images/feature_explosion.png){#fig-feature_explosion fig-align="center" width=90%}
+
 It is tempting to conclude that this cost is simply unavoidable. After all, $\boldsymbol{\uptheta}$ itself lives in $\mathbb{R}^p$ with $p \approx d^3$; surely we have to store all billion of its entries and update every one of them?
 
 That intuition is exactly what the next three sections will demolish. The punchline, worth previewing so you know why we are about to do some algebra: we will never store $\boldsymbol{\uptheta}$ at all.
@@ -204,17 +221,19 @@ Why is this true? By induction. At initialization, $\boldsymbol{\uptheta} = \vb{
 $$
 \begin{align*}
 \boldsymbol{\uptheta}
-&:= \boldsymbol{\uptheta} + \alpha \sum_{i=1}^{n} \left( y_i - \boldsymbol{\uptheta}^{\intercal} \boldsymbol{\upphi}(\vb{x}_i) \right) \boldsymbol{\upphi}(\vb{x}_i) \\
-&= \sum_{i=1}^{n} \beta_i \, \boldsymbol{\upphi}(\vb{x}_i) + \alpha \sum_{i=1}^{n} \left( y_i - \boldsymbol{\uptheta}^{\intercal} \boldsymbol{\upphi}(\vb{x}_i) \right) \boldsymbol{\upphi}(\vb{x}_i) \\
-&= \sum_{i=1}^{n} \underbrace{\left( \beta_i + \alpha \left( y_i - \boldsymbol{\uptheta}^{\intercal} \boldsymbol{\upphi}(\vb{x}_i) \right) \right)}_{\text{new } \beta_i} \boldsymbol{\upphi}(\vb{x}_i).
+:=& \: \, \boldsymbol{\uptheta} + \alpha \sum_{i=1}^{n} \left( y_i - \boldsymbol{\uptheta}^{\intercal} \boldsymbol{\upphi}(\vb{x}_i) \right) \boldsymbol{\upphi}(\vb{x}_i) \\
+=& \sum_{i=1}^{n} \beta_i \, \boldsymbol{\upphi}(\vb{x}_i) + \alpha \sum_{i=1}^{n} \left( y_i - \boldsymbol{\uptheta}^{\intercal} \boldsymbol{\upphi}(\vb{x}_i) \right) \boldsymbol{\upphi}(\vb{x}_i) \\
+=& \sum_{i=1}^{n} \underbrace{\left( \beta_i + \alpha \left( y_i - \boldsymbol{\uptheta}^{\intercal} \boldsymbol{\upphi}(\vb{x}_i) \right) \right)}_{\text{new } \beta_i} \boldsymbol{\upphi}(\vb{x}_i).
 \end{align*}
 $$
 
 The updated $\boldsymbol{\uptheta}$ is *again* a linear combination of the same $n$ feature vectors, just with new coefficients. The induction goes through. So no matter how gigantic $p$ is, and no matter how long we run gradient descent, $\boldsymbol{\uptheta}$ never escapes the span of the $n$ feature vectors $\boldsymbol{\upphi}(\vb{x}_1), \ldots, \boldsymbol{\upphi}(\vb{x}_n)$.
 
-This suggests a change of bookkeeping. Instead of tracking the $p$-dimensional vector $\boldsymbol{\uptheta}$, track the $n$ coefficients $\boldsymbol{\upbeta} = \begin{bmatrix} \beta_1 & \cdots & \beta_n \end{bmatrix}^{\intercal}$. @fig-theta_vs_beta_duality shows the two representations side by side, and why the swap is such a bargain.
+It is worth pausing on what this means geometrically, because the algebra above hides a rather beautiful picture. The feature space $\mathbb{R}^p$ is enormous. But the $n$ feature vectors $\boldsymbol{\upphi}(\vb{x}_1), \ldots, \boldsymbol{\upphi}(\vb{x}_n)$ span a slice of it that is at most $n$-dimensional, and what we just proved is that $\boldsymbol{\uptheta}$ starts inside that slice and every gradient step keeps it there. The parameter is not free to roam $\mathbb{R}^p$; it is confined to a low-dimensional plane pinned down entirely by the training data. @fig-theta_lives_in_span draws it.
 
-![Two representations of the very same model. On the left, $\boldsymbol{\uptheta}$ carries one weight per feature, so its length $p$ can be astronomical, even infinite. On the right, $\boldsymbol{\upbeta}$ carries one weight per training example, so its length $n$ is whatever your dataset size is: always finite. The relation $\boldsymbol{\uptheta} = \sum_i \beta_i \boldsymbol{\upphi}(\vb{x}_i)$ ties them together.](images/theta_vs_beta_duality.png){#fig-theta_vs_beta_duality fig-align="center" width=85%}
+![Gradient descent, trapped. The ellipse is the ambient feature space $\mathbb{R}^p$, whose dimension can be astronomical or infinite. The tilted slice inside it is $\mathrm{span}\left\{\boldsymbol{\upphi}(\vb{x}_1), \ldots, \boldsymbol{\upphi}(\vb{x}_n)\right\}$, which has at most $n$ dimensions no matter how big $p$ is. Starting from $\boldsymbol{\uptheta} = \vb{0}$, each update adds a combination of the feature vectors, so the whole trajectory (green) stays inside the slice forever. A point in that slice is pinned down by just $n$ numbers, the coefficients $\beta_1, \ldots, \beta_n$.](images/theta_lives_in_span.png){#fig-theta_lives_in_span fig-align="center" width=100%}
+
+This suggests a change of bookkeeping. Instead of tracking the $p$-dimensional vector $\boldsymbol{\uptheta}$, track the $n$ coefficients $\boldsymbol{\upbeta} = \begin{bmatrix} \beta_1 & \cdots & \beta_n \end{bmatrix}^{\intercal}$. Same model, different address: $\boldsymbol{\uptheta}$ gives one weight per *feature* and can be endlessly long, while $\boldsymbol{\upbeta}$ gives one weight per *training example* and is exactly as long as your dataset.
 
 This is our first genuine win. We have traded a potentially infinite object for a finite one. But a nagging worry remains: the update for the new $\beta_i$ still mentions the old $\boldsymbol{\uptheta}$ through the term $\boldsymbol{\uptheta}^{\intercal}\boldsymbol{\upphi}(\vb{x}_i)$. We have not actually gotten rid of $\boldsymbol{\uptheta}$ yet; we have only promised to. Let us make good on the promise.
 
@@ -226,7 +245,7 @@ $$
 \beta_i := \beta_i + \alpha \left( y_i - \boldsymbol{\uptheta}^{\intercal} \boldsymbol{\upphi}(\vb{x}_i) \right).
 $$ {#eq-beta_update}
 
-The offending term is $\boldsymbol{\uptheta}^{\intercal}\boldsymbol{\upphi}(\vb{x}_i)$. But we now know how to expand $\boldsymbol{\uptheta}$: it is $\sum_{j=1}^{n} \beta_j \, \boldsymbol{\upphi}(\vb{x}_j)$. Substituting that in,
+The offending term is $\boldsymbol{\uptheta}^{\intercal}\boldsymbol{\upphi}(\vb{x}_i)$, where $\boldsymbol{\uptheta}$ is the parameter *before* this update. But we now know how to expand it: it is $\sum_{j=1}^{n} \beta_j \, \boldsymbol{\upphi}(\vb{x}_j)$, with the $\beta_j$ from before this update too. Substituting that in,
 
 $$
 \forall\, i \in \{1, \ldots, n\}, \quad
@@ -261,9 +280,25 @@ $$ {#eq-kernel_poly3}
 
 Stare at @eq-kernel_poly3 for a second, because it is genuinely startling. The inner product of two *billion-dimensional* feature vectors equals a tiny formula built from $\left\langle \vb{x}, \vb{z} \right\rangle$, the inner product of the two *original* $d$-dimensional attribute vectors. The middle step is where the collapse happens: the sum over pairs $(j,k)$ factors into the square of a single sum, and the sum over triples $(j,k,l)$ factors into a cube, because $\left(\sum_j a_j\right)^2 = \sum_{j,k} a_j a_k$ and similarly for the cube.
 
-The computational consequence is dramatic. To evaluate @eq-kernel_poly3 we compute $\left\langle \vb{x}, \vb{z} \right\rangle$ in $O(d)$ time, then square it, cube it, and add: a constant amount of extra work. Total cost $O(d)$, not $O(d^3)$. We get the exact same number the explicit computation would have given, at a millionth of the price. @fig-kernel_trick_schematic contrasts the two routes.
+The computational consequence is dramatic. To evaluate @eq-kernel_poly3 we compute $\left\langle \vb{x}, \vb{z} \right\rangle$ in $O(d)$ time, then square it, cube it, and add: a constant amount of extra work. Total cost $O(d)$, not $O(d^3)$. We get the exact same number the explicit computation would have given, at a millionth of the price.
 
-![Two paths from the inputs $\vb{x}, \vb{z}$ to the same scalar. The top path builds the huge feature vectors and dots them: correct, but $O(d^3)$. The bottom path evaluates one closed-form expression: same answer, $O(d)$. This shortcut is the kernel trick.](images/kernel_trick_schematic.png){#fig-kernel_trick_schematic fig-align="center" width=100%}
+If that still feels too good to be true, run both routes on actual numbers. Take $d = 3$ with
+
+$$
+\vb{x} = \begin{bmatrix} 1 \\ 2 \\ 1 \end{bmatrix},
+\qquad
+\vb{z} = \begin{bmatrix} 0 \\ 1 \\ 2 \end{bmatrix}.
+$$
+
+The explicit route builds $\boldsymbol{\upphi}(\vb{x})$ and $\boldsymbol{\upphi}(\vb{z})$, each with $1 + 3 + 3^2 + 3^3 = 40$ entries, and dots them together: forty multiplications and thirty-nine additions, and the answer is $85$. The kernel route computes $\left\langle \vb{x}, \vb{z} \right\rangle = 1 \cdot 0 + 2 \cdot 1 + 1 \cdot 2 = 4$ and then
+
+$$
+1 + 4 + 4^{2} + 4^{3} = 1 + 4 + 16 + 64 = 85.
+$$
+
+The same $85$, from three multiplications and a handful of additions. Nothing was approximated and nothing was thrown away; the two calculations are algebraically identical, and only one of them is expensive. @fig-kernel_trick_schematic puts both routes side by side.
+
+![Two paths from the inputs $\vb{x}, \vb{z}$ to the same scalar. The top path builds the huge feature vectors and dots them: correct, but $O(d^3)$. The bottom path evaluates one closed-form expression: same answer, $O(d)$. The strip along the bottom runs both routes on the concrete numbers above, and both land on $85$. This shortcut is the kernel trick.](images/kernel_trick_schematic.png){#fig-kernel_trick_schematic fig-align="center" width=100%}
 
 This cheap-to-evaluate stand-in for the feature inner product is important enough to get a name and a symbol. We define the **kernel** corresponding to a feature map $\boldsymbol{\upphi}$ as the function $K : \mathcal{X} \times \mathcal{X} \to \mathbb{R}$ given by
 
@@ -287,7 +322,7 @@ $$
 \boldsymbol{\upbeta} := \boldsymbol{\upbeta} + \alpha \left( \vb{y} - \vb{K} \boldsymbol{\upbeta} \right).
 $$ {#eq-beta_vector}
 
-Here $\vb{y} = \begin{bmatrix} y_1 & \cdots & y_n \end{bmatrix}^{\intercal}$ stacks the targets. @alg-kernelized_lms lays out the full method.
+Here $\vb{y} = \begin{bmatrix} y_1 & \cdots & y_n \end{bmatrix}^{\intercal}$ stacks the targets. One implementation detail hides in the difference between these two lines, and it is worth spelling out because it is easy to get wrong: all $n$ updates in @eq-beta_final use the *old* $\boldsymbol{\upbeta}$ on the right-hand side. If you loop over $i$ and overwrite $\beta_i$ in place, later coordinates will see already-updated earlier ones, and you will be running a subtly different algorithm. The vector form @eq-beta_vector enforces the right thing automatically, which is one more reason to prefer it. @alg-kernelized_lms lays out the full method.
 
 ::: {#alg-kernelized_lms}
 <pre class="pseudocode">
@@ -307,7 +342,9 @@ Here $\vb{y} = \begin{bmatrix} y_1 & \cdots & y_n \end{bmatrix}^{\intercal}$ sta
 </pre>
 :::
 
-Each iteration of @alg-kernelized_lms is a single matrix-vector product, $O(n^2)$ work, with no reference to $p$ anywhere. Building the kernel matrix up front costs $n^2$ kernel evaluations, and each of those is $O(d)$ thanks to the shortcut. The dreaded $d^3$ never appears.
+Each iteration of @alg-kernelized_lms is a single matrix-vector product, $O(n^2)$ work, with no reference to $p$ anywhere. Building the kernel matrix up front costs $n^2$ kernel evaluations, and each of those is $O(d)$ thanks to the shortcut, so $O(n^2 d)$ once, followed by $O(n^2)$ per iteration. The dreaded $d^3$ never appears.
+
+It is worth being precise about what just happened, because it is easy to over-read. The feature space did not go away. Our model is still $h(\vb{x}) = \boldsymbol{\uptheta}^{\intercal}\boldsymbol{\upphi}(\vb{x})$ with $\boldsymbol{\uptheta}$ living in $\mathbb{R}^p$, and $p$ is still about $d^3$. What vanished is our need to ever *touch* $\boldsymbol{\uptheta}$ or $\boldsymbol{\upphi}$ on a computer. The mathematics still happens in the billion-dimensional space; only the arithmetic escaped it.
 
 What about prediction? Once training gives us $\boldsymbol{\upbeta}$, the prediction on a fresh test point $\vb{x}_{\text{test}}$ is
 
@@ -328,16 +365,18 @@ again expressed purely through the kernel. Take a moment to appreciate what @eq-
 Neither training (@eq-beta_vector) nor prediction (@eq-predict_kernel) contains $\boldsymbol{\upphi}(\vb{x})$ anywhere. The feature map has completely vanished. Every place it *would* have appeared, it appears only as a kernel value $K(\cdot, \cdot)$, a single number we know how to compute cheaply. This is why we can afford feature spaces we could never even write down.
 :::
 
-There is, however, no free lunch, and it is only fair to name the price. In ordinary linear regression, once we learned $\boldsymbol{\uptheta}$ we could throw the training set away; a new prediction needed only the vector $\boldsymbol{\uptheta}$. The kernelized version cannot do that. Look again at @eq-predict_kernel: to predict on $\vb{x}_{\text{test}}$ we must evaluate $K(\vb{x}_i, \vb{x}_{\text{test}})$ against *every* training point $\vb{x}_i$. So we are forced to carry the entire training set with us to test time.
+There is, however, no free lunch, and it is only fair to name the price. In ordinary linear regression, once we learned $\boldsymbol{\uptheta}$ we could throw the training set away; a new prediction needed only the vector $\boldsymbol{\uptheta}$. The kernelized version cannot do that. Look again at @eq-predict_kernel: to predict on $\vb{x}_{\text{test}}$ we must evaluate $K(\vb{x}_i, \vb{x}_{\text{test}})$ against *every* training point $\vb{x}_i$. So we are forced to carry the entire training set with us to test time. @fig-prediction_weighted_vote makes the arithmetic of a single prediction visible.
 
-This is the characteristic trade of kernel methods. We gave up the compact parameter vector $\boldsymbol{\uptheta}$, and in exchange we must remember the data. For small and medium datasets this is a fine bargain. For truly massive datasets it becomes a real bottleneck, which is one reason methods like deep neural networks, whose cost does not grow with the number of stored examples, tend to take over at large scale. (There is a partial escape: some kernel methods, notably the support vector machine we turn to next, learn a $\boldsymbol{\upbeta}$ that is mostly zeros, so only a handful of examples, the "support vectors," need to be kept.)
+![One prediction, opened up. Top: the fourteen houses and a Gaussian-kernel fit, with each training cross drawn brighter and larger the more similar it is to the new house (the dashed green line). Bottom: the fourteen terms $\beta_i K(\vb{x}_i, \vb{x}_{\text{test}})$ that @eq-predict_kernel adds together, which sum to exactly the predicted price marked above. Houses far from the query contribute almost nothing, but "almost nothing" is not "nothing", and the algorithm has no way to know which ones will matter until it evaluates $K$ against all of them. That is the memory cost of kernel methods in one picture.](images/prediction_weighted_vote.png){#fig-prediction_weighted_vote fig-align="center" width=95%}
+
+This is the characteristic trade of kernel methods. We gave up the compact parameter vector $\boldsymbol{\uptheta}$, and in exchange we must remember the data. The cost shows up twice: the kernel matrix itself takes $O(n^2)$ memory to store during training, and the whole training set has to be kept around afterwards for prediction. For small and medium datasets this is a fine bargain. Once $n$ reaches the hundreds of thousands, an $n \times n$ matrix stops fitting anywhere, which is one reason methods like deep neural networks, whose cost does not grow with the number of stored examples, tend to take over at large scale. (There is a partial escape: some kernel methods, notably the support vector machine we turn to next, learn a $\boldsymbol{\upbeta}$ that is mostly zeros, so only a handful of examples, the "support vectors," need to be kept. In @fig-prediction_weighted_vote that would mean most of those bars becoming exactly zero, and the houses under them getting thrown away for good.)
 
 ## A quick recap before we change perspective
 
-Let us pause at the clearing and look at the map. @fig-roadmap-recap marks how far we have come.
+Let us pause at the clearing and look at the map. @fig-roadmap_recap marks how far we have come.
 
 ```{mermaid}
-%%| label: fig-roadmap-recap
+%%| label: fig-roadmap_recap
 %%| fig-cap: "Where we are now. We have crossed the wall: the kernelized algorithm trains and predicts without ever touching the feature map. Next we stop deriving kernels from feature maps and start choosing them directly."
 %%| fig-align: center
 flowchart TD
@@ -361,26 +400,48 @@ If we are going to pick kernels straight out of the air, it helps to have some i
 This flips the design process into something intuitive. Rather than asking "what features should I engineer?", we ask "what does it mean for two of my inputs to be similar?", and encode that answer as a kernel. A famous and enormously useful choice is the **Gaussian kernel** (also called the radial basis function or squared-exponential kernel):
 
 $$
-K(\vb{x}, \vb{z}) = \exp\left( -\frac{\left\| \vb{x} - \vb{z} \right\|^{2}}{2 \sigma^{2}} \right).
+K(\vb{x}, \vb{z}) = \exp\left( -\frac{ \norm\big{\vb{x} - \vb{z}}^{2}}{2 \sigma^{2}} \right).
 $$ {#eq-gaussian_kernel}
 
-When $\vb{x}$ and $\vb{z}$ are close, $\left\| \vb{x} - \vb{z} \right\| \approx 0$ and $K \approx 1$: maximal similarity. When they are far apart, the exponent is a large negative number and $K \approx 0$: negligible similarity. The bandwidth $\sigma$ sets how quickly "similar" fades into "unrelated." @fig-gaussian_kernel_similarity shows both the resulting kernel matrix and the decay.
+When $\vb{x}$ and $\vb{z}$ are close, $\norm\big{\vb{x} - \vb{z}} \approx 0$ and $K \approx 1$: maximal similarity. When they are far apart, the exponent is a large negative number and $K \approx 0$: negligible similarity. The bandwidth $\sigma$ sets how quickly "similar" fades into "unrelated." @fig-gaussian_kernel_similarity shows both the resulting kernel matrix and the decay.
 
-![Left: the kernel matrix $K_{ij} = K(\vb{x}_i, \vb{x}_j)$ for the Gaussian kernel on a set of sorted 1D points. It is bright ($\approx 1$) on the diagonal (every point is maximally similar to itself) and fades to dark ($\approx 0$) as points get farther apart, giving the banded structure of a similarity matrix. Right: the kernel value as a function of the distance $\left\| \vb{x} - \vb{z} \right\|$, for three bandwidths $\sigma$. Every curve starts at 1 for identical points and decays toward 0; a larger $\sigma$ means a wider notion of "close."](images/gaussian_kernel_similarity.png){#fig-gaussian_kernel_similarity fig-align="center" width=100%}
+![Left: fourteen evenly spaced points on a line (the strip on top) and the kernel matrix $K_{ij} = K(\vb{x}_i, \vb{x}_j)$ they generate. Each cell can be read straight off the strip: a neighbouring pair (green) gives a bright cell, a far-apart pair (blue) gives a dark one. The result is bright ($\approx 1$) on the diagonal, because every point is maximally similar to itself, fading to dark as you move away from it. Right: the kernel value as a function of the distance $\norm\big{\vb{x} - \vb{z}}$, for three bandwidths $\sigma$. Every curve starts at 1 for identical points and decays toward 0; a larger $\sigma$ means a wider notion of "close."](images/gaussian_kernel_similarity.png){#fig-gaussian_kernel_similarity fig-align="center" width=100%}
 
 ::: {.callout-warning}
 ## Handle this intuition with care
 
-The "kernel = similarity" picture is a helpful mental model, not a theorem. There are similarity-looking functions that are not valid kernels, and valid kernels whose values can be negative and so do not behave like a naive similarity score. Treat similarity as the *inspiration* for choosing a kernel, then *verify* validity with the test we develop below. If you have met [locally weighted regression](../linear-regression/index.qmd), you have seen a different "weight by closeness" idea; it is a cousin in spirit, but not the same construction as a kernel, so resist the urge to conflate them.
+The "kernel = similarity" picture is a helpful mental model, not a theorem. There are similarity-looking functions that are not valid kernels, and valid kernels whose values can be negative and so do not behave like a naive similarity score. Treat similarity as the *inspiration* for choosing a kernel, then *verify* validity with the test we develop below.
+
+There is one near-collision worth naming explicitly. If you have met [locally weighted regression](../linear-regression/index.qmd#going-local-locally-weighted-linear-regression), you have already seen the expression $w_i = \exp\left( -\left(x_i - x\right)^2 / \left(2\tau^2\right) \right)$, which is character for character the Gaussian kernel of @eq-gaussian_kernel. The *formula* is the same; the *job* is not. In locally weighted regression it is a weight, telling a plain linear fit how much to care about each training point near the query. Here it is an inner product in a feature space, telling us the geometry of the space our model lives in. Same bell curve, two entirely different roles, so resist the urge to conflate them.
+
+The two ideas do rhyme in one uncomfortable way, though, and it is the reason both appear in this series: neither one lets you throw the training data away. Locally weighted regression refits around each query point; kernel methods evaluate $K$ against every stored example. Flexibility bought with memory, twice over.
 :::
 
 Two things about the Gaussian kernel are worth flagging now and will land fully in the next sections. It is trivially cheap to evaluate, one distance computation and one exponential, and yet, if you tried to write down the feature map $\boldsymbol{\upphi}$ it secretly corresponds to, you would find it has *infinitely many* dimensions. We are computing inner products in an infinite-dimensional space in constant time. That is the whole promise of kernels, delivered.
+
+## The Payoff: Our Fourteen Houses, Revisited
+
+We have been promising for a long time now. Let us collect.
+
+Remember the fourteen houses from @fig-linear_vs_cubic_fit, the ones whose S-shaped price curve defeated a straight line. We can now hand them to @alg-kernelized_lms with a Gaussian kernel and see what comes out. Nothing else changes: same gradient descent, same targets, and at no point does anything in the computer hold a feature vector. @fig-kernel_fit_payoff shows the result at three bandwidths.
+
+![The kernelized algorithm of @alg-kernelized_lms run on the fourteen houses from @fig-linear_vs_cubic_fit, with the straight-line fit kept as a dotted reference in every panel. The bandwidth $\sigma$ is now the single dial that controls flexibility. Too small (left) and each house pulls up its own private bump; too large (right) and every house looks similar to every other, so the fit collapses back onto the straight line we were trying to escape. In between (middle), the S-shaped trend appears, with no polynomial degree chosen and no feature vector built.](images/kernel_fit_payoff.png){#fig-kernel_fit_payoff fig-align="center" width=100%}
+
+Look at what the middle panel cost us. We never decided "use a cubic." We never wrote down $\begin{bmatrix} 1 & x & x^2 & x^3 \end{bmatrix}^{\intercal}$. We picked a notion of similarity, turned the crank, and a curve came out. And the feature space that curve implicitly lives in is not four-dimensional or even a billion-dimensional; as the next sections will show, for the Gaussian kernel it is infinite-dimensional.
+
+The right-hand panel is worth a second look too, because it is the cleanest possible statement of what $\sigma$ does. Making the bandwidth huge means declaring that all our houses are roughly equally similar to one another, and a model that cannot tell its training points apart has nothing to work with but the overall trend. Flexibility, in kernel methods, is exactly a claim about which inputs count as alike.
+
+*(A small honest footnote on the figure: the kernel actually used is $K(\vb{x}, \vb{z}) = 1 + \exp\left( -\norm\big{\vb{x} - \vb{z}}^{2} / \left(2\sigma^2\right) \right)$. The extra constant is what gives the model an intercept, and adding $1$ to a kernel leaves it a kernel, as we are about to prove in general.)*
+
+So the machinery works. That success, though, was built on a kernel we pulled out of thin air, and it raises two questions we have so far dodged: what other kernels are there, and what exactly is the feature space each of them stands in for? The next section answers the first by collecting the standard catalogue, and the one after that answers the second properly.
 
 # A Gallery of Kernels
 
 Let us collect a few concrete kernels and, for each, connect the compact formula back to an explicit feature map so the correspondence in @eq-kernel_def feels real rather than magical.
 
-**The quadratic kernel.** Take $\vb{x}, \vb{z} \in \mathbb{R}^d$ and consider
+## The Quadratic Kernel
+
+Take $\vb{x}, \vb{z} \in \mathbb{R}^d$ and consider
 
 $$
 K(\vb{x}, \vb{z}) = \left( \vb{x}^{\intercal} \vb{z} \right)^{2}.
@@ -389,9 +450,11 @@ $$ {#eq-kernel_square}
 Expanding the square,
 
 $$
+\begin{align*}
 K(\vb{x}, \vb{z})
-= \left( \sum_{j=1}^{d} x_j z_j \right) \left( \sum_{k=1}^{d} x_k z_k \right)
-= \sum_{j,k=1}^{d} (x_j x_k)(z_j z_k),
+&= \left( \sum_{j=1}^{d} x_j z_j \right) \left( \sum_{k=1}^{d} x_k z_k \right)\\[0.5em]
+&= \sum_{j,k=1}^{d} (x_j x_k)(z_j z_k),
+\end{align*}
 $$
 
 which is exactly $\left\langle \boldsymbol{\upphi}(\vb{x}), \boldsymbol{\upphi}(\vb{z}) \right\rangle$ for the feature map that lists every product $x_j x_k$. Written out for $d = 3$,
@@ -413,11 +476,15 @@ $$
 
 Building this $\boldsymbol{\upphi}(\vb{x})$ takes $O(d^2)$ work, but evaluating $K$ through @eq-kernel_square takes only $O(d)$: compute $\vb{x}^{\intercal}\vb{z}$, then square. The shortcut again.
 
-**The inhomogeneous quadratic kernel.** A close relative adds a constant before squaring:
+## The Inhomogeneous Quadratic Kernel
+
+A close relative adds a constant before squaring:
 
 $$
-K(\vb{x}, \vb{z}) = \left( \vb{x}^{\intercal} \vb{z} + c \right)^{2}
-= \sum_{j,k=1}^{d} (x_j x_k)(z_j z_k) + \sum_{j=1}^{d} \left( \sqrt{2c}\, x_j \right)\left( \sqrt{2c}\, z_j \right) + c^{2}.
+\begin{align*}
+K(\vb{x}, \vb{z}) &= \left( \vb{x}^{\intercal} \vb{z} + c \right)^{2}\\[0.5em]
+&= \sum_{j,k=1}^{d} (x_j x_k)(z_j z_k) + \sum_{j=1}^{d} \left( \sqrt{2c}\, x_j \right)\left( \sqrt{2c}\, z_j \right) + c^{2}.
+\end{align*}
 $$
 
 Matching the three groups of terms, its feature map (again shown for $d = 3$) keeps the same second-order products $x_j x_k$ and adds the first-order terms $\sqrt{2c}\, x_j$ and a constant $c$:
@@ -443,7 +510,9 @@ $$
 
 The parameter $c \geq 0$ tunes how much weight the model puts on the first-order (linear) terms relative to the second-order (interaction) terms.
 
-**The general polynomial kernel.** Pushing the pattern, the kernel
+## The General Polynomial Kernel
+
+Pushing the pattern, the kernel
 
 $$
 K(\vb{x}, \vb{z}) = \left( \vb{x}^{\intercal} \vb{z} + c \right)^{k}
@@ -458,10 +527,32 @@ corresponds to a feature space of all monomials up to degree $k$, which has $\bi
 |:-------|:-------------------:|:-----------------------:|:----------------:|
 | Linear | $\vb{x}^{\intercal}\vb{z}$ | $d$ | $O(d)$ |
 | Polynomial (degree $k$) | $\left(\vb{x}^{\intercal}\vb{z} + c\right)^{k}$ | $\binom{d+k}{k} \sim d^{k}$ | $O(d)$ |
-| Gaussian (RBF) | $\exp\!\left(-\left\|\vb{x}-\vb{z}\right\|^{2} / 2\sigma^{2}\right)$ | infinite | $O(d)$ |
+| Gaussian (RBF) | $\exp\left( -\dfrac{ \norm\big{\vb{x} - \vb{z}}^{2}}{2 \sigma^{2}} \right)$ | $\infty$ | $O(d)$ |
 
 : A few standard kernels, the feature space each secretly maps into, and how cheap each is to compute. The last column is the whole point: the cost stays $O(d)$ no matter how large, or infinite, the feature space grows. {#tbl-kernel_gallery style="width:100%; margin:auto;"}
 :::
+
+## Where we stand
+
+Time for another look at the trail map. @fig-roadmap_kernels marks the shift that just happened and the question it leaves open.
+
+```{mermaid}
+%%| label: fig-roadmap_kernels
+%%| fig-cap: "The second half of the journey. We have stopped deriving kernels from feature maps and started choosing them directly, which works beautifully until someone asks the obvious question: which functions are we actually allowed to choose?"
+%%| fig-align: center
+flowchart TD
+    A["Kernelized algorithm: only K appears"] --> B["Read K as a similarity score"]
+    B --> C["Choose K directly: Gaussian, polynomial"]
+    C --> D["It works: our 14 houses, fit"]
+    D --> E["But which functions are legal kernels?"]
+    E --> F["Mercer's theorem answers it"]
+
+    style D fill:#1e8449,color:#fff
+    style E fill:#c0392b,color:#fff
+    style F fill:#2471a3,color:#fff
+```
+
+The red box is the loose thread. We have been picking kernels out of the air with nothing but intuition to justify it, and intuition, as the warning above admitted, is not a proof. Time to tighten that.
 
 # Which Functions Are Valid Kernels? Mercer's Theorem
 
@@ -486,20 +577,20 @@ Suppose $K$ is valid, so $K(\vb{x}, \vb{z}) = \boldsymbol{\upphi}(\vb{x})^{\inte
   $$
 
   so $\vb{K}$ is symmetric.
-- *Positive semidefiniteness.* Let $\phi_k(\vb{x})$ denote the $k$-th coordinate of $\boldsymbol{\upphi}(\vb{x})$. For *any* vector $\vb{z} \in \mathbb{R}^n$,
+- *Positive semidefiniteness.* Let $\phi_k(\vb{x})$ denote the $k$-th coordinate of $\boldsymbol{\upphi}(\vb{x})$, and let $\vb{c} \in \mathbb{R}^n$ be an arbitrary vector we use to probe the matrix. (The CS229 notes call this vector $\vb{z}$, but $\vb{z}$ is already doing duty as an input point everywhere else in this post, so we rename it here.) Then
 
   $$
   \begin{align*}
-  \vb{z}^{\intercal} \vb{K} \vb{z}
-  &= \sum_{i} \sum_{j} z_i K_{ij} z_j\\
-  &= \sum_{i} \sum_{j} z_i \, \boldsymbol{\upphi}(\vb{x}_i)^{\intercal} \boldsymbol{\upphi}(\vb{x}_j) \, z_j \\
-  &= \sum_{i} \sum_{j} z_i \left( \sum_{k} \phi_k(\vb{x}_i)\, \phi_k(\vb{x}_j) \right) z_j\\
-  &= \sum_{k} \sum_{i} \sum_{j} \left( z_i \phi_k(\vb{x}_i) \right)\left( z_j \phi_k(\vb{x}_j) \right) \\
-  &= \sum_{k} \left( \sum_{i} z_i \, \phi_k(\vb{x}_i) \right)^{2} \;\geq\; 0.
+  \vb{c}^{\intercal} \vb{K} \vb{c}
+  &= \sum_{i} \sum_{j} c_i K_{ij} c_j\\
+  &= \sum_{i} \sum_{j} c_i \, \boldsymbol{\upphi}(\vb{x}_i)^{\intercal} \boldsymbol{\upphi}(\vb{x}_j) \, c_j \\
+  &= \sum_{i} \sum_{j} c_i \left( \sum_{k} \phi_k(\vb{x}_i)\, \phi_k(\vb{x}_j) \right) c_j\\
+  &= \sum_{k} \sum_{i} \sum_{j} \left( c_i \phi_k(\vb{x}_i) \right)\left( c_j \phi_k(\vb{x}_j) \right) \\
+  &= \sum_{k} \left( \sum_{i} c_i \, \phi_k(\vb{x}_i) \right)^{2} \;\geq\; 0.
   \end{align*}
-  $$ {#eq-psd_proof}
+  $$
 
-  The second-to-last equality uses the identity $\sum_{i,j} a_i a_j = \left( \sum_i a_i \right)^2$ with $a_i = z_i \phi_k(\vb{x}_i)$. Because $\vb{z}$ was arbitrary and the result is always a sum of squares, $\vb{K}$ is **positive semidefinite**. (Here $\vb{z}$ is an auxiliary vector used to probe the matrix; do not confuse it with an input point.)
+  The last equality uses the identity $\sum_{i,j} a_i a_j = \left( \sum_i a_i \right)^2$ with $a_i = c_i \phi_k(\vb{x}_i)$. Because $\vb{c}$ was arbitrary and the result is always a sum of squares, $\vb{K}$ is **positive semidefinite**.
 
 So every valid kernel produces symmetric, positive semidefinite kernel matrices, on every finite set of points. The remarkable fact, due to Mercer, is that this necessary condition is also *sufficient*.
 
@@ -509,12 +600,85 @@ So every valid kernel produces symmetric, positive semidefinite kernel matrices,
 Let $K : \mathbb{R}^d \times \mathbb{R}^d \to \mathbb{R}$ be given. Then $K$ is a valid (Mercer) kernel, meaning there exists a feature map $\boldsymbol{\upphi}$ with $K(\vb{x}, \vb{z}) = \boldsymbol{\upphi}(\vb{x})^{\intercal}\boldsymbol{\upphi}(\vb{z})$, **if and only if** for every finite collection $\left\{ \vb{x}_1, \ldots, \vb{x}_n \right\}$ (with $n < \infty$), the corresponding kernel matrix $\vb{K} \in \mathbb{R}^{n \times n}$ is symmetric and positive semidefinite.
 :::
 
-This is a genuinely powerful tool, because it lets us certify a kernel *without ever finding its feature map* [@scholkopf2002learning; @hastie2009elements]. We get two complementary ways to prove a candidate function $K$ is a kernel:
+This is a genuinely powerful tool, because it lets us certify a kernel *without ever finding its feature map* [@scholkopf2002learning; @hastie2009elements]. We get three complementary ways to prove a candidate function $K$ is a kernel:
 
-1. **Construct a feature map.** Exhibit an explicit $\boldsymbol{\upphi}$ with $K(\vb{x}, \vb{z}) = \boldsymbol{\upphi}(\vb{x})^{\intercal}\boldsymbol{\upphi}(\vb{z})$, as we did for the polynomial kernels above.
-2. **Check symmetry and positive semidefiniteness.** Verify the Mercer condition directly, which is often far easier than hunting for $\boldsymbol{\upphi}$, especially for something like the Gaussian kernel whose feature map is infinite-dimensional.
+1. **Construct a feature map:**
+     - Exhibit an explicit $\boldsymbol{\upphi}$ with $K(\vb{x}, \vb{z}) = \boldsymbol{\upphi}(\vb{x})^{\intercal}\boldsymbol{\upphi}(\vb{z})$, as we did for the polynomial kernels above.
+2. **Check symmetry and positive semidefiniteness:**
+     - Verify the Mercer condition directly, which is often far easier than hunting for $\boldsymbol{\upphi}$, especially for something like the Gaussian kernel whose feature map is infinite-dimensional.
+3. **Verify the continuous version of the same condition:**
+     - Show that $\displaystyle \int\!\!\int f(\vb{x})\, K(\vb{x}, \vb{x}')\, f(\vb{x}')\, \dd{\vb{x}} \dd{\vb{x}'} \;\geq\; 0$ for every square-integrable function $f$. This is the same statement as (2) with the finite sums replaced by integrals and the probe vector $\vb{c}$ replaced by a probe *function* $f$. It is usually the hardest of the three to check by hand, but it is the form in which Mercer's theorem is often stated, so it is worth recognizing.
 
-A helpful way to picture Mercer's theorem: imagine the kernel $K$ as an (infinitely large) matrix, one entry $K(\vb{x}, \vb{z})$ for every pair of possible inputs. Choosing a finite set of points and forming $\vb{K}$ just extracts a finite submatrix of that infinite object. Mercer's condition says $K$ is a valid kernel exactly when *every* such finite submatrix is positive semidefinite, which is the natural way to say the infinite object is "positive semidefinite" all the way through.
+## Picturing the theorem
+
+Routes (2) and (3) look like different statements, and the picture that reconciles them is worth carrying around. Imagine the kernel $K$ as one enormous matrix, with a row for every possible input $\vb{x}$ and a column for every possible input $\vb{z}$, its $(\vb{x}, \vb{z})$ entry being the number $K(\vb{x}, \vb{z})$. Choosing $n$ points is choosing $n$ rows and the matching $n$ columns, and the kernel matrix $\vb{K}$ is exactly the little submatrix sitting where they cross. @fig-mercer_submatrix draws it.
+
+![Mercer's condition as a statement about submatrices. Choosing $n$ points selects $n$ rows and the matching $n$ columns of the (conceptually infinite) kernel matrix, and $\vb{K}$ is what sits at their intersections. Route (3) says the whole infinite object is positive semidefinite; route (2) says every finite submatrix is. Mercer's theorem is the statement that these amount to the same thing.](images/mercer_submatrix.png){#fig-mercer_submatrix fig-align="center" width=100%}
+
+Route (3) is the assertion that the infinite object itself is positive semidefinite; route (2) is the assertion that every finite piece of it is. Mercer's theorem says the two are equivalent, which is really just the familiar fact that any principal submatrix of a positive semidefinite matrix is itself positive semidefinite, promoted to the infinite-dimensional setting.
+
+## The test, run
+
+Route (2) is not just theoretically convenient; it is something you can literally execute. Pick some points, build the matrix, ask a computer for its eigenvalues, and look for a negative one. @fig-mercer_psd_test does this for two functions that both look like perfectly reasonable similarity scores.
+
+![Mercer's condition, checked numerically on seven points. Top: the Gaussian kernel produces a matrix whose eigenvalues are all non-negative, so a feature map exists (infinite-dimensional though it is) and we never have to find it. Bottom: the sigmoid or "tanh" kernel $K(\vb{x}, \vb{z}) = \tanh\left( \kappa\, \vb{x}^{\intercal}\vb{z} + c \right)$, which is genuinely used in practice, produces a clearly negative eigenvalue on these points. No feature map can exist, and the derivation behind @alg-kernelized_lms simply does not apply to it.](images/mercer_psd_test.png){#fig-mercer_psd_test fig-align="center" width=100%}
+
+The bottom row deserves a moment. A single negative eigenvalue $\lambda < 0$ with eigenvector $\vb{c}$ gives $\vb{c}^{\intercal}\vb{K}\vb{c} = \lambda \norm\big{\vb{c}}^{2} < 0$, which directly contradicts the chain of equalities we just proved must hold for any valid kernel. One counterexample on seven arbitrary points is enough to disqualify a function forever. This is also a fair warning about the "kernel = similarity" intuition: the sigmoid kernel is a perfectly sensible-looking similarity score, it is used in real software, and it is not a kernel.
+
+## Building New Kernels From Old Ones
+
+There is a fourth route, and in practice it is the one people reach for most. Kernels are closed under a handful of operations, so once you have a few, you can manufacture endless others without going anywhere near a feature map or an eigenvalue.
+
+Suppose $K_1$ and $K_2$ are valid kernels on $\mathcal{X}$. Then all of the following are valid kernels too [@scholkopf2002learning; @bishop2006pattern]:
+
+::: {.tbl tbl-colwidths="auto"}
+| Construction | New kernel | Why it works |
+|:---|:---|:---|
+| Sum | $K_1(\vb{x}, \vb{z}) + K_2(\vb{x}, \vb{z})$ | Stack the two feature maps into one longer vector |
+| Positive scaling | $a\, K_1(\vb{x}, \vb{z})$, for $a > 0$ | Scale the feature map by $\sqrt{a}$ |
+| Constant | $c$, for $c \geq 0$ | The feature map is the single number $\sqrt{c}$ |
+| Product | $K_1(\vb{x}, \vb{z})\, K_2(\vb{x}, \vb{z})$ | The feature map lists all products $\phi^{(1)}_j(\vb{x}) \phi^{(2)}_k(\vb{x})$ |
+| Rescaling by a function | $f(\vb{x})\, K_1(\vb{x}, \vb{z})\, f(\vb{z})$, any $f$ | Multiply the feature map through by $f(\vb{x})$ |
+| Limits | $\lim_{m \to \infty} K_m(\vb{x}, \vb{z})$, if it exists | Positive semidefiniteness survives taking limits |
+
+: The closure rules. The first five are proved by exhibiting the feature map sketched in the last column, so they need no Mercer's theorem at all. The last one is the exception: it is easiest to argue through positive semidefiniteness, which passes to pointwise limits because a limit of non-negative numbers is non-negative. {#tbl-kernel_closure style="width:100%; margin:auto;"}
+:::
+
+Two of these we have already used without comment. Back in @fig-kernel_fit_payoff the kernel was $1 + \exp\left( -\norm\big{\vb{x} - \vb{z}}^{2} / \left(2\sigma^2\right) \right)$, which is legal by the "constant" and "sum" rules. And the polynomial kernel of @eq-kernel_poly3, $1 + \left\langle \vb{x}, \vb{z} \right\rangle + \left\langle \vb{x}, \vb{z} \right\rangle^2 + \left\langle \vb{x}, \vb{z} \right\rangle^3$, is now a one-line proof: the linear kernel $\left\langle \vb{x}, \vb{z} \right\rangle$ is a kernel, products of kernels are kernels (so its square and cube are), constants are kernels, and sums of kernels are kernels. We spent a page expanding monomials earlier to prove exactly that. The closure rules get it for free.
+
+::: {.callout-note}
+## Cashing the cheque: the Gaussian kernel really is a kernel
+
+We have twice promised that the Gaussian kernel corresponds to an infinite-dimensional feature map, and twice moved on without proving it. The closure rules let us settle it in a few lines.
+
+Start by expanding the exponent:
+
+$$
+\norm\big{\vb{x} - \vb{z}}^{2} = \norm\big{\vb{x}}^{2} - 2 \left\langle \vb{x}, \vb{z} \right\rangle + \norm\big{\vb{z}}^{2},
+$$
+
+so that the Gaussian kernel factors as
+
+$$
+K(\vb{x}, \vb{z}) =
+\underbrace{\exp\left( -\frac{\norm\big{\vb{x}}^{2}}{2\sigma^{2}} \right)}_{f(\vb{x})}
+\cdot
+\underbrace{\exp\left( \frac{\left\langle \vb{x}, \vb{z} \right\rangle}{\sigma^{2}} \right)}_{\text{the interesting part}}
+\cdot
+\underbrace{\exp\left( -\frac{\norm\big{\vb{z}}^{2}}{2\sigma^{2}} \right)}_{f(\vb{z})}.
+$$ {#eq-gaussian_factored}
+
+The outer two factors of @eq-gaussian_factored are exactly the "rescaling by a function" row of @tbl-kernel_closure, with $f(\vb{x}) = \exp\left( -\norm\big{\vb{x}}^{2} / \left(2\sigma^2\right) \right)$. So the whole thing is a valid kernel as soon as the middle factor is. And the middle factor yields to the power series of the exponential:
+
+$$
+\exp\left( \frac{\left\langle \vb{x}, \vb{z} \right\rangle}{\sigma^{2}} \right)
+= \sum_{m=0}^{\infty} \frac{1}{m!\, \sigma^{2m}} \left\langle \vb{x}, \vb{z} \right\rangle^{m}.
+$$
+
+Every term is a non-negative constant times a power of the linear kernel, so every term is a kernel by the product and scaling rules; the partial sums are kernels by the sum rule; and the limit is a kernel by the limit rule. The Gaussian kernel is therefore valid, and the argument also tells us *why* its feature space is infinite-dimensional: the series never terminates, so the implied feature map contains monomials of every degree, all the way up. A cubic feature map gives you degree three. The Gaussian gives you all of them at once, for one exponential.
+:::
+
+That closes the last open question. We know what a kernel is, we know how to check whether a candidate function qualifies, we know how to build new ones out of old ones, and we have watched one fit real data. The only thing left is to see how far outside linear regression the idea travels, which turns out to be a very long way indeed.
 
 # Why This Matters: The Reach of the Kernel Trick
 
@@ -528,7 +692,10 @@ It would be a shame to leave the impression that kernels are a party trick for p
 
 - Apply it to the [perceptron](../classification-perceptron-logistic-regression/index.qmd) and you get the kernel perceptron.
 - Apply it to the generalized linear models from the [exponential family and GLMs post](../exponential-family-and-generalized-linear-models/index.qmd), for instance logistic or Poisson regression, and you get their kernelized versions.
+- Apply it to principal component analysis, which is built entirely out of inner products, and you get **kernel PCA**: principal directions in a feature space you never construct. That is an *unsupervised* algorithm, with no labels anywhere, which shows the trick has nothing to do with supervision [@scholkopf2002learning].
 - It works for discriminative and generative models, and for supervised and unsupervised learning alike.
+
+One more destination is worth naming because it takes the "kernel as similarity" reading completely seriously. In a **Gaussian process**, the kernel is not a computational shortcut hidden inside an algorithm; it *is* the model. You specify how similar any two inputs are, and that specification alone determines a distribution over functions. The similarity intuition we were careful to hedge earlier becomes, in that setting, the whole modelling language [@bishop2006pattern].
 
 The kernel idea is, in short, a general-purpose amplifier for any inner-product-based algorithm [@bishop2006pattern].
 
@@ -536,12 +703,14 @@ The kernel idea is, in short, a general-purpose amplifier for any inner-product-
 
 Let us close the loop we opened with a curve that a straight line could not fit.
 
+That loop is, quite literally, closed. The fourteen houses of @fig-linear_vs_cubic_fit are the same fourteen houses of @fig-kernel_fit_payoff, and the S-shaped trend that defeated the line in the first figure is tracked cleanly in the second. What sits between those two pictures is everything this post was about.
+
 We started by noticing that a nonlinear fit is just a linear fit over cleverly chosen features, and we packaged that idea as a feature map $\boldsymbol{\upphi}$. Plugging $\boldsymbol{\upphi}$ into gradient descent was effortless, until the features exploded to $d^3$ (or worse) dimensions and threatened to make everything a million times slower. Then came the three-step rescue:
 
 1. Started from $\boldsymbol{\uptheta} = \vb{0}$, the parameter $\boldsymbol{\uptheta}$ always stays a combination $\sum_i \beta_i \boldsymbol{\upphi}(\vb{x}_i)$ of the data, so we can track $n$ coefficients instead of $p$ weights.
 2. Rewritten in terms of those coefficients, the algorithm touches the features only through inner products $\left\langle \boldsymbol{\upphi}(\vb{x}_i), \boldsymbol{\upphi}(\vb{x}_j) \right\rangle$.
 3. Those inner products collapse into a cheap kernel $K(\vb{x}, \vb{z})$, so the feature map vanishes from both training and prediction.
 
-The real prize is a *decoupling*. We separated the question of *what features to use* from the question of *how much it costs to compute*. Once decoupled, we could reach for feature spaces of astronomical or even infinite dimension, the Gaussian kernel's being literally infinite, and pay only $O(d)$ per kernel evaluation. Mercer's theorem then told us precisely which functions we are allowed to use as kernels: the symmetric, positive semidefinite ones.
+The real prize is a *decoupling*. We separated the question of *what features to use* from the question of *how much it costs to compute*. Once decoupled, we could reach for feature spaces of astronomical or even infinite dimension, and pay only $O(d)$ per kernel evaluation. Mercer's theorem then told us precisely which functions we are allowed to use as kernels: the symmetric, positive semidefinite ones. And the closure rules of @tbl-kernel_closure turned that licence into a construction kit, one that let us finally prove what we had been claiming all along, that the Gaussian kernel's feature space really is infinite-dimensional.
 
-The one cost we accepted along the way was memory: without a compact $\boldsymbol{\uptheta}$, we must keep the training data around to make predictions. That very concern sets up the next chapter. In the next post we turn to the **support vector machine**, an algorithm that not only pairs beautifully with kernels but also, through its notion of a *margin*, learns a coefficient vector $\boldsymbol{\upbeta}$ that is mostly zeros, so only a few "support vectors" need to be remembered. Kernels gave us the power to work in vast feature spaces; support vector machines will show us how to use that power to draw the best possible boundary.
+The one cost we accepted along the way was memory: without a compact $\boldsymbol{\uptheta}$, we must keep the training data around to make predictions, and the kernel matrix itself costs $O(n^2)$ to store while we train. That very concern sets up the next chapter. In the next post we turn to the **support vector machine**, an algorithm that not only pairs beautifully with kernels but also, through its notion of a *margin*, learns a coefficient vector $\boldsymbol{\upbeta}$ that is mostly zeros, so only a few "support vectors" need to be remembered. Kernels gave us the power to work in vast feature spaces; support vector machines will show us how to use that power to draw the best possible boundary.
