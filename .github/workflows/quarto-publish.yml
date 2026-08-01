@@ -22,15 +22,14 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v7
 
+      # Deliberately unpinned, so CI tracks the latest Quarto and you can upgrade
+      # locally whenever you like without the two drifting apart. What makes that
+      # safe is html-math-method.url in _quarto.yml, which pins the MathJax version
+      # explicitly instead of inheriting whatever the current Quarto happens to
+      # inject, plus the wiring check below, which fails the build rather than
+      # shipping silently broken math.
       - name: Setup Quarto
         uses: quarto-dev/quarto-actions/setup@v2
-        with:
-          # Pinned so CI renders with the same Quarto used locally. Leaving this
-          # unpinned means every push silently picks up the latest release: that is
-          # how 1.10 arrived on its own and broke all the math on the site, by
-          # switching Quarto's default MathJax from 3 to 4. Bump this deliberately,
-          # and re-render locally with the same version before doing so.
-          version: 1.9.38
 
       - name: Setup Python
         uses: actions/setup-python@v6
@@ -47,6 +46,12 @@ jobs:
 
       - name: Render site
         run: quarto render
+
+      # Rendering succeeds even when the math is completely broken, because a
+      # duplicated or mismatched MathJax script is valid HTML. This is the step
+      # that actually notices.
+      - name: Check MathJax wiring
+        run: python .github/scripts/check_math_wiring.py
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v5
