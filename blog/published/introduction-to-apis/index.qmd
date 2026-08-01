@@ -10,7 +10,6 @@ format:
   html:
     link-citations: true
     smooth-scroll: true
-    math: mathjax
     toc: true
     mermaid:
       theme: dark

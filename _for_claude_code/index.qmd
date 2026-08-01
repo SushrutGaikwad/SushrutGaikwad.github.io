@@ -10,7 +10,6 @@ format:
   html:
     link-citations: true
     smooth-scroll: true
-    math: mathjax
     toc: true
     fig-format: svg
     mermaid:
@@ -23,6 +22,22 @@ execute:
 ---
 
 All the content in the YAML frontmatter stays the same except for the title, date, description, categories, and tags.
+
+::: {.callout-important}
+## Do not add a `math:` key to a post
+
+There is no `math:` option in Quarto. Posts used to carry a `math: mathjax` line, and it never did what it looked like it was doing: it had no say in *which* MathJax the page loaded, and on a page that contains equations Quarto injects MathJax anyway. Its only real effect was to pull MathJax onto pages that have no math at all. The line has been removed from every post. The option that actually matters is `html-math-method`, it is set once for the whole site in `_quarto.yml`, and it should stay there:
+
+``` yaml
+html-math-method:
+  method: mathjax
+  url: "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js"
+```
+
+That `url` is load-bearing. It pins MathJax to version 3, whose `tex-chtml-full` bundle carries the `physics` and `upgreek` packages this notation guide depends on. Without the pin, the MathJax version is whatever the Quarto that built the site happens to default to, and Quarto 1.10 changed that default to MathJax 4, which broke every equation on the deployed site while local builds on an older Quarto still looked fine.
+
+If a post ever sets its own math method, it will load a second MathJax alongside the site-wide one, the two will fight over `window.MathJax`, and nothing on that page will typeset. `.github/scripts/check_math_wiring.py` runs on every CI build and fails the deploy if that happens, so the mistake cannot reach the live site, but it is easier not to make it.
+:::
 
 # My Math Notation
 

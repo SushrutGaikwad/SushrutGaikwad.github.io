@@ -15,7 +15,13 @@ checks every rendered page against these invariants:
   1. No page loads more than one MathJax script.
   2. Every MathJax script URL is the one _quarto.yml declares.
   3. Every page that contains math loads MathJax.
-  4. Math is emitted as raw LaTeX for MathJax to typeset, not pre-rendered into
+  4. Every page with a pseudocode block loads MathJax, since pseudocode.js
+     typesets algorithm bodies by calling MathJax after the initial pass. Quarto
+     decides whether to inject MathJax by looking for math it recognises, and a
+     <pre class="pseudocode"> block is raw HTML that it does not look inside. A
+     post whose only math lived in an algorithm block would therefore render the
+     prose fine and the algorithm as unstyled TeX source.
+  5. Math is emitted as raw LaTeX for MathJax to typeset, not pre-rendered into
      HTML by Pandoc (which is what html-math-method: plain silently does).
 
 Run locally with:
@@ -90,6 +96,17 @@ def main() -> int:
                     "    Quarto's default MathJax version changes between releases;\n"
                     "    html-math-method.url in _quarto.yml is what pins it."
                 )
+
+        # (4): pseudocode blocks are typeset by pseudocode.js through MathJax, but
+        # Quarto cannot see the math inside them when deciding whether to inject it.
+        if 'class="pseudocode"' in html and not scripts:
+            problems.append(
+                f"{rel}: has a pseudocode block but loads no MathJax script.\n"
+                "    pseudocode.js typesets algorithm bodies via MathJax, and Quarto\n"
+                "    only injects MathJax when it recognises math outside raw HTML.\n"
+                "    Put at least one inline equation in the prose, or set the math\n"
+                "    method for this page explicitly."
+            )
 
         if not spans:
             continue
