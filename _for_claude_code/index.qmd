@@ -87,6 +87,11 @@ Similarly, I show a matrix as an uppercase, non-italic, and bold letter. For ins
 
 Further, also notice how I show the transpose of a vector as $\vb{x}^{\intercal}$ and not as $\vb{x}^T$.
 
+Next, please denote the norm of vectors in the following way:
+
+- If the norm is supposed to be of vectors without any subscripts, superscripts, fractions, etc. (basically anything that can take more vertical space compared to a single letter), then norm should be written using `\norm\big{}`, e.g., $\norm\big{\vb{w}}$, $\norm\big{\vb{w} - \vb{x}}$, $\norm\big{\vb{w}} / \norm\big{\vb{x}}$, etc.
+- Otherwise, exclude the `\big{}`, e.g., $\norm{\vb{w}_i}$, $\norm{\vb{w}_i - \vb{x}_i}$, etc.
+
 ### Align Environment
 
 I sometimes also use the align environment, e.g.,
