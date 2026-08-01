@@ -24,6 +24,13 @@ jobs:
 
       - name: Setup Quarto
         uses: quarto-dev/quarto-actions/setup@v2
+        with:
+          # Pinned so CI renders with the same Quarto used locally. Leaving this
+          # unpinned means every push silently picks up the latest release: that is
+          # how 1.10 arrived on its own and broke all the math on the site, by
+          # switching Quarto's default MathJax from 3 to 4. Bump this deliberately,
+          # and re-render locally with the same version before doing so.
+          version: 1.9.38
 
       - name: Setup Python
         uses: actions/setup-python@v6

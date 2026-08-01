@@ -72,7 +72,14 @@ format:
   html:
     # mainfont: "Source Sans 3"
     link-external-newwindow: true
-    math: none
+    # Pin Quarto's own math injection to MathJax 3 (tex-chtml-FULL, which bundles the
+    # physics and upgreek extensions the posts rely on). Do NOT also load MathJax from
+    # include-in-header: two MathJax scripts on one page fight over window.MathJax and
+    # nothing typesets. Quarto 1.10 switched its default to MathJax 4, which is what
+    # broke the deployed site while the local Quarto 1.9 still shipped v3.
+    html-math-method:
+      method: mathjax
+      url: "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js"
     theme:
       dark: darkly
       light: flatly
@@ -83,7 +90,10 @@ format:
     code-fold: true
     include-in-header:
       - text: |
-          <!-- MathJax configuration -->
+          <!-- MathJax configuration. This must come BEFORE the MathJax script that
+               Quarto injects (html-math-method above), because MathJax 3 reads
+               window.MathJax at load time. include-in-header content is emitted
+               ahead of Quarto's math dependency, so the ordering holds. -->
           <script>
             window.MathJax = {
               chtml: {
@@ -106,8 +116,6 @@ format:
               }
             };
           </script>
-          <script id="MathJax-script" async
-                  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js"></script>
           <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pseudocode@2.4.1/build/pseudocode.min.css">
     include-after-body:
       - text: |
