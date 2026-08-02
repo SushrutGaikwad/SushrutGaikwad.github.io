@@ -1,5 +1,5 @@
 ---
-title: "What Is in the Box? A History of an Idea"
+title: "Neural Networks: A History of an Idea"
 draft: false
 author: "Sushrut"
 date: 2026-05-21
