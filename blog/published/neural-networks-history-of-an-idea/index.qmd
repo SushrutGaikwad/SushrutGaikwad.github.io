@@ -3,7 +3,7 @@ title: "Neural Networks: A History of an Idea"
 draft: false
 author: "Sushrut"
 date: 2026-05-21
-description: "The first lecture of CMU's Introduction to Deep Learning, expanded into notes. From Plato's associationism and Bain's 1873 connectionism, through McCulloch and Pitts, Hebb, Turing and Rosenblatt, to the three senses in which a multi-layer perceptron is universal."
+description: "A history of the idea behind neural networks, from Plato's associationism and Bain's 1873 claim that the information is in the connections, through the McCulloch-Pitts neuron, Turing's unorganised machines, Hebb's rule and Rosenblatt's perceptron, to the XOR wall and the three senses in which a multi-layer perceptron is universal."
 categories: [Deep Learning]
 tags: [Deep Learning, Neural Networks, Connectionism, Perceptron, MLP, History]
 format:
